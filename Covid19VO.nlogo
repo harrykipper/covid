@@ -26,7 +26,6 @@ turtles-own
   cured?               ;; If true, the person has lived through an infection. They cannot be re-infected.
   symptomatic?         ;; If true, the person is showing symptoms of infection
   severe-symptoms?     ;; If true, the person is showing severe symptoms
-  inoculated?          ;; If true, the person has been inoculated.
   isolated?            ;; If true, the person is isolated, unable to infect anyone.
   hospitalized?        ;; If true, the person is hospitalized and will recovery in half the average-recovery-time.
   dead?                ;; If true, the person is... you know..
@@ -66,7 +65,10 @@ to setup
 
   reset-ticks
 
-  ask one-of turtles with [age >= 49 and age <= 74 and sex = "M"][set infected? true]
+  ask one-of turtles with [age >= 49 and age <= 74 and sex = "M"][
+    set infected? true
+    set susceptible? false
+  ]
 end
 
 to read-agents
@@ -82,6 +84,8 @@ to read-agents
           set hospitalized? false
           set infected? false
           set susceptible? true
+          set symptomatic? false
+          set severe-symptoms? false
           set dead? false
 
           set age item 0 ag + 1 ;; Data are from 2019, everyone is one year older now...
@@ -359,7 +363,8 @@ to newinfection
   set nb-infected (nb-infected + 1)
 end
 
-;; Infected individuals who are not isolated or hospitalized have a chance of transmitting their disease to their susceptible neighbors.
+;; Infected individuals who are not isolated or hospitalized have a chance of transmitting
+;; their disease to their susceptible neighbors.
 ;; If the neighbor is linked, then the chance of disease transmission doubles.
 
 to infect  ;; turtle procedure
