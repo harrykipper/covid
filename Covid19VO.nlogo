@@ -195,10 +195,10 @@ end
 
 to-report probability-of-dying [agent-age]
   report (ifelse-value
-    agent-age < 40 [10]
-    agent-age < 50 [20]
-    agent-age < 60 [30]
-    [50]
+    agent-age < 40 [5]
+    agent-age < 50 [10]
+    agent-age < 60 [20]
+    [40]
   )
 end
 
@@ -252,7 +252,7 @@ to go
     [ clear-count ]
 
   ask turtles
-    [ if infected? and not isolated? and not hospitalized?
+    [ if infected? and not hospitalized?
          [ infect ] ]
 
   ask turtles
@@ -260,7 +260,7 @@ to go
         [ isolate ] ]
 
   ask turtles
-    [ if not isolated? and not hospitalized? and infected? and severe-symptoms?
+    [ if not hospitalized? and infected? and severe-symptoms?
       [ hospitalize] ]
 
   ask turtles
@@ -270,9 +270,7 @@ to go
         if severe-symptoms? and infection-length = recovery-time [maybe-die]
         if symptomatic? and not severe-symptoms? and infection-length = recovery-time [maybe-worsen]
         if not symptomatic? and infection-length = symptom-time [maybe-show-symptoms]
-        if symptomatic? and not severe-symptoms? [
-          if random 100 < isolation-tendency [isolate]
-        ]
+        if symptomatic? [if random 100 < isolation-tendency [isolate]]
         maybe-recover
       ]
   ]
@@ -297,14 +295,14 @@ to maybe-show-symptoms
   if prob-symptoms > random 100 [
     ;show "DEBUG: I have the symptoms!"
     set symptomatic? true
-    set recovery-time infection-length + 7  ;; if the person is showing symptoms, it'll take 7 days to recover
+    set recovery-time infection-length + 7  ;; if the person is showing symptoms, it'll take 7 more days to recover
   ]
 end
 
 to maybe-worsen
   if probability-of-worsening age > random 100 [
     set severe-symptoms? true
-    set recovery-time infection-length + 10 ;; if the person deteriorates it takes another 10 days to recover
+    set recovery-time infection-length + 7 ;; if the person deteriorates it takes another 7 days to recover
     ;show "DEBUG: I'm worsening!"
   ]
 end
@@ -312,12 +310,13 @@ end
 to maybe-die
   ifelse hospitalized?
   [if probability-of-dying age > random 100 [kill-agent]]
-  [if probability-of-dying age * 1.5 > random 100 [kill-agent]]  ; no hospital bed means a dire fate
+  [if (probability-of-dying age) * 1.5 > random 100 [kill-agent]]  ; no hospital bed means a dire fate
 end
 
 to kill-agent
   ask my-links [die]
   set dead? true
+  if count turtles with [dead?] = 1 and lockdown-at-first-death [lockdown]
 end
 
 to maybe-recover
@@ -392,7 +391,7 @@ to calculate-r0
   let new-infected sum [ nb-infected ] of turtles
   let new-recovered sum [ nb-recovered ] of turtles
   set nb-infected-previous (count turtles with [ infected? ] + new-recovered - new-infected)  ;; Number of infected people at the previous tick
-  let susceptible-t (N-people - (count turtles with [ infected? ]) - (count turtles with [ cured? ]))  ;; Number of susceptibles now
+  let susceptible-t (N-people - (count turtles with [ infected? ]) - (count turtles with [ cured? ]))  ;; Number of susceptibles nowinfect
   let s0 count turtles with [ susceptible? ] ;; Initial number of susceptibles
 
   ifelse nb-infected-previous < 10
@@ -530,9 +529,9 @@ day
 
 BUTTON
 320
-105
+101
 403
-138
+134
 setup
 setup
 NIL
@@ -546,10 +545,10 @@ NIL
 1
 
 BUTTON
-424
-105
-507
-138
+425
+101
+508
+134
 go
 go
 T
@@ -756,9 +755,9 @@ HORIZONTAL
 
 BUTTON
 395
-155
+151
 507
-188
+184
 LOCKDOWN!
 lockdown
 NIL
@@ -815,6 +814,17 @@ SWITCH
 use-network?
 use-network?
 0
+1
+-1000
+
+SWITCH
+302
+188
+508
+222
+lockdown-at-first-death
+lockdown-at-first-death
+1
 1
 -1000
 
