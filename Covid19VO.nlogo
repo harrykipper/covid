@@ -34,9 +34,8 @@ turtles-own
   infection-length     ;; How long the person has been infected.
   recovery-time        ;; Time (in days) it takes before the person has a chance to recover from the infection
   symptom-time         ;; Time (in days) it takes before the person shows symptoms
-  deterioration-time   ;; Time (in days) it takes before a symptomatic person deteriorates
   prob-symptoms        ;; Probability that the person is symptomatic
-  isolation-tendency   ;; Chance the person will self-quarantine during any hour being infected.
+  isolation-tendency   ;; Chance the person will self-quarantine when symptomatic.
 
   susceptible?         ;; Tracks whether the person was initially susceptible
   nb-infected          ;; Number of secondary infections caused by an infected person at the end of the tick
@@ -56,14 +55,15 @@ to setup
   read-agents
   set N-people count turtles
 
-  create-hh
-
-  make-initial-links
-  create-friendships
-  ask links [set removed? false]
-  if show-layout [
-    resize-nodes
-    repeat 50 [layout]]
+  if use-network? [
+    create-hh
+    make-initial-links
+    create-friendships
+    ask links [set removed? false]
+    if show-layout [
+      resize-nodes
+      repeat 50 [layout]]
+  ]
 
   reset-ticks
 
@@ -89,6 +89,7 @@ to read-agents
           set symptomatic? false
           set severe-symptoms? false
           set dead? false
+          assign-tendency
 
           set age item 0 ag + 1 ;; Data are from 2019, everyone is one year older now...
           ; show (word "DEBUG: Creating agents of age " item 0 ag)
@@ -108,10 +109,10 @@ to read-agents
   ]
 end
 
-to lockdown
-  ask friendships [set removed? true]
-  ask relations [set removed? true]
-end
+
+;; ==========================================================
+;;                     SOCIAL NETWORK
+;; ==========================================================
 
 to create-hh
   create-marriages
@@ -120,19 +121,6 @@ to create-hh
   ;repeat count turtles with [status = 0] / 2 [layout]
   if show-layout [repeat 50 [layout]]
 end
-
-;to create-marriages
-;  ask turtles with [sex = "F" and status = 1][
-;    let age-interval-min age - 8
-;    let age-interval-max age + 14
-;    create-household-with one-of turtles with [
-;      sex = "M" and
-;      status = 1 and
-;      age <= age-interval-max and age >= age-interval-min and
-;      count my-households = 0
-;    ]
-;  ]
-;end
 
 to create-marriages
   ask turtles with [sex = "F" and status = 1][
@@ -182,13 +170,17 @@ to create-friendships
   if show-layout [layout]
 end
 
+;=====================================================================================
+;=====================================================================================
+
+
 to-report probability-of-showing-symptoms [agent-age]
   report (ifelse-value
-    agent-age < 30 [10]
-    agent-age < 40 [20]
-    agent-age < 50 [40]
-    agent-age < 60 [70]
-    [85]
+    agent-age < 30 [15]
+    agent-age < 40 [25]
+    agent-age < 50 [45]
+    agent-age < 60 [75]
+    [90]
   )
 end
 
@@ -212,25 +204,23 @@ end
 
 to-report average-recovery-time [agent-age]
   report (ifelse-value
-    agent-age < 30 [5]
-    agent-age < 40 [9]
-    agent-age < 50 [14]
-    agent-age < 60 [18]
-    [22]
+    agent-age < 40 [7]
+    agent-age < 50 [12]
+    agent-age < 60 [16]
+    [20]
     )
 end
 
 to assign-tendency ;; Turtle procedure
 
   set isolation-tendency random-normal average-isolation-tendency average-isolation-tendency / 4
-  set recovery-time random-normal (average-recovery-time age) (average-recovery-time age / 4)
-  set symptom-time random-normal avg-days-for-symptoms avg-days-for-symptoms / 2
+  set recovery-time 1 + round (random-normal (average-recovery-time age) (average-recovery-time age / 4))
+  set symptom-time 1 + round (random-normal avg-days-for-symptoms avg-days-for-symptoms / 2)
   set prob-symptoms probability-of-showing-symptoms age
-  set deterioration-time symptom-time + random-normal 5 1
 
   ;; Make sure recovery-time lies between 0 and 2x average-recovery-time
   if recovery-time > (average-recovery-time age) * 2 [ set recovery-time (average-recovery-time age) * 2 ]
-  if recovery-time < 0 [ set recovery-time 0 ]
+  if recovery-time < 0 [ set recovery-time 4 ]
 
   ;; Similarly for isolation and hospital going tendencies
   if isolation-tendency > average-isolation-tendency * 2 [ set isolation-tendency average-isolation-tendency * 2 ]
@@ -242,7 +232,7 @@ end
 ;; green is a survivor of the infection
 ;; blue is a successful innoculation
 ;; red is an infected person
-;; white is neither infected, innoculated, nor cured
+;; white is neither infected nor cured
 
 to assign-color ;; turtle procedure
   ifelse cured?
@@ -277,9 +267,12 @@ to go
     [ if infected?
       [
         set infection-length infection-length + 1
-        if severe-symptoms? and infection-length = deterioration-time * 2 [maybe-die]
-        if symptomatic? and not severe-symptoms? and infection-length = deterioration-time [maybe-worsen]
+        if severe-symptoms? and infection-length = recovery-time [maybe-die]
+        if symptomatic? and not severe-symptoms? and infection-length = recovery-time [maybe-worsen]
         if not symptomatic? and infection-length = symptom-time [maybe-show-symptoms]
+        if symptomatic? and not severe-symptoms? [
+          if random 100 < isolation-tendency [isolate]
+        ]
         maybe-recover
       ]
   ]
@@ -302,19 +295,24 @@ end
 
 to maybe-show-symptoms
   if prob-symptoms > random 100 [
+    ;show "DEBUG: I have the symptoms!"
     set symptomatic? true
-    set recovery-time recovery-time * 1.5
+    set recovery-time infection-length + 7  ;; if the person is showing symptoms, it'll take 7 days to recover
   ]
 end
 
 to maybe-worsen
-  if probability-of-worsening age > random 100 [set severe-symptoms? true]
+  if probability-of-worsening age > random 100 [
+    set severe-symptoms? true
+    set recovery-time infection-length + 10 ;; if the person deteriorates it takes another 10 days to recover
+    ;show "DEBUG: I'm worsening!"
+  ]
 end
 
 to maybe-die
   ifelse hospitalized?
   [if probability-of-dying age > random 100 [kill-agent]]
-  [if probability-of-dying age * 1.5 > random 100 [kill-agent]]
+  [if probability-of-dying age * 1.5 > random 100 [kill-agent]]  ; no hospital bed means a dire fate
 end
 
 to kill-agent
@@ -331,16 +329,16 @@ to maybe-recover
       set cured? true
       set nb-recovered (nb-recovered + 1)
       if hospitalized? [set in-hospital in-hospital - 1]
+      if isolated? [unisolate]
     ]
   ]
 end
 
-;; To better show that isolation has occurred, the patch below the person turns gray
+;; When the agent is isolating
 to isolate ;; turtle procedure
   set isolated? true
   ask my-friendships [set removed? true]
   ask my-relations [set removed? true]
-  set pcolor grey
 end
 
 ;; After unisolating, patch turns back to normal color
@@ -354,11 +352,33 @@ end
 to hospitalize ;; turtle procedure
   set hospitalized? true
   set in-hospital in-hospital + 1
-  set recovery-time recovery-time * 2
+  set recovery-time recovery-time + 10
   set pcolor black
   move-to patch (max-pxcor / 2) 0
   ask my-links [set removed? true]
   set pcolor white
+end
+
+to lockdown
+  ask friendships [set removed? true]
+  ask relations [set removed? true]
+end
+
+
+;; Infected individuals who are not isolated or hospitalized have a chance of transmitting
+;; their disease to their susceptible friends and family.
+
+to infect  ;; turtle procedure
+  let caller self
+  let nearby-uninfected turtles with [not infected? and not cured?]
+  if use-network? [set nearby-uninfected link-neighbors with [not infected? and not cured?]]
+  if count nearby-uninfected > 0 [
+    ask one-of nearby-uninfected [
+      ifelse use-network?
+        [if not [removed?] of link-with caller [if random 100 < infection-chance[newinfection]]]
+        [if random 100 < infection-chance[newinfection]]
+    ]
+  ]
 end
 
 to newinfection
@@ -368,31 +388,7 @@ to newinfection
   set nb-infected (nb-infected + 1)
 end
 
-;; Infected individuals who are not isolated or hospitalized have a chance of transmitting
-;; their disease to their susceptible neighbors.
-;; If the neighbor is linked, then the chance of disease transmission doubles.
-
-to infect  ;; turtle procedure
-  let caller self
-  let nearby-uninfected link-neighbors with [not infected? and not cured?]
-  if count nearby-uninfected > 0 [
-    ask one-of nearby-uninfected [
-      ifelse household-neighbor? caller or spouse-neighbor? caller [
-        if random 100 < infection-chance * 4 ;; twice as likely to infect a linked person
-              [newinfection]
-      ]
-      [
-        if not [removed?] of link-with caller [
-          if random 100 < infection-chance
-              [newinfection]
-        ]
-      ]
-    ]
-  ]
-end
-
 to calculate-r0
-
   let new-infected sum [ nb-infected ] of turtles
   let new-recovered sum [ nb-recovered ] of turtles
   set nb-infected-previous (count turtles with [ infected? ] + new-recovered - new-infected)  ;; Number of infected people at the previous tick
@@ -445,7 +441,8 @@ end
 ;; and than we pick one of the two ends of that link.
 to-report find-partner
   let partner nobody
-  let connection one-of friendships with [abs ([age] of myself - meanage) <= 12]
+  let connection one-of friendships with [abs ([age] of myself - meanage) <= 12]   ; 80% of friendships within 12 years of age difference
+  if random 100 < 20 [set connection one-of friendships]
   ifelse age >= 25 [
     if random 100 <= 15 [set connection one-of friendships]
   ][ifelse age >= 15
@@ -589,7 +586,7 @@ average-isolation-tendency
 average-isolation-tendency
 0
 50
-5.0
+50.0
 5
 1
 NIL
@@ -644,22 +641,7 @@ infection-chance
 infection-chance
 10
 100
-55.0
-5
-1
-NIL
-HORIZONTAL
-
-SLIDER
-18
-97
-285
-130
-recovery-chance
-recovery-chance
-10
-100
-15.0
+20.0
 5
 1
 NIL
@@ -704,7 +686,7 @@ initial-links-per-age-group
 initial-links-per-age-group
 0
 100
-70.0
+15.0
 1
 1
 NIL
@@ -747,10 +729,10 @@ PENS
 "default" 1.0 1 -16777216 true "" "let max-degree max [count friendship-neighbors] of turtles\nplot-pen-reset  ;; erase what we plotted before\nset-plot-x-range 1 (max-degree + 1)  ;; + 1 to make room for the width of the last bar\nhistogram [count friendship-neighbors] of turtles"
 
 SWITCH
-15
-185
-147
-218
+510
+155
+642
+188
 show-layout
 show-layout
 1
@@ -758,15 +740,15 @@ show-layout
 -1000
 
 SLIDER
-15
-145
-217
-178
+19
+136
+288
+170
 avg-days-for-symptoms
 avg-days-for-symptoms
 0
 14
-6.0
+5.0
 1
 1
 NIL
@@ -798,6 +780,43 @@ TEXTBOX
 20
 0.0
 1
+
+MONITOR
+450
+453
+518
+498
+Deaths
+count turtles with [dead?]
+0
+1
+11
+
+SLIDER
+18
+97
+285
+130
+recovery-chance
+recovery-chance
+10
+100
+30.0
+5
+1
+NIL
+HORIZONTAL
+
+SWITCH
+20
+175
+164
+209
+use-network?
+use-network?
+0
+1
+-1000
 
 @#$#@#$#@
 ## WHAT IS IT?
