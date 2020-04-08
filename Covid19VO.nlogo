@@ -131,14 +131,31 @@ to create-marriages
     ]
     let marito min-one-of pretendenti [abs (age - [age] of myself)]
     create-spouse-with marito
-    move-to marito
-    fd 8
+    if show-layout [
+      move-to marito
+      fd 8
+    ]
+  ]
+
+  let zitelle turtles with [
+    age >= 28 and
+    status = 0 and
+    sex = "F"]
+
+  ask n-of (count zitelle / 2) zitelle [
+    let pretendenti turtles with [
+      sex = "M" and
+      status = 0 and
+      count my-spouses = 0
+    ]
+    let marito min-one-of pretendenti [abs (age - [age] of myself)]
+    create-spouse-with marito
   ]
 end
 
 to attach-children
   ask turtles with [
-    age < 29 and
+    age < 28 and
     status = 0
   ][
     let age-interval-min age + 24
@@ -353,9 +370,11 @@ to hospitalize ;; turtle procedure
   set in-hospital in-hospital + 1
   set recovery-time recovery-time + 10
   set pcolor black
-  move-to patch (max-pxcor / 2) 0
-  ask my-links [set removed? true]
-  set pcolor white
+  if show-layout [
+    move-to patch (max-pxcor / 2) 0
+    ask my-links [set removed? true]
+    set pcolor white
+  ]
 end
 
 to lockdown
@@ -501,10 +520,10 @@ to-report limit-magnitude [number limit]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-646
-27
-1659
-1041
+836
+9
+1849
+1023
 -1
 -1
 5.0
@@ -592,10 +611,10 @@ NIL
 HORIZONTAL
 
 PLOT
-356
+385
 299
-619
-442
+780
+490
 Populations
 days
 # people
@@ -613,10 +632,10 @@ PENS
 "Dead" 1.0 0 -16777216 true "" "plot count turtles with [dead?]"
 
 PLOT
-11
-452
-344
-597
+7
+484
+379
+650
 Infection and Recovery Rates
 days
 rate
@@ -647,10 +666,10 @@ NIL
 HORIZONTAL
 
 MONITOR
-356
-451
-437
-496
+387
+498
+468
+543
 R0
 r0\n
 2
@@ -660,8 +679,8 @@ r0\n
 PLOT
 11
 297
-343
-441
+378
+471
 Cumulative Infected and Recovered
 days
 % total pop.
@@ -728,10 +747,10 @@ PENS
 "default" 1.0 1 -16777216 true "" "let max-degree max [count friendship-neighbors] of turtles\nplot-pen-reset  ;; erase what we plotted before\nset-plot-x-range 1 (max-degree + 1)  ;; + 1 to make room for the width of the last bar\nhistogram [count friendship-neighbors] of turtles"
 
 SWITCH
-510
-155
-642
-188
+11
+261
+143
+294
 show-layout
 show-layout
 1
@@ -742,7 +761,7 @@ SLIDER
 19
 136
 288
-170
+169
 avg-days-for-symptoms
 avg-days-for-symptoms
 0
@@ -781,10 +800,10 @@ TEXTBOX
 1
 
 MONITOR
-450
-453
-518
-498
+480
+500
+548
+545
 Deaths
 count turtles with [dead?]
 0
@@ -810,7 +829,7 @@ SWITCH
 20
 175
 164
-209
+208
 use-network?
 use-network?
 0
@@ -821,17 +840,29 @@ SWITCH
 302
 188
 508
-222
+221
 lockdown-at-first-death
 lockdown-at-first-death
 1
 1
 -1000
 
+TEXTBOX
+15
+241
+140
+259
+(Very slow!)
+12
+0.0
+1
+
 @#$#@#$#@
 ## WHAT IS IT?
 
 This model is an extension of the basic model of epiDEM (a curricular unit which stands for Epidemiology: Understanding Disease Dynamics and Emergence through Modeling). It simulates the spread of an infectious disease in a semi-closed population, but with additional features such as isolation, quarantine and links between individuals. However, we still assume that the virus does not mutate, and that upon recovery, an individual will have perfect immunity.
+
+We assume a scale free "friendship" network
 
 ## RELATED MODELS
 
