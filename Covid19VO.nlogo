@@ -183,7 +183,7 @@ end
 
 to create-friendships
   ask turtles with [age >= 12][
-    repeat 10 [create-friendship-with find-partner]
+    repeat 5 [create-friendship-with find-partner]
   ]
   if show-layout [layout]
 end
@@ -525,8 +525,8 @@ end
 GRAPHICS-WINDOW
 423
 10
-1238
-826
+1319
+907
 -1
 -1
 4.42
@@ -587,7 +587,7 @@ SLIDER
 193
 10
 413
-44
+43
 average-isolation-tendency
 average-isolation-tendency
 0
@@ -642,7 +642,7 @@ SLIDER
 7
 10
 187
-44
+43
 infection-chance
 infection-chance
 10
@@ -657,7 +657,7 @@ MONITOR
 334
 163
 404
-209
+208
 R0
 r0\n
 2
@@ -692,17 +692,17 @@ initial-links-per-age-group
 initial-links-per-age-group
 0
 100
-20.0
+30.0
 1
 1
 NIL
 HORIZONTAL
 
 PLOT
-2
-872
-292
-1090
+5
+950
+295
+1168
 Degree distribution (log-log)
 log(degree)
 log(#of nodes)
@@ -717,10 +717,10 @@ PENS
 "default" 1.0 2 -16777216 true "" "let max-degree max [count friendship-neighbors] of turtles\n;; for this plot, the axes are logarithmic, so we can't\n;; use \"histogram-from\"; we have to plot the points\n;; ourselves one at a time\nplot-pen-reset  ;; erase what we plotted before\n;; the way we create the network there is never a zero degree node,\n;; so start plotting at degree one\nlet degree 1\nwhile [degree <= max-degree] [\n  let matches turtles with [count friendship-neighbors = degree]\n  if any? matches\n    [ plotxy log degree 10\n             log (count matches) 10 ]\n  set degree degree + 1\n]"
 
 PLOT
-299
-871
-589
-1091
+302
+949
+592
+1169
 Degree distribution
 NIL
 NIL
@@ -749,7 +749,7 @@ SLIDER
 9
 116
 187
-150
+149
 avg-days-for-symptoms
 avg-days-for-symptoms
 0
@@ -778,10 +778,10 @@ NIL
 1
 
 TEXTBOX
-122
-832
-477
-888
+125
+910
+480
+966
 ====== \"Friendship\" network ======
 20
 0.0
@@ -802,7 +802,7 @@ SLIDER
 7
 48
 187
-82
+81
 recovery-chance
 recovery-chance
 10
@@ -828,10 +828,10 @@ SWITCH
 144
 195
 330
-229
+228
 lockdown-at-first-death
 lockdown-at-first-death
-0
+1
 1
 -1000
 
@@ -849,7 +849,7 @@ SLIDER
 9
 80
 186
-114
+113
 incubation-days
 incubation-days
 0
