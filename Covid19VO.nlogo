@@ -7,6 +7,7 @@ undirected-link-breed [friendships friendship]
 
 globals
 [
+  N-people
   nb-infected-previous ;; Number of infected people at the previous tick
   border               ;; The patches representing the yellow border
   in-hospital          ;; Number of people currently in hospital
@@ -89,9 +90,8 @@ to read-agents
           set symptomatic? false
           set severe-symptoms? false
           set dead? false
-          assign-tendency
-
           set age item 0 ag + 1 ;; Data are from 2019, everyone is one year older now...
+
           ; show (word "DEBUG: Creating agents of age " item 0 ag)
           ifelse i < 5 [set sex "M"][set sex "F"]
           ifelse i = 1 or i = 5 [set status 0][
@@ -101,6 +101,7 @@ to read-agents
               ]
             ]
           ]
+          assign-tendency
         ]
         set i i + 1
       ]
@@ -182,7 +183,7 @@ end
 
 to create-friendships
   ask turtles with [age >= 12][
-    repeat 2 + random 10 [create-friendship-with find-partner]
+    repeat 10 [create-friendship-with find-partner]
   ]
   if show-layout [layout]
 end
@@ -197,16 +198,16 @@ to-report probability-of-showing-symptoms [agent-age]
     agent-age < 40 [25]
     agent-age < 50 [45]
     agent-age < 60 [75]
-    [90]
+    [85]
   )
 end
 
 to-report probability-of-worsening [agent-age]
   report (ifelse-value
-    agent-age < 40 [5]
-    agent-age < 50 [10]
-    agent-age < 60 [25]
-    [40]
+    agent-age < 40 [8]
+    agent-age < 50 [12]
+    agent-age < 60 [20]
+    [30]
   )
 end
 
@@ -214,22 +215,21 @@ to-report probability-of-dying [agent-age]
   report (ifelse-value
     agent-age < 40 [5]
     agent-age < 50 [10]
-    agent-age < 60 [20]
-    [40]
+    agent-age < 60 [18]
+    [25]
   )
 end
 
 to-report average-recovery-time [agent-age]
   report (ifelse-value
-    agent-age < 40 [7]
+    agent-age < 40 [8]
     agent-age < 50 [12]
-    agent-age < 60 [16]
-    [20]
+    agent-age < 60 [15]
+    [18]
     )
 end
 
 to assign-tendency ;; Turtle procedure
-
   set isolation-tendency random-normal average-isolation-tendency average-isolation-tendency / 4
   set recovery-time 1 + round (random-normal (average-recovery-time age) (average-recovery-time age / 4))
   set symptom-time 1 + round (random-normal avg-days-for-symptoms avg-days-for-symptoms / 2)
@@ -269,7 +269,7 @@ to go
     [ clear-count ]
 
   ask turtles
-    [ if infected? and not hospitalized?
+    [ if infected? and not hospitalized? and infection-length >= incubation-days
          [ infect ] ]
 
   ask turtles
@@ -350,14 +350,15 @@ to maybe-recover
   ]
 end
 
-;; When the agent is isolating
+;; When the agent is isolating all friendhips and relations are frozen.
+;; Crucially household links stay in place, as it is assumed that one isolates at home
 to isolate ;; turtle procedure
   set isolated? true
   ask my-friendships [set removed? true]
   ask my-relations [set removed? true]
 end
 
-;; After unisolating, patch turns back to normal color
+;; After unisolating, links return in place
 to unisolate  ;; turtle procedure
   set isolated? false
   set hospitalized? false
@@ -390,10 +391,12 @@ to infect  ;; turtle procedure
   let caller self
   let nearby-uninfected turtles with [not infected? and not cured?]
   if use-network? [set nearby-uninfected link-neighbors with [not infected? and not cured?]]
-  if count nearby-uninfected > 0 [
-    ask one-of nearby-uninfected [
+  let all-contacts count nearby-uninfected
+  if all-contacts > 0 [
+    ask n-of (1 + random round (all-contacts / 8)) nearby-uninfected [
+    ;ask n-of 1 nearby-uninfected [
       ifelse use-network?
-        [if not [removed?] of link-with caller [if random 100 < infection-chance[newinfection]]]
+        [if not [removed?] of link-with caller [if random 100 < infection-chance [newinfection]]]
         [if random 100 < infection-chance[newinfection]]
     ]
   ]
@@ -520,13 +523,13 @@ to-report limit-magnitude [number limit]
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-836
-9
-1849
-1023
+423
+10
+1238
+826
 -1
 -1
-5.0
+4.42
 1
 10
 1
@@ -547,10 +550,10 @@ day
 30.0
 
 BUTTON
-320
-101
-403
-134
+198
+89
+281
+122
 setup
 setup
 NIL
@@ -564,10 +567,10 @@ NIL
 1
 
 BUTTON
-425
-101
-508
-134
+284
+88
+367
+121
 go
 go
 T
@@ -581,40 +584,25 @@ NIL
 0
 
 SLIDER
-18
-22
-287
-55
-N-people
-N-people
-50
-4000
-3304.0
+193
 10
-1
-NIL
-HORIZONTAL
-
-SLIDER
-315
-22
-584
-55
+413
+44
 average-isolation-tendency
 average-isolation-tendency
 0
-50
-50.0
+100
+80.0
 5
 1
 NIL
 HORIZONTAL
 
 PLOT
-385
-299
-780
-490
+7
+441
+402
+632
 Populations
 days
 # people
@@ -632,10 +620,10 @@ PENS
 "Dead" 1.0 0 -16777216 true "" "plot count turtles with [dead?]"
 
 PLOT
-7
-484
-379
-650
+4
+640
+406
+807
 Infection and Recovery Rates
 days
 rate
@@ -651,10 +639,10 @@ PENS
 "Recovery Rate" 1.0 0 -10899396 true "" "plot (gamma * nb-infected-previous)"
 
 SLIDER
-18
-59
-286
-92
+7
+10
+187
+44
 infection-chance
 infection-chance
 10
@@ -666,10 +654,10 @@ NIL
 HORIZONTAL
 
 MONITOR
-387
-498
-468
-543
+334
+163
+404
+209
 R0
 r0\n
 2
@@ -677,10 +665,10 @@ r0\n
 11
 
 PLOT
-11
-297
-378
-471
+8
+261
+402
+436
 Cumulative Infected and Recovered
 days
 % total pop.
@@ -696,25 +684,25 @@ PENS
 "% recovered" 1.0 0 -9276814 true "" "plot ((count turtles with [ cured? ] / N-people) * 100)"
 
 SLIDER
-315
-60
-532
-93
+193
+47
+410
+80
 initial-links-per-age-group
 initial-links-per-age-group
 0
 100
-15.0
+20.0
 1
 1
 NIL
 HORIZONTAL
 
 PLOT
-15
-695
-305
-913
+2
+872
+292
+1090
 Degree distribution (log-log)
 log(degree)
 log(#of nodes)
@@ -729,10 +717,10 @@ PENS
 "default" 1.0 2 -16777216 true "" "let max-degree max [count friendship-neighbors] of turtles\n;; for this plot, the axes are logarithmic, so we can't\n;; use \"histogram-from\"; we have to plot the points\n;; ourselves one at a time\nplot-pen-reset  ;; erase what we plotted before\n;; the way we create the network there is never a zero degree node,\n;; so start plotting at degree one\nlet degree 1\nwhile [degree <= max-degree] [\n  let matches turtles with [count friendship-neighbors = degree]\n  if any? matches\n    [ plotxy log degree 10\n             log (count matches) 10 ]\n  set degree degree + 1\n]"
 
 PLOT
-311
-694
-601
-914
+299
+871
+589
+1091
 Degree distribution
 NIL
 NIL
@@ -747,10 +735,10 @@ PENS
 "default" 1.0 1 -16777216 true "" "let max-degree max [count friendship-neighbors] of turtles\nplot-pen-reset  ;; erase what we plotted before\nset-plot-x-range 1 (max-degree + 1)  ;; + 1 to make room for the width of the last bar\nhistogram [count friendship-neighbors] of turtles"
 
 SWITCH
-11
-261
-143
-294
+10
+197
+142
+230
 show-layout
 show-layout
 1
@@ -758,10 +746,10 @@ show-layout
 -1000
 
 SLIDER
-19
-136
-288
-169
+9
+116
+187
+150
 avg-days-for-symptoms
 avg-days-for-symptoms
 0
@@ -773,10 +761,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-395
-151
-507
-184
+198
+128
+310
+161
 LOCKDOWN!
 lockdown
 NIL
@@ -790,20 +778,20 @@ NIL
 1
 
 TEXTBOX
-135
-655
-490
-711
+122
+832
+477
+888
 ====== \"Friendship\" network ======
 20
 0.0
 1
 
 MONITOR
-480
-500
-548
-545
+334
+213
+402
+258
 Deaths
 count turtles with [dead?]
 0
@@ -811,10 +799,10 @@ count turtles with [dead?]
 11
 
 SLIDER
-18
-97
-285
-130
+7
+48
+187
+82
 recovery-chance
 recovery-chance
 10
@@ -826,10 +814,10 @@ NIL
 HORIZONTAL
 
 SWITCH
-20
-175
-164
-208
+10
+155
+154
+188
 use-network?
 use-network?
 0
@@ -837,25 +825,40 @@ use-network?
 -1000
 
 SWITCH
-302
-188
-508
-221
+144
+195
+330
+229
 lockdown-at-first-death
 lockdown-at-first-death
-1
+0
 1
 -1000
 
 TEXTBOX
-15
-241
-140
-259
+12
+233
+137
+251
 (Very slow!)
 12
 0.0
 1
+
+SLIDER
+9
+80
+186
+114
+incubation-days
+incubation-days
+0
+10
+5.0
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 ## WHAT IS IT?
