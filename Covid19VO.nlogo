@@ -871,22 +871,69 @@ NIL
 HORIZONTAL
 
 @#$#@#$#@
-## WHAT IS IT?
+# covid19 in Vo' Euganeo (or anywhere else)
 
-This model is an extension of the basic model of epiDEM (a curricular unit which stands for Epidemiology: Understanding Disease Dynamics and Emergence through Modeling). It simulates the spread of an infectious disease in a semi-closed population, but with additional features such as isolation, quarantine and links between individuals. However, we still assume that the virus does not mutate, and that upon recovery, an individual will have perfect immunity.
+A tentative multi-level network based SIR model of the progression of the COVID19 infection.
 
-We assume a scale free "friendship" network
+## The model
+
+### Agents
+
+The population of Vo' is imported in the model upon setup. Agent attributes are _age_ and _marital status_ (source: http://demo.istat.it/pop2019/index3.html). 
+
+### Networks
+
+Agents in the model belong to three intertwined networks: 'household', 'relation' and 'friendship' 
+
+A **household** structure is created as follows: married males and females are linked together on the basis of age distance, single people below the age of 26 are assumed to live at home with one or two parents and siblings. Single people above the age of 26 are assumed to live on their own, a certain proportion cohabiting. Links of type 'household' are built among these people.
+
+A **friendship** network is created among all agents > 12 y.o. based on the *preferential attachment* principle, so that a scale-free network is produced. Friendships are skewed towards people of the same age group.
+
+*(TODO*) A 'relation' network links people who are related but don't live in the same household
+
+### Infection
+
+The infection is assumed to follow social links. Only people in an infected agent's social network can be infected. When someone becomes infected, after a period of incubation, she starts infecting people 
+
+The progression of the disease is based on data from China and Italy. Agents have a probability of developing symptoms after incubation, based on their age, another probability of worsening and another of dying. These are at the top of the 'Code' section in Netlogo.
+
+### Lockdown
+
+The model implements lockdown policies based on the response of nearly all European countries. In a lockdown all _friendship_ links are dropped (= no one can be infected through their friends). Crucially, agents are assumed to be segregating at home, therefore household members are still susceptible to the infection.
+
+## Model configuration
+
+The model can be configured changing the transition probabilities and timings at the beginning of the Code section in Netlogo and the following parameters in Netlogo's interface:
+
+* *infection-chance*  Daily probability of infecting a subset of one infected person's network 
+* *recovery-chance* Daily probability of recovering after average-recovery-time is reached 
+* *incubation-days* Days before an infected agent becomes infectious and may show symptoms 
+* *average-isolation-tendency* Probability of self-isolating after displaying symptoms      
+* *initial-links-per-age-group* No. of random friendship links within each group upon initialization 
+* *use-network?* If false contagion happens randomly                          
+* *show-layout?* Display the whole social network stricture. **WARNING: VERY SLOW** 
+* *lockdown-at-first-death* Implement a full lockdown upon the first reported death (as happened in Vo' Euganeo) 
+
+## The Vo' Euganeo case
+
+In the town of Vo' Euganeo, in the province of Padua, Italy, the first official death from COVID19 was recorded. Immediately afterwards, a lockdown of the whole town was ordered and 85% of the whole population of 3300 was tested. Nearly 3% was found to be carrying the Coronavirus. Twelve days later a second death was recorded.
 
 ## RELATED MODELS
 
-epiDEM basic, HIV, Virus and Virus on a Network are related models.
+epiDEM basic, HIV, Virus and Virus on a Network, Preferential Attachment are related models.
 
 ## HOW TO CITE
 
 If you mention this model or the NetLogo software in a publication, we ask that you include the citations below.
 
-For the model itself:
+## CREDITS AND REFERENCES
 
+The preferential attachment bit of the model is based on:
+Albert-László Barabási. Linked: The New Science of Networks, Perseus Publishing, Cambridge, Massachusetts, pages 79-92.
+
+The model includes code adapted from the following models:
+
+* Wilensky, U. (2005).  NetLogo Preferential Attachment model.  http://ccl.northwestern.edu/netlogo/models/PreferentialAttachment.  Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
 * Yang, C. and Wilensky, U. (2011).  NetLogo epiDEM Travel and Control model.  http://ccl.northwestern.edu/netlogo/models/epiDEMTravelandControl.  Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
 
 Please cite the NetLogo software as:
@@ -902,8 +949,6 @@ Copyright 2011 Uri Wilensky.
 This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 License.  To view a copy of this license, visit https://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to Creative Commons, 559 Nathan Abbott Way, Stanford, California 94305, USA.
 
 Commercial licenses are also available. To inquire about commercial licenses, please contact Uri Wilensky at uri@northwestern.edu.
-
-<!-- 2011 Cite: Yang, C. -->
 @#$#@#$#@
 default
 true
