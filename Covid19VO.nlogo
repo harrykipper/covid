@@ -43,10 +43,72 @@ turtles-own
   nb-recovered         ;; Number of recovered people at the end of the tick
 ]
 
-links-own [meanage removed?]
+links-own [mean-age removed?]
 
+
+;; ===========================================================================
+;;       Model configuration  --- TRANSITION PROBABILITIES and TIMIGS
+;;
+;;    Change the following values to implement a different disease course
+;;============================================================================
+
+
+to-report average-recovery-time [agent-age]
+  ;; Infected agents recover, on average, after these many days since being infected
+  report (ifelse-value
+    agent-age < 40 [8]
+    agent-age < 50 [12]
+    agent-age < 60 [15]
+    [18]
+    )
+end
+
+;; The three parameters below obviously interact.
+;; The probability of someone dying of covid is:
+;; probability-of-showing-syptoms * probability-of-worsening * probability-of-dying
+;; For someone between 30 and 40 this is currently 0.25 * 0.08 * 0.05 = 0.001 or 0.1%
+
+to-report probability-of-showing-symptoms [agent-age]
+  ;; When the incubation period ('incubation-days' in main interface) is over
+  ;; the agent has the following probability of developing the symptoms of COVID-19.
+  ;; If the person is showing symptoms, it'll take 7 more days to recover.
+  report (ifelse-value
+    agent-age < 30 [15]
+    agent-age < 40 [25]
+    agent-age < 50 [45]
+    agent-age < 60 [75]
+    [85]
+  )
+end
+
+to-report probability-of-worsening [agent-age]
+  ;; After 10 days with symptoms the agent has the following probability of
+  ;; worsening and needing hospital care.
+  report (ifelse-value
+    agent-age < 40 [8]
+    agent-age < 50 [12]
+    agent-age < 60 [20]
+    [30]
+  )
+end
+
+to-report probability-of-dying [agent-age]
+  ;; After 10 days in the hospital the agent has the following probability of dying
+  report (ifelse-value
+    agent-age < 40 [5]
+    agent-age < 50 [10]
+    agent-age < 60 [18]
+    [25]
+  )
+end
+
+
+;; END of model configuration  ==================================================
+
+
+;; ===========================================================================
 ;;;
-;;; SETUP PROCEDURES
+;;; SETUP
 ;;;
 
 to setup
@@ -192,47 +254,9 @@ end
 ;=====================================================================================
 
 
-to-report probability-of-showing-symptoms [agent-age]
-  report (ifelse-value
-    agent-age < 30 [15]
-    agent-age < 40 [25]
-    agent-age < 50 [45]
-    agent-age < 60 [75]
-    [85]
-  )
-end
-
-to-report probability-of-worsening [agent-age]
-  report (ifelse-value
-    agent-age < 40 [8]
-    agent-age < 50 [12]
-    agent-age < 60 [20]
-    [30]
-  )
-end
-
-to-report probability-of-dying [agent-age]
-  report (ifelse-value
-    agent-age < 40 [5]
-    agent-age < 50 [10]
-    agent-age < 60 [18]
-    [25]
-  )
-end
-
-to-report average-recovery-time [agent-age]
-  report (ifelse-value
-    agent-age < 40 [8]
-    agent-age < 50 [12]
-    agent-age < 60 [15]
-    [18]
-    )
-end
-
 to assign-tendency ;; Turtle procedure
   set isolation-tendency random-normal average-isolation-tendency average-isolation-tendency / 4
   set recovery-time 1 + round (random-normal (average-recovery-time age) (average-recovery-time age / 4))
-  set symptom-time 1 + round (random-normal avg-days-for-symptoms avg-days-for-symptoms / 2)
   set prob-symptoms probability-of-showing-symptoms age
 
   ;; Make sure recovery-time lies between 0 and 2x average-recovery-time
@@ -308,11 +332,12 @@ to clear-count
   set nb-recovered 0
 end
 
+;; if the person is showing symptoms, it'll take 7 more days to recover
 to maybe-show-symptoms
   if prob-symptoms > random 100 [
     ;show "DEBUG: I have the symptoms!"
     set symptomatic? true
-    set recovery-time infection-length + 7  ;; if the person is showing symptoms, it'll take 7 more days to recover
+    set recovery-time infection-length + 7
   ]
 end
 
@@ -447,7 +472,7 @@ to make-initial-links
       ask one-of turtles with [age >= item 0 a-g and age <= item 1 a-g] [
         create-friendship-with one-of other turtles with [age >= item 0 a-g and age <= item 1 a-g] [
           set color green
-          set meanage mean [age] of both-ends
+          set mean-age mean [age] of both-ends
         ]
       ]
     ]
@@ -462,13 +487,13 @@ end
 ;; and than we pick one of the two ends of that link.
 to-report find-partner
   let partner nobody
-  let connection one-of friendships with [abs ([age] of myself - meanage) <= 12]   ; 80% of friendships within 12 years of age difference
+  let connection one-of friendships with [abs ([age] of myself - mean-age) <= 12]   ; 80% of friendships within 12 years of age difference
   if random 100 < 20 [set connection one-of friendships]
   ifelse age >= 25 [
     if random 100 <= 15 [set connection one-of friendships]
   ][ifelse age >= 15
-    [set connection one-of friendships with [meanage - [age] of myself <= 8]]
-    [if age > 12 [set connection one-of friendships with [meanage - [age] of myself <= 5]]]
+    [set connection one-of friendships with [mean-age - [age] of myself <= 8]]
+    [if age > 12 [set connection one-of friendships with [mean-age - [age] of myself <= 5]]]
   ]
   ask connection [
     ifelse member? myself both-ends
@@ -599,31 +624,31 @@ NIL
 HORIZONTAL
 
 PLOT
-7
-441
-402
-632
+10
+415
+405
+606
 Populations
 days
 # people
 0.0
 10.0
 0.0
-350.0
+100.0
 true
 true
 "" ""
 PENS
-"Infected" 1.0 0 -2674135 true "" "plot count turtles with [ infected? ]"
-"Susceptible" 1.0 0 -10899396 true "" "plot count turtles with [ not infected? and not cured? ]"
-"Recovered" 1.0 0 -7500403 true "" "plot count turtles with [ cured? ]"
-"Dead" 1.0 0 -16777216 true "" "plot count turtles with [dead?]"
+"Infected" 1.0 0 -2674135 true "" "plot count turtles with [ infected? ] "
+"Susceptible" 1.0 0 -10899396 true "" "plot count turtles with [ not infected? and not cured? ] "
+"Recovered" 1.0 0 -7500403 true "" "plot count turtles with [ cured? ] "
+"Dead" 1.0 0 -16777216 true "" "plot count turtles with [dead?] "
 
 PLOT
-4
-640
-406
-807
+7
+614
+409
+781
 Infection and Recovery Rates
 days
 rate
@@ -654,10 +679,10 @@ NIL
 HORIZONTAL
 
 MONITOR
-334
-163
-404
-208
+335
+130
+405
+175
 R0
 r0\n
 2
@@ -665,10 +690,10 @@ r0\n
 11
 
 PLOT
-8
-261
-402
-436
+11
+235
+405
+410
 Cumulative Infected and Recovered
 days
 % total pop.
@@ -736,29 +761,14 @@ PENS
 
 SWITCH
 10
-197
+165
 142
-230
+198
 show-layout
 show-layout
 1
 1
 -1000
-
-SLIDER
-9
-116
-187
-149
-avg-days-for-symptoms
-avg-days-for-symptoms
-0
-14
-5.0
-1
-1
-NIL
-HORIZONTAL
 
 BUTTON
 198
@@ -788,10 +798,10 @@ TEXTBOX
 1
 
 MONITOR
-334
-213
-402
-258
+335
+180
+403
+225
 Deaths
 count turtles with [dead?]
 0
@@ -815,9 +825,9 @@ HORIZONTAL
 
 SWITCH
 10
-155
+123
 154
-188
+156
 use-network?
 use-network?
 0
@@ -826,20 +836,20 @@ use-network?
 
 SWITCH
 144
-195
+163
 330
-228
+196
 lockdown-at-first-death
 lockdown-at-first-death
-1
+0
 1
 -1000
 
 TEXTBOX
-12
-233
-137
-251
+10
+205
+135
+223
 (Very slow!)
 12
 0.0
