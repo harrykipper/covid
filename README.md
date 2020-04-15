@@ -1,6 +1,6 @@
 # covid19 in Vo' Euganeo (or anywhere else)
 
-A tentative multi-level network based SIR model of the progression of the COVID19 infection.
+A tentative multi-level network based SEIR model of the progression of the COVID19 infection.
 
 ## The model
 
@@ -16,13 +16,13 @@ A **household** structure is created as follows: married males and females are l
 
 A **friendship** network is created among all agents > 12 y.o. based on the *preferential attachment* principle, so that a scale-free network is produced. Friendships are skewed towards people of the same age group.
 
-*(TODO*) A 'relation' network links people who are related but don't live in the same household
+*(TODO)* A 'relation' network links people who are related but don't live in the same household
 
 ### Infection
 
-The infection is assumed to follow social links. Only people in an infected agent's social network can be infected. When someone becomes infected, after a period of incubation, she starts infecting people 
+The infection is assumed to follow social links. Only people in an infected agent's social network are exposed. When someone becomes infected, after a period of incubation, she starts infecting people in her network. 
 
-The progression of the disease is based on data from China and Italy. Agents have a probability of developing symptoms after incubation, based on their age, another probability of worsening and another of dying. These are at the top of the 'Code' section in Netlogo.
+The progression of the disease is based on data from China and Italy. Agents have a probability of developing symptoms after incubation, based on their age; another probability of worsening; another of dying. These can be modified editing the first four functions at the top of the 'Code' section in Netlogo.
 
 ### Lockdown
 
