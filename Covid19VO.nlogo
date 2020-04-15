@@ -258,6 +258,7 @@ to assign-tendency ;; Turtle procedure
   set isolation-tendency random-normal average-isolation-tendency average-isolation-tendency / 4
   set recovery-time 1 + round (random-normal (average-recovery-time age) (average-recovery-time age / 4))
   set prob-symptoms probability-of-showing-symptoms age
+  set symptom-time round random-normal incubation-days 2
 
   ;; Make sure recovery-time lies between 0 and 2x average-recovery-time
   if recovery-time > (average-recovery-time age) * 2 [ set recovery-time (average-recovery-time age) * 2 ]
