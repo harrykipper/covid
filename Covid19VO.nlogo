@@ -130,7 +130,7 @@ to setup
 
   reset-ticks
 
-  ask one-of turtles with [age >= 49 and age <= 74 and sex = "M"][
+  ask n-of initially-infected turtles with [age >= 25][
     set infected? true
     set susceptible? false
   ]
@@ -257,7 +257,7 @@ end
 to assign-tendency ;; Turtle procedure
   set isolation-tendency random-normal average-isolation-tendency average-isolation-tendency / 4
   set recovery-time 1 + round (random-normal (average-recovery-time age) (average-recovery-time age / 4))
-  set prob-symptoms probability-of-showing-symptoms age
+  set prob-symptoms probability-of-showing-symptoms age * gender-discount sex
   set symptom-time round random-normal incubation-days 2
 
   ;; Make sure recovery-time lies between 0 and 2x average-recovery-time
@@ -267,6 +267,11 @@ to assign-tendency ;; Turtle procedure
   ;; Similarly for isolation and hospital going tendencies
   if isolation-tendency > average-isolation-tendency * 2 [ set isolation-tendency average-isolation-tendency * 2 ]
   if isolation-tendency < 0 [ set isolation-tendency 0 ]
+end
+
+to-report gender-discount [gender]
+  if gender = "F" [report 0.8]
+  report 1
 end
 
 
@@ -289,7 +294,10 @@ end
 ;;;
 
 to go
-  if all? turtles [ not infected? ][ stop ]
+  if all? turtles [ not infected? ][
+    print-final-summary
+    stop
+  ]
   ask turtles
     [ clear-count ]
 
@@ -343,7 +351,7 @@ to maybe-show-symptoms
 end
 
 to maybe-worsen
-  if probability-of-worsening age > random 100 [
+  if probability-of-worsening age * gender-discount sex > random 100 [
     set severe-symptoms? true
     set recovery-time infection-length + 7 ;; if the person deteriorates it takes another 7 days to recover
     ;show "DEBUG: I'm worsening!"
@@ -359,7 +367,14 @@ end
 to kill-agent
   ask my-links [die]
   set dead? true
-  if count turtles with [dead?] = 1 and lockdown-at-first-death [lockdown]
+  if count turtles with [dead?] = 1 [
+    output-print (word "Epidemic day " ticks ": death number 1. Age: " age "; gender:" sex)
+    print-current-summary
+    ifelse lockdown-at-first-death [
+      output-print "Now locking down"
+      lockdown
+    ][output-print "NOT locking down"]
+  ]
 end
 
 to maybe-recover
@@ -423,7 +438,7 @@ to infect  ;; turtle procedure
     ;ask n-of 1 nearby-uninfected [
       ifelse use-network?
         [if not [removed?] of link-with caller [if random 100 < infection-chance [newinfection]]]
-        [if random 100 < infection-chance[newinfection]]
+      [if not [isolated?] of caller and not isolated? and  random 100 < infection-chance [newinfection]]
     ]
   ]
 end
@@ -504,6 +519,29 @@ to-report find-partner
   report partner
 end
 
+;; =================== SUMMARY ==================
+
+to print-current-summary
+  let infected count turtles with [infected?]
+  let recovered count turtles with [cured?]
+  let propinf precision (infected / N-people) 3
+  let proprec precision (recovered / N-people) 3
+  output-print (word "Currently infected: " infected " (" propinf " of total)" )
+  output-print (word "Currently recovered: " recovered " (" proprec " of total)" )
+  output-print (word "Current average R0: " r0)
+end
+
+to print-final-summary
+  let totalinf precision (((count turtles with [ cured? ] + count turtles with [ infected? ]) / N-people) * 100) 3
+  let deaths count turtles with [dead?]
+  output-print " ================================ "
+  output-print (word "End of epidemic: day " ticks)
+  output-print (word "Total infected: " totalinf " of population" )
+  output-print (word "Total deaths: " deaths " - Mortality: " precision (deaths / totalinf) 3)
+  output-print (word "R0: " r0)
+end
+
+
 ;;;;;;;;;;;;;;
 ;;; Layout ;;;
 ;;;;;;;;;;;;;;
@@ -576,10 +614,10 @@ day
 30.0
 
 BUTTON
-198
-89
-281
-122
+11
+212
+94
+245
 setup
 setup
 NIL
@@ -593,10 +631,10 @@ NIL
 1
 
 BUTTON
-284
-88
-367
-121
+98
+211
+181
+244
 go
 go
 T
@@ -626,9 +664,9 @@ HORIZONTAL
 
 PLOT
 10
-415
+435
 405
-606
+626
 Populations
 days
 # people
@@ -647,9 +685,9 @@ PENS
 
 PLOT
 7
-614
+634
 409
-781
+801
 Infection and Recovery Rates
 days
 rate
@@ -680,21 +718,21 @@ NIL
 HORIZONTAL
 
 MONITOR
-335
-130
-405
-175
+337
+161
+407
+206
 R0
-r0\n
+r0
 2
 1
 11
 
 PLOT
 11
-235
+255
 405
-410
+430
 Cumulative Infected and Recovered
 days
 % total pop.
@@ -772,10 +810,10 @@ show-layout
 -1000
 
 BUTTON
-198
-128
-310
-161
+187
+212
+299
+245
 LOCKDOWN!
 lockdown
 NIL
@@ -799,10 +837,10 @@ TEXTBOX
 1
 
 MONITOR
-335
-180
-403
-225
+339
+209
+407
+254
 Deaths
 count turtles with [dead?]
 0
@@ -836,21 +874,21 @@ use-network?
 -1000
 
 SWITCH
-144
-163
-330
-196
+157
+125
+361
+159
 lockdown-at-first-death
 lockdown-at-first-death
-0
+1
 1
 -1000
 
 TEXTBOX
-10
-205
-135
-223
+148
+177
+273
+195
 (Very slow!)
 12
 0.0
@@ -866,6 +904,28 @@ incubation-days
 0
 10
 5.0
+1
+1
+NIL
+HORIZONTAL
+
+OUTPUT
+605
+920
+1320
+1230
+34
+
+SLIDER
+192
+84
+414
+118
+initially-infected
+initially-infected
+0
+10
+3.0
 1
 1
 NIL
