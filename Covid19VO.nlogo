@@ -375,7 +375,9 @@ to kill-agent
   if count turtles with [dead?] = 1 [
     output-print (word "Epidemic day " ticks ": death number 1. Age: " age "; gender: " sex)
     print-current-summary
-    ifelse lockdown-at-first-death [lockdown][output-print "NOT locking down"]
+    ifelse lockdown-at-first-death [lockdown][
+      output-print " ================================ "
+      output-print "NOT locking down"]
   ]
 end
 
@@ -422,6 +424,7 @@ to hospitalize ;; turtle procedure
 end
 
 to lockdown
+  output-print " ================================ "
   output-print (word "Day " ticks ": Now locking down!")
   ask friendships [set removed? true]
   ask relations [set removed? true]
@@ -869,7 +872,7 @@ SWITCH
 158
 lockdown-at-first-death
 lockdown-at-first-death
-1
+0
 1
 -1000
 

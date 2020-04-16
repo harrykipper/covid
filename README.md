@@ -22,11 +22,12 @@ A **friendship** network is created among all agents > 12 y.o. based on the *pre
 
 The infection is assumed to follow social links. Only people in an infected agent's social network are exposed. When someone becomes infected, after a period of incubation, she starts infecting people in her network. 
 
-The progression of the disease is based on data from China and Italy. Agents have a probability of developing symptoms after incubation, based on their age; another probability of worsening; another of dying. These can be modified editing the first four functions at the top of the 'Code' section in Netlogo.
+The progression of the disease is based on data from China and Italy. Agents have a probability of developing symptoms after incubation, based on their age; another probability of worsening; another of dying. The probability is slightly lower for women in all three phases. 
+The probabilities can be modified editing the first four functions at the top of the 'Code' section in Netlogo.
 
 ### Lockdown
 
-The model implements lockdown policies based on the response of nearly all European countries. In a lockdown all _friendship_ links are dropped (= no one can be infected through their friends). Crucially, agents are assumed to be segregating at home, therefore household members are still susceptible to the infection.
+The model implements lockdown policies based on the response of nearly all European countries. In a lockdown all _friendship_ links are dropped (= no one can be infected through their friends). Crucially, agents are assumed to be segregating at home, therefore household members are still exposed to the infection.
 
 ## Model configuration
 
