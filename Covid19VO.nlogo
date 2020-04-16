@@ -8,6 +8,7 @@ undirected-link-breed [friendships friendship]
 globals
 [
   N-people
+  recovery-chance      ;; Daily probability of recovering after the course of the sickness is complete (= recovery-time is reached)
   nb-infected-previous ;; Number of infected people at the previous tick
   border               ;; The patches representing the yellow border
   in-hospital          ;; Number of people currently in hospital
@@ -134,6 +135,10 @@ to setup
     set infected? true
     set susceptible? false
   ]
+
+  ;; When someone has traversed the whole course of the illness there's a daily chance of recovery
+  ;; of 30%. Meaning that in 3/4 days the person recovers
+  set recovery-chance 30
 end
 
 to read-agents
@@ -368,12 +373,9 @@ to kill-agent
   ask my-links [die]
   set dead? true
   if count turtles with [dead?] = 1 [
-    output-print (word "Epidemic day " ticks ": death number 1. Age: " age "; gender:" sex)
+    output-print (word "Epidemic day " ticks ": death number 1. Age: " age "; gender: " sex)
     print-current-summary
-    ifelse lockdown-at-first-death [
-      output-print "Now locking down"
-      lockdown
-    ][output-print "NOT locking down"]
+    ifelse lockdown-at-first-death [lockdown][output-print "NOT locking down"]
   ]
 end
 
@@ -420,6 +422,7 @@ to hospitalize ;; turtle procedure
 end
 
 to lockdown
+  output-print (word "Day " ticks ": Now locking down!")
   ask friendships [set removed? true]
   ask relations [set removed? true]
 end
@@ -526,19 +529,20 @@ to print-current-summary
   let recovered count turtles with [cured?]
   let propinf precision (infected / N-people) 3
   let proprec precision (recovered / N-people) 3
-  output-print (word "Currently infected: " infected " (" propinf " of total)" )
-  output-print (word "Currently recovered: " recovered " (" proprec " of total)" )
-  output-print (word "Current average R0: " r0)
+  output-print (word "Currently infected: " infected " (" propinf " of population)" )
+  output-print (word "Currently recovered: " recovered " (" proprec " of population)" )
+  output-print (word "Current average R0: " precision r0 2)
 end
 
 to print-final-summary
-  let totalinf precision (((count turtles with [ cured? ] + count turtles with [ infected? ]) / N-people) * 100) 3
+  let totalinf count turtles with [ cured? ] + count turtles with [ infected? ]
+  let totalinfpct precision ((totalinf / N-people) * 100) 3
   let deaths count turtles with [dead?]
   output-print " ================================ "
   output-print (word "End of epidemic: day " ticks)
-  output-print (word "Total infected: " totalinf " of population" )
+  output-print (word "Total infected: " totalinfpct " of population" )
   output-print (word "Total deaths: " deaths " - Mortality: " precision (deaths / totalinf) 3)
-  output-print (word "R0: " r0)
+  output-print (word "R0: " precision r0 2)
 end
 
 
@@ -614,10 +618,10 @@ day
 30.0
 
 BUTTON
-11
-212
-94
-245
+60
+810
+143
+843
 setup
 setup
 NIL
@@ -631,10 +635,10 @@ NIL
 1
 
 BUTTON
-98
-211
-181
-244
+147
+809
+230
+842
 go
 go
 T
@@ -664,9 +668,9 @@ HORIZONTAL
 
 PLOT
 10
-435
+350
 405
-626
+541
 Populations
 days
 # people
@@ -685,9 +689,9 @@ PENS
 
 PLOT
 7
-634
+549
 409
-801
+716
 Infection and Recovery Rates
 days
 rate
@@ -718,10 +722,10 @@ NIL
 HORIZONTAL
 
 MONITOR
-337
-161
-407
-206
+260
+725
+330
+770
 R0
 r0
 2
@@ -730,9 +734,9 @@ r0
 
 PLOT
 11
-255
+170
 405
-430
+345
 Cumulative Infected and Recovered
 days
 % total pop.
@@ -799,10 +803,10 @@ PENS
 "default" 1.0 1 -16777216 true "" "let max-degree max [count friendship-neighbors] of turtles\nplot-pen-reset  ;; erase what we plotted before\nset-plot-x-range 1 (max-degree + 1)  ;; + 1 to make room for the width of the last bar\nhistogram [count friendship-neighbors] of turtles"
 
 SWITCH
-10
-165
-142
-198
+215
+125
+347
+158
 show-layout
 show-layout
 1
@@ -810,10 +814,10 @@ show-layout
 -1000
 
 BUTTON
-187
-212
-299
-245
+236
+810
+348
+843
 LOCKDOWN!
 lockdown
 NIL
@@ -837,36 +841,21 @@ TEXTBOX
 1
 
 MONITOR
-339
-209
-407
-254
+334
+724
+402
+769
 Deaths
 count turtles with [dead?]
 0
 1
 11
 
-SLIDER
-7
-48
-187
-81
-recovery-chance
-recovery-chance
-10
-100
-30.0
-5
-1
-NIL
-HORIZONTAL
-
 SWITCH
-10
-123
-154
-156
+235
+85
+379
+118
 use-network?
 use-network?
 0
@@ -874,10 +863,10 @@ use-network?
 -1000
 
 SWITCH
-157
+5
 125
-361
-159
+209
+158
 lockdown-at-first-death
 lockdown-at-first-death
 1
@@ -885,20 +874,20 @@ lockdown-at-first-death
 -1000
 
 TEXTBOX
-148
-177
-273
-195
+353
+137
+423
+155
 (Very slow!)
 12
 0.0
 1
 
 SLIDER
-9
-80
-186
-113
+5
+50
+185
+83
 incubation-days
 incubation-days
 0
@@ -913,19 +902,19 @@ OUTPUT
 605
 920
 1320
-1230
+1300
 34
 
 SLIDER
-192
-84
-414
+5
+85
+227
 118
 initially-infected
 initially-infected
 0
 10
-3.0
+2.0
 1
 1
 NIL

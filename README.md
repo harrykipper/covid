@@ -35,7 +35,7 @@ The model can be configured changing the transition probabilities and timings at
 | Parameter 		      | Description
 | --------------------------- | ------------------------------------------------------------ |
 | infection-chance            | Daily probability of infecting a subset of one infected person's network |
-| recovery-chance             | daily probability of recovering after average-recovery-time is reached |
+| initially-infected          | No. of agents infected on simulation day 0 |
 | incubation-days             | days before an infected agent becomes infectious and may show symptoms |
 | average-isolation-tendency  | probability of self-isolating after displaying symptoms      |
 | initial-links-per-age-group | No. of random friendship links within each group upon initialization |
