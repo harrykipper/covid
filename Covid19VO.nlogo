@@ -529,8 +529,8 @@ to print-current-summary
   let recovered count turtles with [cured?]
   let propinf precision (infected / N-people) 3
   let proprec precision (recovered / N-people) 3
-  output-print (word "Currently infected: " infected " (" propinf " of population)" )
-  output-print (word "Currently recovered: " recovered " (" proprec " of population)" )
+  output-print (word "Currently infected: " infected " (" (propinf * 100) "% of population)" )
+  output-print (word "Currently recovered: " recovered " (" (proprec * 100) "% of population)" )
   output-print (word "Current average R0: " precision r0 2)
 end
 
@@ -540,8 +540,8 @@ to print-final-summary
   let deaths count turtles with [dead?]
   output-print " ================================ "
   output-print (word "End of epidemic: day " ticks)
-  output-print (word "Total infected: " totalinfpct " of population" )
-  output-print (word "Total deaths: " deaths " - Mortality: " precision (deaths / totalinf) 3)
+  output-print (word "Total infected: " totalinfpct "% of population" )
+  output-print (word "Total deaths: " deaths " - Mortality rate: " precision ((deaths / totalinf) * 100) 2 "%")
   output-print (word "R0: " precision r0 2)
 end
 
