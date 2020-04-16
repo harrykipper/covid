@@ -956,7 +956,7 @@ The model implements lockdown policies based on the response of nearly all Europ
 The model can be configured changing the transition probabilities and timings at the beginning of the Code section in Netlogo and the following parameters in Netlogo's interface:
 
 * *infection-chance*  Daily probability of infecting a subset of one infected person's network 
-* *recovery-chance* Daily probability of recovering after average-recovery-time is reached 
+* *initially-infected* Number of agents infected at simulation day 0
 * *incubation-days* Days before an infected agent becomes infectious and may show symptoms 
 * *average-isolation-tendency* Probability of self-isolating after displaying symptoms      
 * *initial-links-per-age-group* No. of random friendship links within each group upon initialization 
