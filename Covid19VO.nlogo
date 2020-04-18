@@ -111,6 +111,7 @@ end
 ;;;
 ;;; SETUP
 ;;;
+;; ==========================================================================
 
 to setup
   clear-all
@@ -282,7 +283,6 @@ end
 
 ;; Different people are displayed in 5 different colors depending on health
 ;; green is a survivor of the infection
-;; blue is a successful innoculation
 ;; red is an infected person
 ;; white is neither infected nor cured
 
@@ -299,7 +299,8 @@ end
 ;;;
 
 to go
-  if all? turtles [ not infected? ][
+  if all? turtles [ not infected? ]
+  [
     print-final-summary
     stop
   ]
@@ -967,22 +968,27 @@ The model can be configured changing the transition probabilities and timings at
 * *show-layout?* Display the whole social network stricture. **WARNING: VERY SLOW** 
 * *lockdown-at-first-death* Implement a full lockdown upon the first reported death (as happened in Vo' Euganeo) 
 
+## What to do with this
+
+The model is useful to show the progression of the infection in a small community and appreciate the difference in infections and casualties with and without social distancing and lockdown measures.
+It also shows that, when we assume that the viral transmission runs predominantly through one's social network, the dynamic of the infection is different from that emerging under the assumption of most SEIR models of an equal probability of everyone infecting everyone else.
+
+The model is easy to adapt to test different levels of infectiousness and different proportions of people becoming symptomatic and severely ill. 
+
+
 ## The Vo' Euganeo case
 
-In the town of Vo' Euganeo, in the province of Padua, Italy, the first official death from COVID19 was recorded. Immediately afterwards, a lockdown of the whole town was ordered and 85% of the whole population of 3300 was tested. Nearly 3% was found to be carrying the Coronavirus. Twelve days later a second death was recorded.
+The first official Italian COVID19 death was a 78 year old resident of the town of Vo' Euganeo, in the province of Padua, on February 22. Immediately afterwards, a lockdown of the whole town was ordered and 85% of the whole population of 3300 was tested. Nearly 3% was found to be carrying the Coronavirus (https://www.scribd.com/document/450608044/Coronavirus-Regione-Veneto-Azienda-Zero-pdf). Eighteen days later a second death was recorded in the town, a 68 year old, who was a friend of the first victim.
 
 ## RELATED MODELS
 
-epiDEM basic, HIV, Virus and Virus on a Network, Preferential Attachment are related models.
-
-## HOW TO CITE
-
-If you mention this model or the NetLogo software in a publication, we ask that you include the citations below.
+epiDEM basic, HIV, Virus, Virus on a Network, Preferential Attachment are related models.
 
 ## CREDITS AND REFERENCES
 
 The preferential attachment bit of the model is based on:
-Albert-László Barabási. Linked: The New Science of Networks, Perseus Publishing, Cambridge, Massachusetts, pages 79-92.
+
+* Albert-László Barabási. Linked: The New Science of Networks, Perseus Publishing, Cambridge, Massachusetts, pages 79-92.
 
 The model includes code adapted from the following models:
 
@@ -995,13 +1001,9 @@ Please cite the NetLogo software as:
 
 ## COPYRIGHT AND LICENSE
 
-Copyright 2011 Uri Wilensky.
-
 ![CC BY-NC-SA 3.0](http://ccl.northwestern.edu/images/creativecommons/byncsa.png)
 
 This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 License.  To view a copy of this license, visit https://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to Creative Commons, 559 Nathan Abbott Way, Stanford, California 94305, USA.
-
-Commercial licenses are also available. To inquire about commercial licenses, please contact Uri Wilensky at uri@northwestern.edu.
 @#$#@#$#@
 default
 true
