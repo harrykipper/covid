@@ -31,6 +31,8 @@ turtles-own
   isolated?            ;; If true, the person is isolated, unable to infect anyone.
   hospitalized?        ;; If true, the person is hospitalized and will recovery in half the average-recovery-time.
   dead?                ;; If true, the person is... you know..
+  infected-by          ;; ID of agent who infected me
+  spreading-to         ;; ID of agents infected by me
 
 
   infection-length     ;; How long the person has been infected.
@@ -159,6 +161,8 @@ to read-agents
           set severe-symptoms? false
           set dead? false
           set age item 0 ag + 1 ;; Data are from 2019, everyone is one year older now...
+          set spreading-to []
+          set infected-by nobody
 
           ; show (word "DEBUG: Creating agents of age " item 0 ag)
           ifelse i < 5 [set sex "M"][set sex "F"]
@@ -347,13 +351,15 @@ to clear-count
   set nb-recovered 0
 end
 
-;; if the person is showing symptoms, it'll take 7 more days to recover
+;; if the person is showing symptoms, it'll take 7 more days to recover.
+;; if he doesn't the infection will last a couple of days more and then
+;; the chap will have a chance to heal.
 to maybe-show-symptoms
-  if prob-symptoms > random 100 [
+  ifelse prob-symptoms > random 100 [
     ;show "DEBUG: I have the symptoms!"
     set symptomatic? true
     set recovery-time infection-length + 7
-  ]
+  ][set recovery-time infection-length + 2]
 end
 
 to maybe-worsen
@@ -389,6 +395,7 @@ to maybe-recover
     if random-float 100 < recovery-chance [
       set infected? false
       set cured? true
+      set susceptible? false     ;; We assume immunity is acquired...
       set nb-recovered (nb-recovered + 1)
       if hospitalized? [set in-hospital in-hospital - 1]
       if isolated? [unisolate]
@@ -440,21 +447,29 @@ to infect  ;; turtle procedure
   let nearby-uninfected turtles with [not infected? and not cured?]
   if use-network? [set nearby-uninfected link-neighbors with [not infected? and not cured?]]
   let all-contacts count nearby-uninfected
+  if not use-network? [set all-contacts count nearby-uninfected / 10]
   if all-contacts > 0 [
-    ask n-of (1 + random round (all-contacts / 8)) nearby-uninfected [
+    ask n-of (1 + random round (all-contacts / 10)) nearby-uninfected [
     ;ask n-of 1 nearby-uninfected [
       ifelse use-network?
-        [if not [removed?] of link-with caller [if random 100 < infection-chance [newinfection]]]
-      [if not [isolated?] of caller and not isolated? and  random 100 < infection-chance [newinfection]]
+        [if not [removed?] of link-with caller [if random 100 < infection-chance [
+          newinfection caller
+          ask caller [set spreading-to lput myself spreading-to]
+      ]]]
+      [if not [isolated?] of caller and not isolated? and  random 100 < infection-chance [
+        newinfection caller
+        ask caller [set spreading-to lput myself spreading-to]
+      ]]
     ]
   ]
 end
 
-to newinfection
+to newinfection [untore]
   set infected? true
   set symptomatic? false
   set severe-symptoms? false
   set nb-infected (nb-infected + 1)
+  set infected-by untore
 end
 
 to calculate-r0
@@ -622,10 +637,10 @@ day
 30.0
 
 BUTTON
-60
-810
-143
-843
+8
+720
+91
+753
 setup
 setup
 NIL
@@ -639,10 +654,10 @@ NIL
 1
 
 BUTTON
-147
-809
-230
-842
+95
+719
+178
+752
 go
 go
 T
@@ -726,10 +741,10 @@ NIL
 HORIZONTAL
 
 MONITOR
-260
-725
-330
-770
+280
+720
+350
+765
 R0
 r0
 2
@@ -771,10 +786,10 @@ NIL
 HORIZONTAL
 
 PLOT
-5
-950
-295
-1168
+0
+1083
+290
+1301
 Degree distribution (log-log)
 log(degree)
 log(#of nodes)
@@ -789,10 +804,10 @@ PENS
 "default" 1.0 2 -16777216 true "" "let max-degree max [count friendship-neighbors] of turtles\n;; for this plot, the axes are logarithmic, so we can't\n;; use \"histogram-from\"; we have to plot the points\n;; ourselves one at a time\nplot-pen-reset  ;; erase what we plotted before\n;; the way we create the network there is never a zero degree node,\n;; so start plotting at degree one\nlet degree 1\nwhile [degree <= max-degree] [\n  let matches turtles with [count friendship-neighbors = degree]\n  if any? matches\n    [ plotxy log degree 10\n             log (count matches) 10 ]\n  set degree degree + 1\n]"
 
 PLOT
-302
-949
-592
-1169
+298
+1082
+588
+1302
 Degree distribution
 NIL
 NIL
@@ -818,10 +833,10 @@ show-layout
 -1000
 
 BUTTON
-236
-810
-348
-843
+182
+721
+275
+755
 LOCKDOWN!
 lockdown
 NIL
@@ -835,20 +850,20 @@ NIL
 1
 
 TEXTBOX
-125
-910
-480
-966
+120
+1044
+476
+1071
 ====== \"Friendship\" network ======
 20
 0.0
 1
 
 MONITOR
-334
-724
-402
-769
+355
+720
+423
+765
 Deaths
 count turtles with [dead?]
 0
@@ -873,7 +888,7 @@ SWITCH
 158
 lockdown-at-first-death
 lockdown-at-first-death
-0
+1
 1
 -1000
 
@@ -923,6 +938,24 @@ initially-infected
 1
 NIL
 HORIZONTAL
+
+PLOT
+9
+775
+415
+1029
+Spreaders
+NIL
+# people infected
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -16777216 true "" "let max-spreading max [length spreading-to] of turtles\nplot-pen-reset  ;; erase what we plotted before\nset-plot-x-range 1 (max-spreading + 1)  ;; + 1 to make room for the width of the last bar\nhistogram [length spreading-to] of turtles"
 
 @#$#@#$#@
 # covid19 in Vo' Euganeo (or anywhere else)
