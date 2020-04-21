@@ -51,6 +51,10 @@ It also shows that, when we assume that the viral transmission runs predominantl
 
 The model is easy to adapt to test different levels of infectiousness and different proportions of people becoming symptomatic and severely ill. 
 
+## References
+
+* https://www.scribd.com/document/450608044/Coronavirus-Regione-Veneto-Azienda-Zero-pdf
+* https://www.medrxiv.org/content/10.1101/2020.04.17.20053157v1
 
 ## The Vo' Euganeo case
 
