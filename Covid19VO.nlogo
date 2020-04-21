@@ -69,7 +69,7 @@ end
 ;; The three parameters below obviously interact.
 ;; The probability of someone dying of covid is:
 ;; probability-of-showing-syptoms * probability-of-worsening * probability-of-dying
-;; For someone between 30 and 40 this is currently 0.25 * 0.08 * 0.05 = 0.001 or 0.1%
+;; For someone between 30 and 40 this is currently 0.25 * 0.05 * 0.05 = 0.000625 or 0.06%
 
 to-report probability-of-showing-symptoms [agent-age]
   ;; When the incubation period ('incubation-days' in main interface) is over
@@ -78,7 +78,7 @@ to-report probability-of-showing-symptoms [agent-age]
   report (ifelse-value
     agent-age < 30 [15]
     agent-age < 40 [25]
-    agent-age < 50 [45]
+    agent-age <= 50 [45]
     agent-age < 60 [75]
     [85]
   )
@@ -88,10 +88,10 @@ to-report probability-of-worsening [agent-age]
   ;; After 10 days with symptoms the agent has the following probability of
   ;; worsening and needing hospital care.
   report (ifelse-value
-    agent-age < 40 [8]
-    agent-age < 50 [12]
-    agent-age < 60 [20]
-    [30]
+    agent-age < 40 [5]
+    agent-age < 50 [10]
+    agent-age < 60 [15]
+    [25]
   )
 end
 
@@ -255,7 +255,7 @@ end
 
 to create-friendships
   ask turtles with [age >= 12][
-    repeat 5 [create-friendship-with find-partner]
+    repeat 5 + random 10 [create-friendship-with find-partner]
   ]
   if show-layout [layout]
 end
@@ -268,7 +268,7 @@ to assign-tendency ;; Turtle procedure
   set isolation-tendency random-normal average-isolation-tendency average-isolation-tendency / 4
   set recovery-time 1 + round (random-normal (average-recovery-time age) (average-recovery-time age / 4))
   set prob-symptoms probability-of-showing-symptoms age * gender-discount sex
-  set symptom-time round random-normal incubation-days 2
+  set symptom-time round random-normal incubation-days 1
 
   ;; Make sure recovery-time lies between 0 and 2x average-recovery-time
   if recovery-time > (average-recovery-time age) * 2 [ set recovery-time (average-recovery-time age) * 2 ]
@@ -355,11 +355,11 @@ end
 ;; if he doesn't the infection will last a couple of days more and then
 ;; the chap will have a chance to heal.
 to maybe-show-symptoms
-  ifelse prob-symptoms > random 100 [
+  if prob-symptoms > random 100 [
     ;show "DEBUG: I have the symptoms!"
     set symptomatic? true
-    set recovery-time infection-length + 7
-  ][set recovery-time infection-length + 2]
+    set recovery-time recovery-time + 7
+  ]
 end
 
 to maybe-worsen
@@ -381,6 +381,7 @@ to kill-agent
   set dead? true
   if count turtles with [dead?] = 1 [
     output-print (word "Epidemic day " ticks ": death number 1. Age: " age "; gender: " sex)
+    output-print (word "Duration of infection: " infection-length " days")
     print-current-summary
     ifelse lockdown-at-first-death [lockdown][
       output-print " ================================ "
@@ -395,7 +396,7 @@ to maybe-recover
     if random-float 100 < recovery-chance [
       set infected? false
       set cured? true
-      set susceptible? false     ;; We assume immunity is acquired...
+      ;set susceptible? false     ;; We assume immunity is acquired...
       set nb-recovered (nb-recovered + 1)
       if hospitalized? [set in-hospital in-hospital - 1]
       if isolated? [unisolate]
@@ -422,7 +423,8 @@ end
 to hospitalize ;; turtle procedure
   set hospitalized? true
   set in-hospital in-hospital + 1
-  set recovery-time recovery-time + 10
+  ask my-links [set removed? true]
+  set isolated? true
   set pcolor black
   if show-layout [
     move-to patch (max-pxcor / 2) 0
@@ -443,24 +445,19 @@ end
 ;; their disease to their susceptible friends and family.
 
 to infect  ;; turtle procedure
-  let caller self
+  let untore self
+  let proportion 10
+  if not use-network? [set proportion 100]
   let nearby-uninfected turtles with [not infected? and not cured?]
   if use-network? [set nearby-uninfected link-neighbors with [not infected? and not cured?]]
   let all-contacts count nearby-uninfected
-  if not use-network? [set all-contacts count nearby-uninfected / 10]
   if all-contacts > 0 [
-    ask n-of (1 + random round (all-contacts / 10)) nearby-uninfected [
+    ask n-of (1 + random round (all-contacts / proportion)) nearby-uninfected [
     ;ask n-of 1 nearby-uninfected [
       ifelse use-network?
-        [if not [removed?] of link-with caller [if random 100 < infection-chance [
-          newinfection caller
-          ask caller [set spreading-to lput myself spreading-to]
-      ]]]
-      [if not [isolated?] of caller and not isolated? and  random 100 < infection-chance [
-        newinfection caller
-        ask caller [set spreading-to lput myself spreading-to]
-      ]]
-    ]
+        [if not [removed?] of link-with untore [if random 100 < infection-chance [newinfection untore]]]
+      [
+        if not isolated? and not [isolated?] of untore and random 100 < infection-chance [newinfection untore]]]
   ]
 end
 
@@ -470,6 +467,7 @@ to newinfection [untore]
   set severe-symptoms? false
   set nb-infected (nb-infected + 1)
   set infected-by untore
+  ask untore [set spreading-to lput myself spreading-to]
 end
 
 to calculate-r0
@@ -548,8 +546,9 @@ to print-current-summary
   let recovered count turtles with [cured?]
   let propinf precision (infected / N-people) 3
   let proprec precision (recovered / N-people) 3
+  let proprec2 precision (recovered / (infected + count turtles with [cured?])) 3
   output-print (word "Currently infected: " infected " (" (propinf * 100) "% of population)" )
-  output-print (word "Currently recovered: " recovered " (" (proprec * 100) "% of population)" )
+  output-print (word "Currently recovered: " recovered " (" (proprec * 100) "% of population - " (proprec2 * 100) "% of all infected)" )
   output-print (word "Current average R0: " precision r0 2)
 end
 
@@ -705,6 +704,7 @@ PENS
 "Susceptible" 1.0 0 -10899396 true "" "plot count turtles with [ not infected? and not cured? ] "
 "Recovered" 1.0 0 -7500403 true "" "plot count turtles with [ cured? ] "
 "Dead" 1.0 0 -16777216 true "" "plot count turtles with [dead?] "
+"Hospitalized" 1.0 0 -955883 true "" "plot in-hospital"
 
 PLOT
 7
@@ -734,7 +734,7 @@ infection-chance
 infection-chance
 10
 100
-20.0
+15.0
 5
 1
 NIL
@@ -779,7 +779,7 @@ initial-links-per-age-group
 initial-links-per-age-group
 0
 100
-30.0
+5.0
 1
 1
 NIL
@@ -801,7 +801,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 2 -16777216 true "" "let max-degree max [count friendship-neighbors] of turtles\n;; for this plot, the axes are logarithmic, so we can't\n;; use \"histogram-from\"; we have to plot the points\n;; ourselves one at a time\nplot-pen-reset  ;; erase what we plotted before\n;; the way we create the network there is never a zero degree node,\n;; so start plotting at degree one\nlet degree 1\nwhile [degree <= max-degree] [\n  let matches turtles with [count friendship-neighbors = degree]\n  if any? matches\n    [ plotxy log degree 10\n             log (count matches) 10 ]\n  set degree degree + 1\n]"
+"default" 1.0 2 -16777216 true "" "let max-degree max [count friendship-neighbors] of turtles with [age > 12]\n;; for this plot, the axes are logarithmic, so we can't\n;; use \"histogram-from\"; we have to plot the points\n;; ourselves one at a time\nplot-pen-reset  ;; erase what we plotted before\n;; the way we create the network there is never a zero degree node,\n;; so start plotting at degree one\nlet degree 1\nwhile [degree <= max-degree] [\n  let matches turtles with [age > 12 and count friendship-neighbors = degree]\n  if any? matches\n    [ plotxy log degree 10\n             log (count matches) 10 ]\n  set degree degree + 1\n]"
 
 PLOT
 298
@@ -819,7 +819,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 1 -16777216 true "" "let max-degree max [count friendship-neighbors] of turtles\nplot-pen-reset  ;; erase what we plotted before\nset-plot-x-range 1 (max-degree + 1)  ;; + 1 to make room for the width of the last bar\nhistogram [count friendship-neighbors] of turtles"
+"default" 1.0 1 -16777216 true "" "let max-degree max [count friendship-neighbors] of turtles with [age > 12]\nplot-pen-reset  ;; erase what we plotted before\nset-plot-x-range 1 (max-degree + 1)  ;; + 1 to make room for the width of the last bar\nhistogram [count friendship-neighbors] of turtles with [age > 12]"
 
 SWITCH
 215
@@ -921,7 +921,7 @@ OUTPUT
 605
 920
 1320
-1300
+1308
 34
 
 SLIDER
@@ -945,8 +945,8 @@ PLOT
 415
 1029
 Spreaders
-NIL
-# people infected
+# agents infected
+# agents
 0.0
 10.0
 0.0
@@ -955,7 +955,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 1 -16777216 true "" "let max-spreading max [length spreading-to] of turtles\nplot-pen-reset  ;; erase what we plotted before\nset-plot-x-range 1 (max-spreading + 1)  ;; + 1 to make room for the width of the last bar\nhistogram [length spreading-to] of turtles"
+"default" 1.0 1 -16777216 true "" "let max-spreading max [length spreading-to] of turtles\nplot-pen-reset  ;; erase what we plotted before\nset-plot-x-range 1 (max-spreading + 1)  ;; + 1 to make room for the width of the last bar\nhistogram [length spreading-to] of turtles with [length spreading-to > 0]"
 
 @#$#@#$#@
 # covid19 in Vo' Euganeo (or anywhere else)
@@ -966,7 +966,9 @@ A tentative multi-level network based SIR model of the progression of the COVID1
 
 ### Agents
 
-The population of Vo' is imported in the model upon setup. Agent attributes are _age_ and _marital status_ (source: http://demo.istat.it/pop2019/index3.html). 
+The population is imported in the model upon setup from the file vo.csv. Agent attributes are _age_ and _marital status_ (source: http://demo.istat.it/pop2019/index3.html). Any population can be imported from a csv structured as follows:
+
+``age,singleMales,marriedMales,divorcedMales,widowesMales,singleFemales,marriedFemales,divorcedFemales,widowedFemales``
 
 ### Networks
 
