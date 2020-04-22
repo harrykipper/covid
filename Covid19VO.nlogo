@@ -10,7 +10,6 @@ globals
   N-people
   recovery-chance      ;; Daily probability of recovering after the course of the sickness is complete (= recovery-time is reached)
   nb-infected-previous ;; Number of infected people at the previous tick
-  border               ;; The patches representing the yellow border
   in-hospital          ;; Number of people currently in hospital
   hospital-beds        ;; Number of places in the hospital
   angle                ;; Heading for individuals
@@ -29,11 +28,10 @@ turtles-own
   symptomatic?         ;; If true, the person is showing symptoms of infection
   severe-symptoms?     ;; If true, the person is showing severe symptoms
   isolated?            ;; If true, the person is isolated, unable to infect anyone.
-  hospitalized?        ;; If true, the person is hospitalized and will recovery in half the average-recovery-time.
+  hospitalized?        ;; If true, the person is hospitalized.
   dead?                ;; If true, the person is... you know..
   infected-by          ;; ID of agent who infected me
   spreading-to         ;; ID of agents infected by me
-
 
   infection-length     ;; How long the person has been infected.
   recovery-time        ;; Time (in days) it takes before the person has a chance to recover from the infection
@@ -59,10 +57,10 @@ links-own [mean-age removed?]
 to-report average-recovery-time [agent-age]
   ;; Infected agents recover, on average, after these many days since being infected
   report (ifelse-value
-    agent-age < 40 [8]
-    agent-age < 50 [12]
-    agent-age < 60 [15]
-    [18]
+    agent-age < 40 [7]
+    agent-age < 50 [10]
+    agent-age < 60 [12]
+    [16]
     )
 end
 
@@ -303,8 +301,7 @@ end
 ;;;
 
 to go
-  if all? turtles [ not infected? ]
-  [
+  if all? turtles [ not infected? ][
     print-final-summary
     stop
   ]
@@ -330,7 +327,7 @@ to go
         if severe-symptoms? and infection-length = recovery-time [maybe-die]
         if symptomatic? and not severe-symptoms? and infection-length = recovery-time [maybe-worsen]
         if not symptomatic? and infection-length = symptom-time [maybe-show-symptoms]
-        if symptomatic? [if random 100 < isolation-tendency [isolate]]
+        if symptomatic? and not isolated? [if random 100 < isolation-tendency [isolate]]
         maybe-recover
       ]
   ]
@@ -351,21 +348,29 @@ to clear-count
   set nb-recovered 0
 end
 
-;; if the person is showing symptoms, it'll take 7 more days to recover.
-;; if he doesn't the infection will last a couple of days more and then
-;; the chap will have a chance to heal.
+
+;; =========================================================================
+;;                    PROGRESSION OF THE INFECTION
+;; =========================================================================
+
+;; After the incubation period the person may be showing symptoms.
+;; If they do the infection length counter is reset and the infection will progress to the next stage.
+;; If he doesn't the infection will finish its course and the person will be healed.
 to maybe-show-symptoms
   if prob-symptoms > random 100 [
     ;show "DEBUG: I have the symptoms!"
     set symptomatic? true
-    set recovery-time recovery-time + 7
+    set infection-length 0
   ]
 end
 
+;; If the person worsens, after 7 days he will have a chance of dying/healing.
 to maybe-worsen
   if probability-of-worsening age * gender-discount sex > random 100 [
     set severe-symptoms? true
-    set recovery-time infection-length + 7 ;; if the person deteriorates it takes another 7 days to recover
+
+    ;; if the person deteriorates it takes circa 7 days from now to recover or die
+    set recovery-time round (infection-length + random-normal 7 2 )
     ;show "DEBUG: I'm worsening!"
   ]
 end
@@ -376,22 +381,9 @@ to maybe-die
   [if (probability-of-dying age) * 1.5 > random 100 [kill-agent]]  ; no hospital bed means a dire fate
 end
 
-to kill-agent
-  ask my-links [die]
-  set dead? true
-  if count turtles with [dead?] = 1 [
-    output-print (word "Epidemic day " ticks ": death number 1. Age: " age "; gender: " sex)
-    output-print (word "Duration of infection: " infection-length " days")
-    print-current-summary
-    ifelse lockdown-at-first-death [lockdown][
-      output-print " ================================ "
-      output-print "NOT locking down"]
-  ]
-end
-
 to maybe-recover
-  ;; If people have been infected for more than the recovery-time
-  ;; then there is a chance for recovery
+  ;; If people have been infected for more than recovery-time
+  ;; it means they have survived and there is a chance for recovery.
   if infection-length > recovery-time [
     if random-float 100 < recovery-chance [
       set infected? false
@@ -403,6 +395,21 @@ to maybe-recover
     ]
   ]
 end
+
+to kill-agent
+  ask my-links [die]
+  set dead? true
+  if count turtles with [dead?] = 1 [
+    output-print (word "Epidemic day " ticks ": death number 1. Age: " age "; gender: " sex)
+    output-print (word "Duration of agent's infection: " symptom-time " days incubation + " infection-length " days of illness")
+    print-current-summary
+    ifelse lockdown-at-first-death [lockdown][
+      output-print " ================================ "
+      output-print "NOT locking down"]
+  ]
+end
+
+;; ===============================================================================
 
 ;; When the agent is isolating all friendhips and relations are frozen.
 ;; Crucially household links stay in place, as it is assumed that one isolates at home
@@ -445,29 +452,46 @@ end
 ;; their disease to their susceptible friends and family.
 
 to infect  ;; turtle procedure
-  let untore self
-  let proportion 10
-  if not use-network? [set proportion 100]
-  let nearby-uninfected turtles with [not infected? and not cured?]
-  if use-network? [set nearby-uninfected link-neighbors with [not infected? and not cured?]]
-  let all-contacts count nearby-uninfected
-  if all-contacts > 0 [
-    ask n-of (1 + random round (all-contacts / proportion)) nearby-uninfected [
+  let spreader self
+  let proportion 100
+  let all-contacts turtles
+  let random-passerby nobody
+
+  if use-network? [
+    set proportion 10
+    set all-contacts friendship-neighbors
+    set random-passerby one-of turtles
+  ]
+
+  if count all-contacts > 0 [
+    ask n-of (1 + random round (count all-contacts / proportion)) all-contacts [
     ;ask n-of 1 nearby-uninfected [
       ifelse use-network?
-        [if not [removed?] of link-with untore [if random 100 < infection-chance [newinfection untore]]]
-      [
-        if not isolated? and not [isolated?] of untore and random 100 < infection-chance [newinfection untore]]]
+      [if not infected? and not cured? and not [removed?] of link-with spreader [if random 100 < infection-chance [newinfection spreader]]]
+      [if not infected? and not cured? and not isolated? and not [isolated?] of spreader and random 100 < infection-chance [newinfection spreader]]]
   ]
+
+  if any? household-neighbors  [
+    ask one-of household-neighbors [
+      if not infected? and not cured? and not [removed?] of link-with spreader [if random 100 < infection-chance [newinfection spreader]]
+    ]
+  ]
+
+;; Uncomment this if we want an infected agent to also try and infect someone at random
+;  if random-passerby != nobody and not [isolated?] of spreader [
+;    ask random-passerby [
+;      if not infected? and not cured? [if random 100 < infection-chance [newinfection spreader]]
+;    ]
+;  ]
 end
 
-to newinfection [untore]
+to newinfection [spreader]
   set infected? true
   set symptomatic? false
   set severe-symptoms? false
   set nb-infected (nb-infected + 1)
-  set infected-by untore
-  ask untore [set spreading-to lput myself spreading-to]
+  set infected-by spreader
+  ask spreader [set spreading-to lput myself spreading-to]
 end
 
 to calculate-r0
@@ -779,7 +803,7 @@ initial-links-per-age-group
 initial-links-per-age-group
 0
 100
-5.0
+8.0
 1
 1
 NIL
