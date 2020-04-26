@@ -1,6 +1,5 @@
 extensions [csv]
 
-undirected-link-breed [spouses spouse]
 undirected-link-breed [households household]
 undirected-link-breed [relations relation]
 undirected-link-breed [friendships friendship]
@@ -46,6 +45,7 @@ turtles-own
 
 links-own [mean-age removed?]
 
+households-own [ltype]  ; ltype 0 is a spouse; ltype 1 is offspring/siblings
 
 ;; ===========================================================================
 ;;       Model configuration  --- TRANSITION PROBABILITIES and TIMIGS
@@ -198,10 +198,10 @@ to create-marriages
     let pretendenti turtles with [
       sex = "M" and
       status = 1 and
-      count my-spouses = 0
+      not any? my-households with [ltype = 0]
     ]
     let marito min-one-of pretendenti [abs (age - [age] of myself)]
-    create-spouse-with marito
+    create-household-with marito [set ltype 0]
     if show-layout [
       move-to marito
       fd 8
@@ -211,23 +211,25 @@ to create-marriages
   let zitelle turtles with [
     age >= 28 and
     status = 0 and
-    sex = "F"]
+    sex = "F"
+  ]
 
   ask n-of (count zitelle / 2) zitelle [
     let pretendenti turtles with [
       sex = "M" and
       status = 0 and
-      count my-spouses = 0
+      not any? my-households with [ltype = 0]
     ]
     let marito min-one-of pretendenti [abs (age - [age] of myself)]
-    create-spouse-with marito
+    create-household-with marito [set ltype 0]
   ]
 end
 
 to attach-children
   ask turtles with [
     age < 28 and
-    status = 0
+    status = 0 and
+    not any? my-households with [ltype = 0]
   ][
     let age-interval-min age + 24
     let age-interval-max age + 36
@@ -238,10 +240,9 @@ to attach-children
       age <= age-interval-max and age >= age-interval-min
     ]
     [
-      if any? my-spouses [ask spouse-neighbors [create-household-with thekid]]
       ifelse any? my-households [
-        ask my-households [ask both-ends [create-household-with thekid]]
-      ][create-household-with thekid]
+        ask my-households [ask both-ends [create-household-with thekid [set ltype 1]]]
+      ][create-household-with thekid [set ltype 1]]
     ]
   ]
   if show-layout [layout]
@@ -252,9 +253,7 @@ to create-relations
 end
 
 to create-friendships
-  ask turtles with [age >= 12][
-    repeat 5 + random 10 [create-friendship-with find-partner]
-  ]
+  ask turtles with [age >= 12][repeat 5 + random 10 [create-friendship-with find-partner]]
   if show-layout [layout]
 end
 
@@ -266,7 +265,7 @@ to assign-tendency ;; Turtle procedure
   set isolation-tendency random-normal average-isolation-tendency average-isolation-tendency / 4
   set recovery-time 1 + round (random-normal (average-recovery-time age) (average-recovery-time age / 4))
   set prob-symptoms probability-of-showing-symptoms age * gender-discount sex
-  set symptom-time round random-normal incubation-days 1
+  set symptom-time round random-normal incubation-days 0.5
 
   ;; Make sure recovery-time lies between 0 and 2x average-recovery-time
   if recovery-time > (average-recovery-time age) * 2 [ set recovery-time (average-recovery-time age) * 2 ]
@@ -355,7 +354,7 @@ end
 
 ;; After the incubation period the person may be showing symptoms.
 ;; If they do the infection length counter is reset and the infection will progress to the next stage.
-;; If he doesn't the infection will finish its course and the person will be healed.
+;; If they don't the infection will finish its course and the person will be healed, eventually.
 to maybe-show-symptoms
   if prob-symptoms > random 100 [
     ;show "DEBUG: I have the symptoms!"
@@ -364,7 +363,7 @@ to maybe-show-symptoms
   ]
 end
 
-;; If the person worsens, after 7 days he will have a chance of dying/healing.
+;; If the person worsens, after another 7 days he will have a chance of dying/healing.
 to maybe-worsen
   if probability-of-worsening age * gender-discount sex > random 100 [
     set severe-symptoms? true
@@ -460,7 +459,7 @@ to infect  ;; turtle procedure
   if use-network? [
     set proportion 10
     set all-contacts friendship-neighbors
-    set random-passerby one-of turtles
+    set random-passerby n-of random 3 other turtles
   ]
 
   if count all-contacts > 0 [
@@ -471,18 +470,21 @@ to infect  ;; turtle procedure
       [if not infected? and not cured? and not isolated? and not [isolated?] of spreader and random 100 < infection-chance [newinfection spreader]]]
   ]
 
+  ;; Every day an infected person has the chance to infect all their household members.
   if any? household-neighbors  [
-    ask one-of household-neighbors [
-      if not infected? and not cured? and not [removed?] of link-with spreader [if random 100 < infection-chance [newinfection spreader]]
+    ask household-neighbors [
+      if not infected? and not cured? and not [removed?] of link-with spreader [
+        if random 100 < infection-chance [newinfection spreader]
+      ]
     ]
   ]
 
-;; Uncomment this if we want an infected agent to also try and infect someone at random
-;  if random-passerby != nobody and not [isolated?] of spreader [
-;    ask random-passerby [
-;      if not infected? and not cured? [if random 100 < infection-chance [newinfection spreader]]
-;    ]
-;  ]
+;; We want an infected agent to also try and infect someone at random
+  if random-passerby != nobody and not [isolated?] of spreader [
+    ask random-passerby [
+      if not infected? and not cured? [if random 100 < infection-chance [newinfection spreader]]
+    ]
+  ]
 end
 
 to newinfection [spreader]
@@ -758,7 +760,7 @@ infection-chance
 infection-chance
 10
 100
-15.0
+10.0
 5
 1
 NIL
