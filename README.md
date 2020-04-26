@@ -29,6 +29,10 @@ The probabilities can be modified editing the first four functions at the top of
 
 The model implements lockdown policies based on the response of nearly all European countries. In a lockdown all _friendship_ links are dropped (= no one can be infected through their friends). Crucially, agents are assumed to be segregating at home, therefore household members are still exposed to the infection.
 
+### Contact tracing 
+
+The model also tries to simulate a proposed contact tracing strategy for the "second phase" of epidemic control: an opt-in smartphone app. Upon model initialization a certain proportion of agents are given the "app". If an agent with the app tests positive for COVID19 all other agents who have come into contact with her, and also have the app, are notified and have the option to self-segregate as a precaution.
+
 ## Model configuration
 
 The model can be configured changing the transition probabilities and timings at the beginning of the Code section in Netlogo and the following parameters in Netlogo's interface:
@@ -43,6 +47,8 @@ The model can be configured changing the transition probabilities and timings at
 | use-network?                | If false contagion happens randomly                          |
 | show-layout?                | Display the whole social network stricture. **WARNING: VERY SLOW** |
 | lockdown-at-first-death     | Implement a full lockdown upon the first reported death (as happened in Vo' Euganeo) |
+| pct-with-tracing-app	      | Percentage of the population carrying the contact-tracing app |
+| tests-per-100-people	      | Probability that a symptomatic individual is tested for COVID19 |
 
 ## What to do with this
 

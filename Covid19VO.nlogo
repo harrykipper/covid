@@ -398,7 +398,6 @@ to maybe-recover
     if random-float 100 < recovery-chance [
       set infected? false
       set cured? true
-      ;set susceptible? false     ;; We assume immunity is acquired...
       set nb-recovered (nb-recovered + 1)
       if hospitalized? [set in-hospital in-hospital - 1]
       if isolated? [unisolate]
@@ -411,7 +410,7 @@ to kill-agent
   ask my-households [die]
   ask my-relations [die]
   set dead? true
-  if count turtles with [dead?] = 1 [
+  if count turtles with [dead?] = 1 and behaviorspace-run-number = 0[
     output-print (word "Epidemic day " ticks ": death number 1. Age: " age "; gender: " sex)
     output-print (word "Duration of agent's infection: " symptom-time " days incubation + " infection-length " days of illness")
     print-current-summary
@@ -453,7 +452,7 @@ to hospitalize ;; turtle procedure
 end
 
 to maybe-get-tested
-  if random 100 < tests-per-100-people [
+  if random 100 < tests-per-100-people
     ask contact-neighbors [
       if random 100 < isolation-tendency [isolate]
     ]
@@ -485,20 +484,25 @@ to infect  ;; turtle procedure
 
   if count all-contacts > 0 [
     ask n-of (1 + random round (count all-contacts / proportion)) all-contacts [
-    ;ask n-of 1 nearby-uninfected [
       ifelse use-network?
+
+      ;;; Every day the agent meets a certain fraction of her friends.
+      ;;; If the agent has the contact tracing app, a link is created
+      ;;; between her and those friends who also have the app.
+      ;;; With probability infection-chance the agent the infects the susceptible friends who she is meeting.
+
       [if not infected? and not cured? and not [removed?] of friendship-with spreader [
         if has-app? and [has-app?] of spreader [add-contact spreader]
         if random 100 < infection-chance [newinfection spreader]]]
       [if not infected? and not cured? and not isolated? and not [isolated?] of spreader [
-
+        if has-app? and [has-app?] of spreader [add-contact spreader]
         if random 100 < infection-chance [newinfection spreader]]
       ]
     ]
   ]
 
   ;; Every day an infected person has the chance to infect all their household members.
-  ;; Even if they are isolating.
+  ;; Even if the agent is isolating.
   if any? household-neighbors  [
     ask household-neighbors [
       if not infected? and not cured? and not [removed?] of household-with spreader [
@@ -508,7 +512,8 @@ to infect  ;; turtle procedure
     ]
   ]
 
-;; Infected agents will also infect someone at random
+  ;; Infected agents will also infect someone at random.
+  ;; Here, again, if both parties have the app a link is created to keep track of the meeting
   if random-passerby != nobody [
     ask random-passerby [
       if not infected? and not cured? [
@@ -520,7 +525,6 @@ end
 
 to add-contact [infected-agent]
   create-contact-with infected-agent [set day ticks]
-  ;table:put contacts infected-agent ticks
 end
 
 
@@ -1109,6 +1113,10 @@ The progression of the disease is based on data from China and Italy. Agents hav
 
 The model implements lockdown policies based on the response of nearly all European countries. In a lockdown all _friendship_ links are dropped (= no one can be infected through their friends). Crucially, agents are assumed to be segregating at home, therefore household members are still susceptible to the infection.
 
+### Contact tracing 
+
+The model also tries to simulate a proposed contact tracing strategy for the "second phase" of epidemic control: an opt-in smartphone app. Upon model initialization a certain proportion of agents are given the "app". If an agent with the app tests positive for COVID19 all other agents who have come into contact with her, and also have the app, are notified and have the option to self-segregate as a precaution.
+
 ## Model configuration
 
 The model can be configured changing the transition probabilities and timings at the beginning of the Code section in Netlogo and the following parameters in Netlogo's interface:
@@ -1121,6 +1129,8 @@ The model can be configured changing the transition probabilities and timings at
 * *use-network?* If false contagion happens randomly                          
 * *show-layout?* Display the whole social network stricture. **WARNING: VERY SLOW** 
 * *lockdown-at-first-death* Implement a full lockdown upon the first reported death (as happened in Vo' Euganeo) 
+* *pct-with-tracing-app* Percentage of the population carrying the contact-tracing app |
+* *tests-per-100-people* Probability that a symptomatic individual is tested for COVID19
 
 ## What to do with this
 
@@ -1483,19 +1493,16 @@ NetLogo 6.1.1
       <value value="2"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="pct-with-tracing-app">
-      <value value="15"/>
+      <value value="0"/>
       <value value="35"/>
       <value value="50"/>
-      <value value="60"/>
       <value value="75"/>
-      <value value="100"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="tests-per-100-people">
-      <value value="5"/>
+      <value value="0"/>
       <value value="15"/>
       <value value="25"/>
       <value value="50"/>
-      <value value="75"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-links-per-age-group">
       <value value="8"/>
