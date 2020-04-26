@@ -4,6 +4,9 @@ undirected-link-breed [households household]
 undirected-link-breed [relations relation]
 undirected-link-breed [friendships friendship]
 
+undirected-link-breed [contacts contact]     ;; The contact tracing app
+
+
 globals
 [
   N-people
@@ -11,6 +14,7 @@ globals
   nb-infected-previous ;; Number of infected people at the previous tick
   in-hospital          ;; Number of people currently in hospital
   hospital-beds        ;; Number of places in the hospital
+  contact-tracing      ;; If true a contact tracing app exists
   angle                ;; Heading for individuals
   beta-n               ;; The average number of new secondary infections per infected this tick
   gamma                ;; The average number of new recoveries per infected this tick
@@ -21,16 +25,17 @@ turtles-own
 [
   sex
   age
-  status               ;; marital status
+  status               ;; Marital status
   infected?            ;; If true, the person is infected.
   cured?               ;; If true, the person has lived through an infection. They cannot be re-infected.
   symptomatic?         ;; If true, the person is showing symptoms of infection
   severe-symptoms?     ;; If true, the person is showing severe symptoms
-  isolated?            ;; If true, the person is isolated, unable to infect anyone.
+  isolated?            ;; If true, the person is isolated at home, unable to infect friends and passer-bys.
+  days-isolated        ;; Number of days the agent has spent in self-isolation
   hospitalized?        ;; If true, the person is hospitalized.
   dead?                ;; If true, the person is... you know..
-  infected-by          ;; ID of agent who infected me
-  spreading-to         ;; ID of agents infected by me
+  infected-by          ;; Agent who infected me
+  spreading-to         ;; Agents infected by me
 
   infection-length     ;; How long the person has been infected.
   recovery-time        ;; Time (in days) it takes before the person has a chance to recover from the infection
@@ -41,12 +46,15 @@ turtles-own
   susceptible?         ;; Tracks whether the person was initially susceptible
   nb-infected          ;; Number of secondary infections caused by an infected person at the end of the tick
   nb-recovered         ;; Number of recovered people at the end of the tick
+
+  has-app?             ;; If true the agent carries the contact-tracing app
+  ;contacts             ;; Contacts in
 ]
 
 links-own [mean-age removed?]
 
 households-own [ltype]  ; ltype 0 is a spouse; ltype 1 is offspring/siblings
-
+contacts-own [day]
 ;; ===========================================================================
 ;;       Model configuration  --- TRANSITION PROBABILITIES and TIMIGS
 ;;
@@ -116,6 +124,7 @@ end
 to setup
   clear-all
   set-default-shape turtles "circle"
+  ifelse pct-with-tracing-app > 0 [set contact-tracing true][set contact-tracing false]
 
   read-agents
   set N-people count turtles
@@ -172,6 +181,8 @@ to read-agents
             ]
           ]
           assign-tendency
+          set has-app? false
+          if random 100 < pct-with-tracing-app [set has-app? true]
         ]
         set i i + 1
       ]
@@ -304,36 +315,34 @@ to go
     print-final-summary
     stop
   ]
-  ask turtles
-    [ clear-count ]
 
-  ask turtles
-    [ if infected? and not hospitalized? and infection-length >= incubation-days
-         [ infect ] ]
-
-  ask turtles
-    [ if not isolated? and not hospitalized? and infected? and symptomatic? and (random 100 < isolation-tendency)
-        [ isolate ] ]
-
-  ask turtles
-    [ if not hospitalized? and infected? and severe-symptoms?
-      [ hospitalize] ]
-
-  ask turtles
-    [ if infected?
-      [
-        set infection-length infection-length + 1
-        if severe-symptoms? and infection-length = recovery-time [maybe-die]
-        if symptomatic? and not severe-symptoms? and infection-length = recovery-time [maybe-worsen]
-        if not symptomatic? and infection-length = symptom-time [maybe-show-symptoms]
-        if symptomatic? and not isolated? [if random 100 < isolation-tendency [isolate]]
-        maybe-recover
-      ]
+  if contact-tracing [ask contacts with [day <= (ticks - 14)][die]]
+  ask turtles with [isolated?][
+    set days-isolated days-isolated + 1
+    if not symptomatic? and days-isolated = 10 [unisolate]
   ]
 
-  ask turtles
-    [ if (isolated? or hospitalized?) and cured?
-        [ unisolate ] ]
+  ask turtles [ clear-count ]
+
+  ask turtles with [infected? and not hospitalized? and infection-length >= incubation-days] [ infect ]
+
+  ask turtles with [infected? and symptomatic? and not isolated? and not hospitalized?][
+    if random 100 < isolation-tendency [ isolate ]
+  ]
+
+  ask turtles with [not hospitalized? and infected? and severe-symptoms?] [hospitalize]
+
+  ask turtles with [infected?] [
+    set infection-length infection-length + 1
+    if severe-symptoms? and infection-length = recovery-time [maybe-die]
+    if symptomatic? and not severe-symptoms? and infection-length = recovery-time [maybe-worsen]
+    if not symptomatic? and infection-length = symptom-time [maybe-show-symptoms]
+    if symptomatic? and not isolated? [if random 100 < isolation-tendency [isolate]]
+    if symptomatic? and infection-length = round random-normal 4 1 [maybe-get-tested]
+    maybe-recover
+  ]
+
+  ask turtles with [(isolated? or hospitalized?) and cured?] [unisolate]
 
   ask turtles
     [ assign-color
@@ -396,7 +405,9 @@ to maybe-recover
 end
 
 to kill-agent
-  ask my-links [die]
+  ask my-friendships [die]
+  ask my-households [die]
+  ask my-relations [die]
   set dead? true
   if count turtles with [dead?] = 1 [
     output-print (word "Epidemic day " ticks ": death number 1. Age: " age "; gender: " sex)
@@ -439,6 +450,14 @@ to hospitalize ;; turtle procedure
   ]
 end
 
+to maybe-get-tested
+  if random 100 < tests-per-100-people [
+    ask contact-neighbors [
+      if random 100 < isolation-tendency [isolate]
+    ]
+  ]
+end
+
 to lockdown
   output-print " ================================ "
   output-print (word "Day " ticks ": Now locking down!")
@@ -453,39 +472,55 @@ end
 to infect  ;; turtle procedure
   let spreader self
   let proportion 100
-  let all-contacts turtles
+  let all-contacts other turtles
   let random-passerby nobody
 
   if use-network? [
     set proportion 10
     set all-contacts friendship-neighbors
-    set random-passerby n-of random 3 other turtles
+    if not isolated? [set random-passerby n-of random 3 other turtles with [not isolated?]]
   ]
 
   if count all-contacts > 0 [
     ask n-of (1 + random round (count all-contacts / proportion)) all-contacts [
     ;ask n-of 1 nearby-uninfected [
       ifelse use-network?
-      [if not infected? and not cured? and not [removed?] of link-with spreader [if random 100 < infection-chance [newinfection spreader]]]
-      [if not infected? and not cured? and not isolated? and not [isolated?] of spreader and random 100 < infection-chance [newinfection spreader]]]
+      [if not infected? and not cured? and not [removed?] of friendship-with spreader [
+        if has-app? and [has-app?] of spreader [add-contact spreader]
+        if random 100 < infection-chance [newinfection spreader]]]
+      [if not infected? and not cured? and not isolated? and not [isolated?] of spreader [
+
+        if random 100 < infection-chance [newinfection spreader]]
+      ]
+    ]
   ]
 
   ;; Every day an infected person has the chance to infect all their household members.
+  ;; Even if they are isolating.
   if any? household-neighbors  [
     ask household-neighbors [
-      if not infected? and not cured? and not [removed?] of link-with spreader [
+      if not infected? and not cured? and not [removed?] of household-with spreader [
+       ; if has-app? and [has-app?] of spreader [add-contact spreader]
         if random 100 < infection-chance [newinfection spreader]
       ]
     ]
   ]
 
-;; We want an infected agent to also try and infect someone at random
-  if random-passerby != nobody and not [isolated?] of spreader [
+;; Infected agents will also infect someone at random
+  if random-passerby != nobody [
     ask random-passerby [
-      if not infected? and not cured? [if random 100 < infection-chance [newinfection spreader]]
+      if not infected? and not cured? [
+        if has-app? and [has-app?] of spreader [add-contact spreader]
+        if random 100 < infection-chance [newinfection spreader]]
     ]
   ]
 end
+
+to add-contact [infected-agent]
+  create-contact-with infected-agent [set day ticks]
+  ;table:put contacts infected-agent ticks
+end
+
 
 to newinfection [spreader]
   set infected? true
@@ -731,6 +766,7 @@ PENS
 "Recovered" 1.0 0 -7500403 true "" "plot count turtles with [ cured? ] "
 "Dead" 1.0 0 -16777216 true "" "plot count turtles with [dead?] "
 "Hospitalized" 1.0 0 -955883 true "" "plot in-hospital"
+"Self-Isolating" 1.0 0 -6459832 true "" "plot count turtles with [isolated?]"
 
 PLOT
 7
@@ -982,6 +1018,36 @@ false
 "" ""
 PENS
 "default" 1.0 1 -16777216 true "" "let max-spreading max [length spreading-to] of turtles\nplot-pen-reset  ;; erase what we plotted before\nset-plot-x-range 1 (max-spreading + 1)  ;; + 1 to make room for the width of the last bar\nhistogram [length spreading-to] of turtles with [length spreading-to > 0]"
+
+SLIDER
+423
+915
+597
+949
+pct-with-tracing-app
+pct-with-tracing-app
+0
+100
+35.0
+1
+1
+%
+HORIZONTAL
+
+SLIDER
+422
+955
+597
+989
+tests-per-100-people
+tests-per-100-people
+0
+100
+15.0
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 # covid19 in Vo' Euganeo (or anywhere else)
