@@ -31,7 +31,7 @@ The model implements lockdown policies based on the response of nearly all Europ
 
 ### Contact tracing 
 
-The model also tries to simulate a proposed contact tracing strategy for the "second phase" of epidemic control: an opt-in smartphone app. Upon model initialization a certain proportion of agents are given the "app". If an agent with the app tests positive for COVID19 all other agents who have come into contact with her, and also have the app, are notified and have the option to self-segregate as a precaution.
+The model also tries to simulate a proposed contact tracing strategy for the "second phase" of epidemic control: an opt-in smartphone app. Upon model initialization a certain proportion of agents are given the "app". If an agent with the app tests positive for COVID19 all other agents who have come into contact with her in the previous 10 days, and also have the app, are notified and have the option to self-segregate as a precaution.
 
 ## Model configuration
 
