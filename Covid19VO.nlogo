@@ -586,7 +586,11 @@ end
 ;; and than we pick one of the two ends of that link.
 to-report find-partner
   let partner nobody
-  let connection one-of friendships with [abs ([age] of myself - mean-age) <= 12]   ; 80% of friendships within 12 years of age difference
+  let connection nobody
+  let goodlinks friendships with [abs ([age] of myself - mean-age) <= 12]   ; 80% of friendships within 12 years of age difference
+  ifelse any? goodlinks
+  [set connection one-of goodlinks]
+  [set connection one-of friendships]
   if random 100 < 20 [set connection one-of friendships]
   ifelse age >= 25 [
     if random 100 <= 15 [set connection one-of friendships]
@@ -677,12 +681,12 @@ end
 
 to save-output
   let deaths count turtles with [dead?]
-  let totalinf count turtles with [ cured? ] + count turtles with [ infected? ]
+  let totalinf count turtles with [cured?] + count turtles with [infected?]
   ifelse file-exists? "covid19.csv"
   [file-open "covid19.csv"]
   [
     file-open "covid19.csv"
-    file-print "pct-app,pct-test,lockdown,deaths,prop-infected,R0,mortality,days"
+    file-print "pctApp,pctTest,lockdown,deaths,propInfected,R0,mortality,days"
   ]
   file-print (
     word pct-with-tracing-app "," tests-per-100-people "," lockdown-at-first-death "," deaths
@@ -973,7 +977,7 @@ SWITCH
 158
 lockdown-at-first-death
 lockdown-at-first-death
-1
+0
 1
 -1000
 
@@ -1046,12 +1050,12 @@ SLIDER
 423
 915
 597
-949
+948
 pct-with-tracing-app
 pct-with-tracing-app
 0
 100
-35.0
+15.0
 1
 1
 %
@@ -1061,12 +1065,12 @@ SLIDER
 422
 955
 597
-989
+988
 tests-per-100-people
 tests-per-100-people
 0
 100
-15.0
+5.0
 1
 1
 NIL
@@ -1460,10 +1464,9 @@ NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 <experiments>
-  <experiment name="experiment" repetitions="10" runMetricsEveryStep="true">
+  <experiment name="experiment" repetitions="10" sequentialRunOrder="false" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
-    <metric>count turtles</metric>
     <enumeratedValueSet variable="show-layout">
       <value value="false"/>
     </enumeratedValueSet>
