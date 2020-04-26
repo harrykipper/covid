@@ -3,9 +3,7 @@ extensions [csv]
 undirected-link-breed [households household]
 undirected-link-breed [relations relation]
 undirected-link-breed [friendships friendship]
-
 undirected-link-breed [contacts contact]     ;; The contact tracing app
-
 
 globals
 [
@@ -53,8 +51,9 @@ turtles-own
 
 links-own [mean-age removed?]
 
-households-own [ltype]  ; ltype 0 is a spouse; ltype 1 is offspring/siblings
+households-own [ltype]  ; ltype 0 is a spouse; ltype 1 is offspring/sibling
 contacts-own [day]
+
 ;; ===========================================================================
 ;;       Model configuration  --- TRANSITION PROBABILITIES and TIMIGS
 ;;
@@ -312,11 +311,14 @@ end
 
 to go
   if all? turtles [ not infected? ][
-    print-final-summary
+    ifelse behaviorspace-run-number = 0
+    [print-final-summary]
+    [save-output]
     stop
   ]
 
   if contact-tracing [ask contacts with [day <= (ticks - 14)][die]]
+
   ask turtles with [isolated?][
     set days-isolated days-isolated + 1
     if not symptomatic? and days-isolated = 10 [unisolate]
@@ -667,6 +669,27 @@ to-report limit-magnitude [number limit]
   if number > limit [ report limit ]
   if number < (- limit) [ report (- limit) ]
   report number
+end
+
+;; ============================================
+;;                 OUTPUT
+;; ============================================
+
+to save-output
+  let deaths count turtles with [dead?]
+  let totalinf count turtles with [ cured? ] + count turtles with [ infected? ]
+  ifelse file-exists? "covid19.csv"
+  [file-open "covid19.csv"]
+  [
+    file-open "covid19.csv"
+    file-print "pct-app,pct-test,lockdown,deaths,prop-infected,R0,mortality,days"
+  ]
+  file-print (
+    word pct-with-tracing-app "," tests-per-100-people "," lockdown-at-first-death "," deaths
+    "," (((count turtles with [ cured? ] + count turtles with [ infected? ]) / N-people) * 100)
+    "," r0 "," (precision ((deaths / totalinf) * 100) 2) "," ticks
+    )
+    file-close
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -1436,6 +1459,53 @@ NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 @#$#@#$#@
+<experiments>
+  <experiment name="experiment" repetitions="10" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <metric>count turtles</metric>
+    <enumeratedValueSet variable="show-layout">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-network?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infection-chance">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="incubation-days">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-infected">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="pct-with-tracing-app">
+      <value value="15"/>
+      <value value="35"/>
+      <value value="50"/>
+      <value value="60"/>
+      <value value="75"/>
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tests-per-100-people">
+      <value value="5"/>
+      <value value="15"/>
+      <value value="25"/>
+      <value value="50"/>
+      <value value="75"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-links-per-age-group">
+      <value value="8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="lockdown-at-first-death">
+      <value value="true"/>
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="average-isolation-tendency">
+      <value value="80"/>
+    </enumeratedValueSet>
+  </experiment>
+</experiments>
 @#$#@#$#@
 @#$#@#$#@
 default
