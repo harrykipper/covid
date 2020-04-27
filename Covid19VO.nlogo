@@ -419,9 +419,12 @@ to maybe-recover
     if random-float 100 < recovery-chance [
       set infected? false
       set cured? true
-      set nb-recovered (nb-recovered + 1)
-      if hospitalized? [set in-hospital in-hospital - 1]
       if isolated? [unisolate]
+      set nb-recovered (nb-recovered + 1)
+      if hospitalized? [
+        set in-hospital in-hospital - 1
+        unisolate
+      ]
     ]
   ]
 end
