@@ -6,7 +6,7 @@ A tentative multi-level network based SEIR model of the progression of the COVID
 
 ### Agents
 
-The population of Vo' is imported in the model upon setup. Agent attributes are _age_ and _marital status_ (source: http://demo.istat.it/pop2019/index3.html). 
+The population of Vo' is imported in the model upon setup. Agent attributes are _age_, _gender_, and _marital status_ (source: http://demo.istat.it/pop2019/index3.html). 
 
 ### Networks
 
@@ -20,10 +20,10 @@ A **friendship** network is created among all agents > 12 y.o. based on the *pre
 
 ### Infection
 
-The infection is assumed to follow social links. Only people in an infected agent's social network are exposed. When someone becomes infected, after a period of incubation, she starts infecting people in her network. 
+The infection is assumed to follow _mainly_ social links. People in an infected agent's social network are much more exposed, with very few random encounters. When someone becomes infected, after a period of incubation, she starts infecting people in her network. 
 
 The progression of the disease is based on data from China and Italy. Agents have a probability of developing symptoms after incubation, based on their age; another probability of worsening; another of dying. The probability is slightly lower for women in all three phases. 
-The probabilities can be modified editing the first four functions at the top of the 'Code' section in Netlogo.
+The probabilities can be modified editing the DiseaseConfig.nls file.
 
 ### Lockdown
 
@@ -35,7 +35,7 @@ The model also tries to simulate a proposed contact tracing strategy for the "se
 
 ## Model configuration
 
-The model can be configured changing the transition probabilities and timings at the beginning of the Code section in Netlogo and the following parameters in Netlogo's interface:
+The model can be configured changing the transition probabilities and timings in DiseaseConfig.nls and the following parameters in Netlogo's interface:
 
 | Parameter 		      | Description
 | --------------------------- | ------------------------------------------------------------ |
