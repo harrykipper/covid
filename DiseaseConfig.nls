@@ -6,7 +6,7 @@
 
 
 to-report average-recovery-time [agent-age]
-  ;; Infected agents recover, on average, after these many days since being infected
+  ;; Agents recover, on average, after these many days since being infected
   report (ifelse-value
     agent-age < 40 [7]
     agent-age < 50 [10]

@@ -131,8 +131,8 @@ end
 ;; and than we pick one of the two ends of that link.
 
 
-;; In our case we skew the mechanism a bit to allow for friendships being built 
-;; within age classes as much as possible
+;; In our case we change the mechanism a bit to allow for friendships being built 
+;; within age classes as much as possible.
 
 to-report find-partner
   let partner nobody
@@ -146,7 +146,7 @@ to-report find-partner
     [set connection one-of allinks]
   
   ifelse age >= 25 [   
-    ;; 20% chance of having a friend of a very different age
+    ;; 15% chance of having a friend of a very different age
     if random 100 < 15 [set connection one-of allinks]
   ][
     ifelse age >= 15
