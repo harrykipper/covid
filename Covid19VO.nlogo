@@ -67,7 +67,7 @@ contacts-own [day]
 ;; ==========================================================================
 
 to setup
-  if use-seed? [random-seed -1228151657]
+  if use-seed? [random-seed 1790941519] ;-1228151657]
   clear-all
 
   if impossible-run [
@@ -107,7 +107,7 @@ to setup
 
   ;; When someone has traversed the whole course of the illness there's a daily chance of recovery
   ;; of 30%. Meaning that in 3/4 days the agent fully recovers
-  set recovery-chance 30
+  set recovery-chance 35
 end
 
 to infect-initial-agents
@@ -167,31 +167,17 @@ to assign-tendency ;; Turtle procedure
   set symptom-time round random-normal incubation-days 0.5
 
   ;; Make sure recovery-time lies between 0 and 2x average-recovery-time
-  if recovery-time > (average-recovery-time age) * 2 [ set recovery-time (average-recovery-time age) * 2 ]
+  if recovery-time > (average-recovery-time age) * 2 [ set recovery-time (average-recovery-time age) ]
   if recovery-time < 0 [ set recovery-time 4 ]
 
   ;; Similarly for isolation and hospital going tendencies
-  if isolation-tendency > average-isolation-tendency * 2 [ set isolation-tendency average-isolation-tendency * 2 ]
+  if isolation-tendency > average-isolation-tendency * 2 [ set isolation-tendency average-isolation-tendency ]
   if isolation-tendency < 0 [ set isolation-tendency 0 ]
 end
 
 to-report gender-discount [gender]
   if gender = "F" [report 0.8]
   report 1
-end
-
-
-;; Different people are displayed in 5 different colors depending on health
-;; green is a survivor of the infection
-;; red is an infected person
-;; white is neither infected nor cured
-
-to assign-color ;; turtle procedure
-  ifelse cured?
-    [ set color green ]
-      [ ifelse infected?
-        [set color red ]
-        [set color white]]
 end
 
 ;;;
@@ -229,18 +215,21 @@ to go
 
   ask turtles with [infected?] [
     set infection-length infection-length + 1
+
+    ;; Progression of the infection
     if severe-symptoms? and infection-length = recovery-time [maybe-die]
     if symptomatic? and not severe-symptoms? and infection-length = recovery-time [maybe-worsen]
     if not symptomatic? and infection-length = symptom-time [maybe-show-symptoms]
-    ;; if symptomatic? and not isolated? [if random 100 < isolation-tendency [isolate]]
+
     ;; It takes time to get tested and receive the response
-    if symptomatic? = true and
-    tested-today? = false and
-    aware? = false and
-    infection-length = round random-normal 4 0.5 [
+    if symptomatic? and not tested-today? and not aware? and infection-length = 4 [
       ifelse tests-remaining > 0
         [get-tested]
-        [if isolated? = false and random 100 < isolation-tendency [ isolate ]]
+        [if isolated? = false and random 100 < isolation-tendency [
+        isolate
+        ask household-neighbors [if isolated? = false and random 100 < isolation-tendency [isolate]]
+        ]
+      ]
     ]
     maybe-recover
   ]
@@ -279,10 +268,7 @@ end
 to maybe-worsen
   if probability-of-worsening age * gender-discount sex > random 100 [
     set severe-symptoms? true
-
-    ;; if the person deteriorates it takes circa 7 days from now to recover or die
     set recovery-time round (infection-length + random-normal 7 2 )
-    ;show "DEBUG: I'm worsening!"
   ]
 end
 
@@ -318,7 +304,8 @@ to kill-agent
     if lockdown-at-first-death [lockdown]
     if behaviorspace-run-number = 0 [
       output-print (word "Epidemic day " ticks ": death number 1. Age: " age "; gender: " sex)
-      output-print (word "Duration of agent's infection: " symptom-time " days incubation + " infection-length " days of illness")
+      output-print (word "Duration of agent's infection: " symptom-time " days incubation + "
+        infection-length " days of illness")
       print-current-summary
     ]
   ]
@@ -345,6 +332,18 @@ end
 to hospitalize ;; turtle procedure
   set hospitalized? true
   set in-hospital in-hospital + 1
+
+  ;; We assume that hospitals always have tests. If I end up in hospital, the app will tell people.
+  ask contact-neighbors with [tested-today? = false and aware? = false] [
+    ifelse tests-remaining > 0
+    [get-tested ]
+    [
+      let tendency isolation-tendency
+      if not symptomatic? [set tendency tendency * 0.7]
+      if random 100 < isolation-tendency [isolate]
+    ]
+  ]
+
   ask my-links [set removed? true]
   set isolated? true
   set pcolor black
@@ -370,7 +369,10 @@ to get-tested
         ask contact-neighbors with [tested-today? = false and aware? = false] [
           ifelse tests-remaining > 0
           [ get-tested ]
-          [ if random 100 < isolation-tendency [isolate]]
+          [
+            let tendency isolation-tendency
+            if not symptomatic? [set tendency tendency * 0.7]
+            if random 100 < tendency [isolate]]
         ]
       ]
     ]
@@ -428,10 +430,15 @@ to infect  ;; turtle procedure
   ;; Every day an infected person has the chance to infect all their household members.
   ;; Even if the agent is isolating.
   if any? household-neighbors  [
+    let hh-infection-chance infection-chance
+
+    ;; if the person is isolating the people in the household will try to stay away...
+    if isolated? [set hh-infection-chance infection-chance * 0.8]
+
     ask household-neighbors [
       if not infected? and not cured? and not [removed?] of household-with spreader [
        ; if has-app? and [has-app?] of spreader [add-contact spreader]
-        if random 100 < infection-chance [newinfection spreader]
+        if random 100 < hh-infection-chance [newinfection spreader]
       ]
     ]
   ]
@@ -536,7 +543,7 @@ average-isolation-tendency
 average-isolation-tendency
 0
 100
-80.0
+70.0
 5
 1
 NIL
@@ -638,7 +645,7 @@ initial-links-per-age-group
 initial-links-per-age-group
 0
 100
-10.0
+25.0
 1
 1
 NIL
@@ -825,7 +832,7 @@ pct-with-tracing-app
 pct-with-tracing-app
 0
 100
-42.0
+0.0
 1
 1
 %
@@ -840,7 +847,7 @@ tests-per-100-people
 tests-per-100-people
 0
 400
-92.0
+10.0
 1
 1
 NIL

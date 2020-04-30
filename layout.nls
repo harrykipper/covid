@@ -1,3 +1,17 @@
+;; Different people are displayed in 5 different colors depending on health
+;; green is a survivor of the infection
+;; red is an infected person
+;; white is neither infected nor cured
+
+to assign-color ;; turtle procedure
+  ifelse cured?
+    [ set color green ]
+      [ ifelse infected?
+        [set color red ]
+        [set color white]]
+end
+
+
 ;;;;;;;;;;;;;;
 ;;; Layout ;;;
 ;;;;;;;;;;;;;;
