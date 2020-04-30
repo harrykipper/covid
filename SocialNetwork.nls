@@ -1,0 +1,162 @@
+to export-network
+  file-open "net.csv"
+  ask households [
+    ask both-ends [
+      file-type (word who ",")
+    ]
+    file-print (word ltype ",household" )
+  ]
+  ask friendships [
+    ask both-ends [file-type (word who ",")]
+    file-print (word mean-age ",friendship")
+  ]
+  file-close
+end
+
+to import-network
+  foreach csv:from-file "net.csv" [lnk ->
+    let orig item 0 lnk
+    let dest item 1 lnk
+    let attr item 2 lnk
+    ifelse item 3 lnk = "friendship" [
+      ask turtle orig [create-friendship-with turtle dest [
+        set mean-age attr
+        set removed? false
+        ]
+      ]
+    ]
+    [ask turtle orig [create-household-with turtle dest [set ltype attr]]]
+  ]
+end
+
+
+
+
+;; ==========================================================
+;;                     SOCIAL NETWORK GENERATION
+;; ==========================================================
+
+to create-hh
+  create-marriages
+  if show-layout [repeat 50 [layout]]
+  attach-children
+  ;repeat count turtles with [status = 0] / 2 [layout]
+  if show-layout [repeat 50 [layout]]
+end
+
+to create-marriages
+  ask turtles with [sex = "F" and status = 1][
+    let pretendenti turtles with [
+      sex = "M" and
+      status = 1 and
+      not any? my-households with [ltype = 0]
+    ]
+    let marito min-one-of pretendenti [abs (age - [age] of myself)]
+    create-household-with marito [set ltype 0]
+    if show-layout [
+      move-to marito
+      fd 8
+    ]
+  ]
+  
+  let zitelle turtles with [
+    age >= 28 and
+    status = 0 and
+    sex = "F"
+  ]
+
+  ask n-of (count zitelle / 2) zitelle [
+    let pretendenti turtles with [
+      sex = "M" and
+      status = 0 and
+      not any? my-households with [ltype = 0]
+    ]
+    let marito min-one-of pretendenti [abs (age - [age] of myself)]
+    create-household-with marito [set ltype 0]
+  ]
+end
+
+to attach-children
+  ask turtles with [
+    age < 28 and
+    status = 0 and
+    not any? my-households with [ltype = 0]
+  ][
+    let age-interval-min age + 23
+    let age-interval-max age + 37
+    let thekid self
+    ask min-one-of turtles with [
+      status != 0 and
+      sex = "M" and
+      age <= age-interval-max and age >= age-interval-min and
+      count my-households <= 4
+    ][count my-households]
+    [
+      ifelse any? my-households [
+        ask my-households [ask both-ends [create-household-with thekid [set ltype 1]]]
+      ][create-household-with thekid [set ltype 1]]
+    ]
+  ]
+  if show-layout [layout]
+end
+
+to create-relations
+  ; not there yet ;-)
+end
+
+to create-friendships
+  ask turtles with [age >= 12][repeat 5 + random 10 [create-friendship-with find-partner]]
+  if show-layout [layout]
+end
+
+;; make the initial network of initial-links-per-age-group edges per age group
+to make-initial-links
+  foreach (list [6 10][11 14][15 19][20 25][26 36][37 49][50 65][66 80][81 103]) [a-g ->
+    repeat initial-links-per-age-group [
+      ask one-of turtles with [age >= item 0 a-g and age <= item 1 a-g] [
+        create-friendship-with one-of other turtles with [age >= item 0 a-g and age <= item 1 a-g] [
+          set color green
+          set mean-age mean [age] of both-ends
+        ]
+      ]
+    ]
+  ]
+end
+
+;; This code is the heart of the "preferential attachment" mechanism, and acts like
+;; a lottery where each node gets a ticket for every connection it already has.
+;; While the basic idea is the same as in the Lottery Example (in the Code Examples
+;; section of the Models Library), things are made simpler here by the fact that we
+;; can just use the links as if they were the "tickets": we first pick a random link,
+;; and than we pick one of the two ends of that link.
+
+
+;; In our case we skew the mechanism a bit to allow for friendships being built 
+;; within age classes as much as possible
+
+to-report find-partner
+  let partner nobody
+  let connection nobody
+  
+  let allinks friendships with [not member? myself both-ends]
+  
+  let goodlinks allinks with [abs ([age] of myself - mean-age) <= 12]   
+  ifelse any? goodlinks
+    [set connection one-of goodlinks]
+    [set connection one-of allinks]
+  
+  ifelse age >= 25 [   
+    ;; 20% chance of having a friend of a very different age
+    if random 100 < 15 [set connection one-of allinks]
+  ][
+    ifelse age >= 15
+    [
+      set goodlinks allinks with [abs ([age] of myself - mean-age) <= 8]
+      if any? goodlinks [set connection one-of goodlinks]
+    ]
+    [if age >= 12 [set connection one-of allinks with [mean-age - [age] of myself <= 5]]]
+  ]
+  ask connection [set partner one-of both-ends]
+  report partner
+end
+

@@ -1,0 +1,55 @@
+;; ===========================================================================
+;;       Model configuration  --- TRANSITION PROBABILITIES and TIMIGS
+;;
+;;    Change the following values to implement a different disease course
+;;============================================================================
+
+
+to-report average-recovery-time [agent-age]
+  ;; Infected agents recover, on average, after these many days since being infected
+  report (ifelse-value
+    agent-age < 40 [7]
+    agent-age < 50 [10]
+    agent-age < 60 [12]
+    [15]
+    )
+end
+
+;; The three parameters below obviously interact.
+;; The probability of someone dying of covid is:
+;; probability-of-showing-syptoms * probability-of-worsening * probability-of-dying
+;; For someone between 30 and 40 this is currently 0.25 * 0.02 * 0.05 = 0.00025 or 0.025%
+
+to-report probability-of-showing-symptoms [agent-age]
+  ;; When the incubation period ('incubation-days' in main interface) is over
+  ;; the agent has the following probability of developing the symptoms of COVID-19.
+  ;; If the person is showing symptoms, it'll take 7 more days to recover.
+  report (ifelse-value
+    agent-age < 30 [25]
+    agent-age < 40 [35]
+    agent-age <= 50 [55]
+    agent-age < 60 [75]
+    [85]
+  )
+end
+
+to-report probability-of-worsening [agent-age]
+  ;; After 10 days with symptoms the agent has the following probability of
+  ;; worsening and needing hospital care.
+  report (ifelse-value
+    agent-age < 40 [2]
+    agent-age < 50 [8]
+    agent-age < 60 [10]
+    [15]
+  )
+end
+
+to-report probability-of-dying [agent-age]
+  ;; After 10 days in the hospital the agent has the following probability of dying
+  report (ifelse-value
+    agent-age < 40 [5]
+    agent-age < 50 [10]
+    agent-age < 60 [18]
+    [25]
+  )
+end
