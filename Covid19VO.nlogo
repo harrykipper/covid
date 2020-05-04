@@ -5,15 +5,15 @@ extensions [csv]
 undirected-link-breed [households household]
 undirected-link-breed [relations relation]
 undirected-link-breed [friendships friendship]
-undirected-link-breed [contacts contact]     ;; The contact tracing app
+undirected-link-breed [tracings tracing]     ;; The contact tracing app
 
 globals
 [
+  rnd                  ;; Random seed
   N-people
   use-existing-nw?
   tests-remaining      ;; Counter for tests
   tests-performed      ;; How many people were tested
-  recovery-chance      ;; Daily probability of recovering after the course of the sickness is complete (= recovery-time is reached)
   nb-infected-previous ;; Number of infected people at the previous tick
   in-hospital          ;; Number of people currently in hospital
   hospital-beds        ;; Number of places in the hospital
@@ -44,6 +44,8 @@ turtles-own
   infection-length     ;; How long the person has been infected.
   recovery-time        ;; Time (in days) it takes before the person has a chance to recover from the infection
   symptom-time         ;; Time (in days) it takes before the person shows symptoms
+  infectivity-time     ;; Time (in days) it takes before an infected person becomes infectious
+
   prob-symptoms        ;; Probability that the person is symptomatic
   isolation-tendency   ;; Chance the person will self-quarantine when symptomatic.
 
@@ -58,7 +60,7 @@ turtles-own
 
 links-own [mean-age removed?]
 households-own [ltype]  ; ltype 0 is a spouse; ltype 1 is offspring/sibling
-contacts-own [day]
+tracings-own [day]
 
 ;; ===========================================================================
 ;;;
@@ -67,20 +69,26 @@ contacts-own [day]
 ;; ==========================================================================
 
 to setup
-  if use-seed? [random-seed 1790941519] ;-1228151657]
+
+  set rnd 1137997999  ;-1228151657
+  if use-seed? = false [
+    set rnd new-seed
+  ]
+  random-seed rnd
+  show rnd ;if behaviorspace-run-number = 0 [output-print (word  "Random seed: " rnd)]
+
   clear-all
 
-  if impossible-run [
-    reset-ticks
-    stop
-  ]
+  ;if impossible-run [
+  ;  reset-ticks
+  ;  stop
+  ;]
+
   set-default-shape turtles "circle"
   ifelse pct-with-tracing-app > 0 [set contact-tracing true][set contact-tracing false]
 
   read-agents
   set N-people count turtles
-
-  set tests-remaining round ((tests-per-100-people / 100) * N-People)
 
   if use-network? [
     ifelse use-existing-nw? = true
@@ -95,6 +103,7 @@ to setup
       reset-variables
     ]
     ask links [set removed? false]
+
     if show-layout [
       resize-nodes
       repeat 50 [layout]
@@ -104,14 +113,16 @@ to setup
   reset-ticks
 
   infect-initial-agents
+  if behaviorspace-run-number = 0 [output-print (word "Infected agents: " [who] of turtles with [infected?])]
 
-  ;; When someone has traversed the whole course of the illness there's a daily chance of recovery
-  ;; of 30%. Meaning that in 3/4 days the agent fully recovers
-  set recovery-chance 35
+  set tests-remaining round ((tests-per-100-people / 100) * N-People)
+  ask n-of (round N-People * (pct-with-tracing-app / 100)) turtles [set has-app? true]
+  set lockdown? false
+
 end
 
 to infect-initial-agents
-  ask n-of initially-infected turtles with [age >= 25][
+  ask n-of initially-infected turtles with [age > 25][
     set infected? true
     set susceptible? false
   ]
@@ -130,7 +141,6 @@ to reset-variables
   set aware? false
   set spreading-to []
   set infected-by nobody
-  if random 100 < pct-with-tracing-app [set has-app? true]
 end
 
 to read-agents
@@ -140,7 +150,7 @@ to read-agents
     if row > 0 [
       while [i < length ag][
         crt item i ag [
-          set age item 0 ag + 1 ;; Data are from 2019, everyone is one year older now..
+          set age item 0 ag + 1 ;; ISTAT data are from 2019, everyone is one year older now..
           ; show (word "DEBUG: Creating agents of age " item 0 ag)
           ifelse i < 5 [set sex "M"][set sex "F"]
           ifelse i = 1 or i = 5 [set status 0][
@@ -161,18 +171,19 @@ end
 ;=====================================================================================
 
 to assign-tendency ;; Turtle procedure
-  set isolation-tendency random-normal average-isolation-tendency average-isolation-tendency / 4
+  set isolation-tendency random-normal average-isolation-tendency (average-isolation-tendency / 4)
   set recovery-time 1 + round (random-normal (average-recovery-time age) (average-recovery-time age / 4))
   set prob-symptoms probability-of-showing-symptoms age * gender-discount sex
   set symptom-time round random-normal incubation-days 0.5
+  set infectivity-time symptom-time - 1    ;; Apparently people are infectious 1 day before showing symptoms
 
   ;; Make sure recovery-time lies between 0 and 2x average-recovery-time
   if recovery-time > (average-recovery-time age) * 2 [ set recovery-time (average-recovery-time age) ]
   if recovery-time < 0 [ set recovery-time 4 ]
 
   ;; Similarly for isolation and hospital going tendencies
-  if isolation-tendency > average-isolation-tendency * 2 [ set isolation-tendency average-isolation-tendency ]
-  if isolation-tendency < 0 [ set isolation-tendency 0 ]
+  if isolation-tendency > 100 [ set isolation-tendency 90 ]
+  if isolation-tendency < 0 [ set isolation-tendency 10 ]
 end
 
 to-report gender-discount [gender]
@@ -180,14 +191,8 @@ to-report gender-discount [gender]
   report 1
 end
 
-;;;
-;;; GO PROCEDURES
-;;;
-
 to go
-  if behaviorspace-run-number != 0 and ticks = 0 [
-    if impossible-run [stop]
-  ]
+  ;if behaviorspace-run-number != 0 and ticks = 0 [if impossible-run [stop]]
 
   if all? turtles [ not infected? ][
     ifelse behaviorspace-run-number = 0
@@ -201,7 +206,7 @@ to go
     set tested-today? false
   ]
 
-  if contact-tracing = true [ask contacts with [day <= (ticks - 14)][die]]
+  if contact-tracing = true [ask tracings with [day <= (ticks - 14)][die]]
 
   ask turtles with [isolated?] [
     set days-isolated days-isolated + 1
@@ -209,29 +214,33 @@ to go
   ]
 
   ;; If you're in hospital you don't infect anyone. If you're isolated you can infect members of your household
-  ask turtles with [infected? and not hospitalized? and infection-length >= incubation-days] [ infect ]
+  ask turtles with [infected? and not hospitalized? and infection-length >= infectivity-time] [ infect ]
 
   ask turtles with [not hospitalized? and infected? and severe-symptoms?] [hospitalize]
 
   ask turtles with [infected?] [
     set infection-length infection-length + 1
 
+    ;; It takes time to get tested and receive the response
+    if symptomatic? and not tested-today? and not aware? and infection-length = 3 [
+      ifelse tests-remaining > 0
+      [get-tested]
+      [
+        if isolated? = false [
+          maybe-isolate
+          ask household-neighbors with [not isolated? and not aware? and not tested-today?] [maybe-isolate]
+        ]
+        if has-app? [ask tracing-neighbors [maybe-isolate]]
+      ]
+    ]
+
     ;; Progression of the infection
     if severe-symptoms? and infection-length = recovery-time [maybe-die]
     if symptomatic? and not severe-symptoms? and infection-length = recovery-time [maybe-worsen]
     if not symptomatic? and infection-length = symptom-time [maybe-show-symptoms]
 
-    ;; It takes time to get tested and receive the response
-    if symptomatic? and not tested-today? and not aware? and infection-length = 4 [
-      ifelse tests-remaining > 0
-        [get-tested]
-        [if isolated? = false and random 100 < isolation-tendency [
-        isolate
-        ask household-neighbors [if isolated? = false and random 100 < isolation-tendency [isolate]]
-        ]
-      ]
-    ]
-    maybe-recover
+    ;; If we get to this stage we are safe.
+    if infection-length > recovery-time [recover]
   ]
 
   ask turtles with [(isolated? or hospitalized?) and cured?] [unisolate]
@@ -278,20 +287,14 @@ to maybe-die
   [if (probability-of-dying age) * 1.5 > random 100 [kill-agent]]  ; no hospital bed means a dire fate
 end
 
-to maybe-recover
-  ;; If people have been infected for more than recovery-time
-  ;; it means they have survived and there is a chance for recovery.
-  if infection-length > recovery-time [
-    if random-float 100 < recovery-chance [
-      set infected? false
-      set cured? true
-      if isolated? [unisolate]
-      set nb-recovered (nb-recovered + 1)
-      if hospitalized? [
-        set in-hospital in-hospital - 1
-        unisolate
-      ]
-    ]
+to recover
+  set infected? false
+  set cured? true
+  if isolated? [unisolate]
+  set nb-recovered (nb-recovered + 1)
+  if hospitalized? [
+    set in-hospital in-hospital - 1
+    unisolate
   ]
 end
 
@@ -304,8 +307,7 @@ to kill-agent
     if lockdown-at-first-death [lockdown]
     if behaviorspace-run-number = 0 [
       output-print (word "Epidemic day " ticks ": death number 1. Age: " age "; gender: " sex)
-      output-print (word "Duration of agent's infection: " symptom-time " days incubation + "
-        infection-length " days of illness")
+      output-print (word "Duration of agent's infection: " symptom-time " days incubation + " infection-length " days of illness")
       print-current-summary
     ]
   ]
@@ -313,12 +315,21 @@ end
 
 ;; ===============================================================================
 
+
+to maybe-isolate
+  let tendency isolation-tendency
+  if not symptomatic? [set tendency tendency * 0.7]
+  if random 100 < tendency [isolate]
+end
+
 ;; When the agent is isolating all friendhips and relations are frozen.
 ;; Crucially household links stay in place, as it is assumed that one isolates at home
+;; Other household members may also have to isolate.
 to isolate ;; turtle procedure
   set isolated? true
   ask my-friendships [set removed? true]
   ask my-relations [set removed? true]
+
 end
 
 ;; After unisolating, links return in place
@@ -334,22 +345,18 @@ to hospitalize ;; turtle procedure
   set in-hospital in-hospital + 1
 
   ;; We assume that hospitals always have tests. If I end up in hospital, the app will tell people.
-  ask contact-neighbors with [tested-today? = false and aware? = false] [
+  ask tracing-neighbors with [tested-today? = false and aware? = false] [
     ifelse tests-remaining > 0
-    [get-tested ]
-    [
-      let tendency isolation-tendency
-      if not symptomatic? [set tendency tendency * 0.7]
-      if random 100 < isolation-tendency [isolate]
-    ]
+    [get-tested]
+    [maybe-isolate]
   ]
 
   ask my-links [set removed? true]
   set isolated? true
   set pcolor black
+
   if show-layout [
     move-to patch (max-pxcor / 2) 0
-    ask my-links [set removed? true]
     set pcolor white
   ]
 end
@@ -359,20 +366,18 @@ to get-tested
     ;show (word "  day " ticks ": tested-today?: " tested-today? " - aware?: " aware? "  - now getting tested")
     set tested-today? true
     set tests-remaining tests-remaining - 1
+    if tests-remaining = 0 and behaviorspace-run-number = 0 [output-print (word "Day " ticks ": tests finished")]
     if infected? [
       set aware? true
       isolate
       ask household-neighbors with [tested-today? = false and aware? = false] [
-        ifelse tests-remaining > 0 [get-tested] [isolate]
+        ifelse tests-remaining > 0 [get-tested] [maybe-isolate]
       ]
       if has-app? [
-        ask contact-neighbors with [tested-today? = false and aware? = false] [
+        ask tracing-neighbors with [tested-today? = false and aware? = false] [
           ifelse tests-remaining > 0
           [ get-tested ]
-          [
-            let tendency isolation-tendency
-            if not symptomatic? [set tendency tendency * 0.7]
-            if random 100 < tendency [isolate]]
+          [ maybe-isolate]
         ]
       ]
     ]
@@ -397,29 +402,34 @@ end
 to infect  ;; turtle procedure
   let spreader self
   let proportion 100
-  let all-contacts other turtles
-  let random-passerby nobody
+  let all-ppl other turtles
+  let random-passersby nobody
 
   if use-network? [
-    set proportion 8
-    set all-contacts friendship-neighbors
-    if isolated? = false and lockdown? = false [set random-passerby n-of random 5 other turtles]
+    set proportion 10
+    set all-ppl friendship-neighbors
+    if isolated? = false and lockdown? = false [
+      set random-passersby n-of (1 + random 5) other turtles]
+    ;show random-passersby
   ]
 
-  if count all-contacts > 0 [
-    ask n-of (1 + random round (count all-contacts / proportion)) all-contacts [
+  if count all-ppl > 0 [
+    let howmany (1 + random round (count all-ppl / proportion))
+    if howmany > 50 [set howmany 50]
+    ask n-of howmany all-ppl [
+     ; show (word "I'm meeting " howmany " friends!")
       ifelse use-network?
 
       ;;; Every day the agent meets a certain fraction of her friends.
-      ;;; If the agent has the contact tracing app, a link is created
-      ;;; between her and those friends who also have the app.
+      ;;; If the agent has the contact tracing app, a link is created between she and the friends who also have the app.
       ;;; With probability infection-chance the agent the infects the susceptible friends who she is meeting.
 
       [if not infected? and not cured? and [removed?] of friendship-with spreader = false [
         if has-app? and [has-app?] of spreader [
-          ;show (word "I just met an infected person! (" spreader "). The app will tell me when he knows!")
+          ;show (word "I just met an infected friend! (" spreader "). The app will tell me when he knows!")
           add-contact spreader]
         if random 100 < infection-chance [newinfection spreader]]]
+
       [if not infected? and not cured? and not isolated? and not [isolated?] of spreader [
         if has-app? and [has-app?] of spreader [add-contact spreader]
         if random 100 < infection-chance [newinfection spreader]]
@@ -433,11 +443,10 @@ to infect  ;; turtle procedure
     let hh-infection-chance infection-chance
 
     ;; if the person is isolating the people in the household will try to stay away...
-    if isolated? [set hh-infection-chance infection-chance * 0.8]
+    if isolated? [set hh-infection-chance infection-chance * 0.7]
 
     ask household-neighbors [
       if not infected? and not cured? and not [removed?] of household-with spreader [
-       ; if has-app? and [has-app?] of spreader [add-contact spreader]
         if random 100 < hh-infection-chance [newinfection spreader]
       ]
     ]
@@ -445,17 +454,24 @@ to infect  ;; turtle procedure
 
   ;; Infected agents will also infect someone at random.
   ;; Here, again, if both parties have the app a link is created to keep track of the meeting
-  if random-passerby != nobody [
-    ask random-passerby [
+  if random-passersby != nobody [
+    ;show "Hello I'm here"
+    ask random-passersby [
       if not infected? and not cured? and not isolated? [
-        if has-app? and [has-app?] of spreader [add-contact spreader]
-        if random 100 < infection-chance [newinfection spreader]]
+        ;show "oh oh, some random people to infect"
+        if has-app? and [has-app?] of spreader [
+          add-contact spreader
+         ; show "I'm adding this chap to the app"
+        ]
+        if random 100 < (infection-chance * 0.25) [
+         ; show "I'm also infecting him!"
+          newinfection spreader]]
     ]
   ]
 end
 
 to add-contact [infected-agent]
-  create-contact-with infected-agent [set day ticks]
+  create-tracing-with infected-agent [set day ticks]
 end
 
 to newinfection [spreader]
@@ -474,13 +490,13 @@ to-report impossible-run
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-423
-10
-1319
-907
+425
+560
+1028
+1164
 -1
 -1
-4.42
+2.9602
 1
 10
 1
@@ -501,10 +517,10 @@ day
 30.0
 
 BUTTON
-5
-161
-88
-194
+10
+160
+93
+193
 setup
 setup
 NIL
@@ -518,10 +534,10 @@ NIL
 1
 
 BUTTON
-89
-199
-154
-232
+175
+160
+240
+193
 go
 go
 T
@@ -550,10 +566,10 @@ NIL
 HORIZONTAL
 
 PLOT
-11
-424
-417
-616
+5
+380
+411
+572
 Populations
 days
 # people
@@ -570,13 +586,13 @@ PENS
 "Recovered" 1.0 0 -7500403 true "" "plot count turtles with [ cured? ] "
 "Dead" 1.0 0 -16777216 true "" "plot count turtles with [dead?] "
 "Hospitalized" 1.0 0 -955883 true "" "plot in-hospital"
-"Self-Isolating" 1.0 0 -6459832 true "" "plot count turtles with [isolated?]"
+"Self-Isolating" 1.0 0 -13791810 true "" "plot count turtles with [isolated?]"
 
 PLOT
-9
-623
-418
-791
+3
+579
+412
+747
 Infection and Recovery Rates
 days
 rate
@@ -600,17 +616,17 @@ infection-chance
 infection-chance
 10
 100
-15.0
+10.0
 5
 1
 NIL
 HORIZONTAL
 
 MONITOR
-424
-997
-494
-1042
+350
+120
+420
+165
 R0
 r0
 2
@@ -618,10 +634,10 @@ r0
 11
 
 PLOT
-13
-244
-415
-419
+7
+200
+409
+375
 Cumulative Infected and Recovered
 days
 % total pop.
@@ -652,10 +668,10 @@ NIL
 HORIZONTAL
 
 PLOT
-0
-1083
-290
-1301
+425
+335
+715
+553
 Degree distribution (log-log)
 log(degree)
 log(#of nodes)
@@ -670,10 +686,10 @@ PENS
 "default" 1.0 2 -16777216 true "" "let max-degree max [count friendship-neighbors] of turtles with [age > 12]\n;; for this plot, the axes are logarithmic, so we can't\n;; use \"histogram-from\"; we have to plot the points\n;; ourselves one at a time\nplot-pen-reset  ;; erase what we plotted before\n;; the way we create the network there is never a zero degree node,\n;; so start plotting at degree one\nlet degree 1\nwhile [degree <= max-degree] [\n  let matches turtles with [age > 12 and count friendship-neighbors = degree]\n  if any? matches\n    [ plotxy log degree 10\n             log (count matches) 10 ]\n  set degree degree + 1\n]"
 
 PLOT
-298
-1082
-588
-1302
+723
+334
+1013
+554
 Degree distribution
 NIL
 NIL
@@ -688,10 +704,10 @@ PENS
 "default" 1.0 1 -16777216 true "" "let max-degree max [count friendship-neighbors] of turtles with [age > 12]\nplot-pen-reset  ;; erase what we plotted before\nset-plot-x-range 1 (max-degree + 1)  ;; + 1 to make room for the width of the last bar\nhistogram [count friendship-neighbors] of turtles with [age > 12]"
 
 SWITCH
-215
-125
-347
-158
+905
+265
+1037
+298
 show-layout
 show-layout
 1
@@ -699,10 +715,10 @@ show-layout
 -1000
 
 BUTTON
-156
-198
-249
-232
+242
+159
+335
+193
 LOCKDOWN!
 lockdown
 NIL
@@ -716,20 +732,20 @@ NIL
 1
 
 TEXTBOX
-124
-1055
-480
-1082
+549
+307
+905
+334
 ====== \"Friendship\" network ======
 20
 0.0
 1
 
 MONITOR
-499
-997
-567
-1042
+350
+165
+418
+210
 Deaths
 count turtles with [dead?]
 0
@@ -737,9 +753,9 @@ count turtles with [dead?]
 11
 
 SWITCH
-235
+130
 85
-379
+260
 118
 use-network?
 use-network?
@@ -759,10 +775,10 @@ lockdown-at-first-death
 -1000
 
 TEXTBOX
-353
-137
-423
-155
+1043
+277
+1113
+295
 (Very slow!)
 12
 0.0
@@ -784,16 +800,16 @@ NIL
 HORIZONTAL
 
 OUTPUT
-605
-920
-1320
-1308
-30
+425
+10
+1140
+250
+16
 
 SLIDER
 5
 85
-227
+125
 118
 initially-infected
 initially-infected
@@ -806,10 +822,10 @@ NIL
 HORIZONTAL
 
 PLOT
-10
-794
-416
-1048
+4
+750
+410
+1004
 Spreaders
 # agents infected
 # agents
@@ -824,10 +840,10 @@ PENS
 "default" 1.0 1 -16777216 true "" "let max-spreading max [length spreading-to] of turtles\nplot-pen-reset  ;; erase what we plotted before\nset-plot-x-range 1 (max-spreading + 1)  ;; + 1 to make room for the width of the last bar\nhistogram [length spreading-to] of turtles with [length spreading-to > 0]"
 
 SLIDER
-423
-915
-597
-948
+425
+260
+599
+293
 pct-with-tracing-app
 pct-with-tracing-app
 0
@@ -839,25 +855,25 @@ pct-with-tracing-app
 HORIZONTAL
 
 SLIDER
-422
-955
-597
-988
+605
+260
+780
+293
 tests-per-100-people
 tests-per-100-people
 0
 400
-10.0
+0.0
 1
 1
 NIL
 HORIZONTAL
 
 BUTTON
-7
-198
-87
-231
+93
+159
+173
+192
 Export NW
 export-network
 NIL
@@ -871,37 +887,37 @@ NIL
 1
 
 SWITCH
-90
-162
-202
-195
+210
+125
+322
+158
 use-seed?
 use-seed?
-1
+0
 1
 -1000
 
 SWITCH
-204
-162
-353
-195
+265
+85
+414
+118
 use-existing-nw
 use-existing-nw
-1
+0
 1
 -1000
 
 MONITOR
-361
-171
-419
-228
-Tests
+785
+255
+897
+304
+Tests available
 tests-remaining
 0
 1
-14
+12
 
 @#$#@#$#@
 # covid19 in Vo' Euganeo (or anywhere else)
@@ -1340,7 +1356,7 @@ NetLogo 6.1.1
       <value value="80"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="contact" repetitions="1" sequentialRunOrder="false" runMetricsEveryStep="false">
+  <experiment name="contact" repetitions="10" sequentialRunOrder="false" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
     <enumeratedValueSet variable="show-layout">
@@ -1350,7 +1366,7 @@ NetLogo 6.1.1
       <value value="true"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="infection-chance">
-      <value value="15"/>
+      <value value="10"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="incubation-days">
       <value value="5"/>
@@ -1359,7 +1375,7 @@ NetLogo 6.1.1
       <value value="2"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-links-per-age-group">
-      <value value="8"/>
+      <value value="25"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="pct-with-tracing-app">
       <value value="0"/>
@@ -1371,23 +1387,22 @@ NetLogo 6.1.1
     </enumeratedValueSet>
     <enumeratedValueSet variable="tests-per-100-people">
       <value value="0"/>
+      <value value="20"/>
       <value value="40"/>
       <value value="60"/>
       <value value="80"/>
       <value value="100"/>
-      <value value="120"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="use-existing-nw">
-      <value value="false"/>
+      <value value="true"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="use-seed?">
-      <value value="true"/>
+      <value value="false"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="average-isolation-tendency">
-      <value value="80"/>
+      <value value="70"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="lockdown-at-first-death">
-      <value value="true"/>
       <value value="false"/>
     </enumeratedValueSet>
   </experiment>
