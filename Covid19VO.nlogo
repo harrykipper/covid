@@ -329,7 +329,6 @@ to isolate ;; turtle procedure
   set isolated? true
   ask my-friendships [set removed? true]
   ask my-relations [set removed? true]
-
 end
 
 ;; After unisolating, links return in place
@@ -478,6 +477,7 @@ to newinfection [spreader]
   set infected? true
   set symptomatic? false
   set severe-symptoms? false
+  set aware? false
   set nb-infected (nb-infected + 1)
   set infected-by spreader
   ask spreader [set spreading-to lput myself spreading-to]
@@ -848,7 +848,7 @@ pct-with-tracing-app
 pct-with-tracing-app
 0
 100
-0.0
+60.0
 1
 1
 %
@@ -863,7 +863,7 @@ tests-per-100-people
 tests-per-100-people
 0
 400
-0.0
+50.0
 1
 1
 NIL
@@ -1356,7 +1356,7 @@ NetLogo 6.1.1
       <value value="80"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="contact" repetitions="10" sequentialRunOrder="false" runMetricsEveryStep="false">
+  <experiment name="contact" repetitions="100" sequentialRunOrder="false" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
     <enumeratedValueSet variable="show-layout">
@@ -1375,22 +1375,18 @@ NetLogo 6.1.1
       <value value="2"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-links-per-age-group">
-      <value value="25"/>
+      <value value="20"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="pct-with-tracing-app">
       <value value="0"/>
-      <value value="20"/>
       <value value="40"/>
       <value value="60"/>
-      <value value="80"/>
       <value value="100"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="tests-per-100-people">
       <value value="0"/>
-      <value value="20"/>
       <value value="40"/>
       <value value="60"/>
-      <value value="80"/>
       <value value="100"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="use-existing-nw">
