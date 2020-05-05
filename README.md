@@ -1,4 +1,4 @@
-# covid19 in Vo' Euganeo (or anywhere else)
+# covid19 in a small town
 
 A tentative multi-level network based SEIR model of the progression of the COVID19 infection.
 
@@ -6,7 +6,7 @@ A tentative multi-level network based SEIR model of the progression of the COVID
 
 ### Agents
 
-The population of Vo' is imported in the model upon setup. Agent attributes are _age_, _gender_, and _marital status_ (source: http://demo.istat.it/pop2019/index3.html). 
+The population of Vo' Euganeo (Padua, Italy - 3300 residents) is imported in the model upon setup. Agent attributes are _age_, _gender_, and _marital status_ (source: http://demo.istat.it/pop2019/index3.html). 
 
 ### Networks
 
