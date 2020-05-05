@@ -1,4 +1,4 @@
-# covid19 in a small town
+# covid19 in small communities
 
 A tentative multi-level network based SEIR model of the progression of the COVID19 infection.
 
