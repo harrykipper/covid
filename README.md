@@ -1,6 +1,6 @@
 # covid19 in small communities
 
-A tentative multi-level network based SEIR model of the progression of the COVID19 infection.
+A tentative multi-layer network agent-based model of the progression of the COVID19 infection.
 
 ## The model
 
