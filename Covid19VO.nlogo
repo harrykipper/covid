@@ -1,6 +1,6 @@
 __includes [ "DiseaseConfig.nls" "output.nls" "SocialNetwork.nls" "layout.nls"]
 
-extensions [csv]
+extensions [csv profiler]
 
 undirected-link-breed [households household]
 undirected-link-breed [relations relation]
@@ -245,9 +245,9 @@ to go
 
   ask turtles with [(isolated? or hospitalized?) and cured?] [unisolate]
 
-  ask turtles
-    [ assign-color
-      calculate-r0 ]
+  if show-layout [ask turtles [assign-color]]
+  calculate-r0
+
 
   tick
 end
