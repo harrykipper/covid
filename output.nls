@@ -4,11 +4,9 @@
 
 to calculate-r0
   let new-infected sum [ nb-infected ] of turtles
-  let new-recovered sum [ nb-recovered ] of turtles
+  let new-recovered nb-recovered
   set nb-infected-previous (count turtles with [ infected? ] + new-recovered - new-infected)  ;; Number of infected people at the previous tick
-  let susceptible-t (N-people - (count turtles with [ infected? ]) - (count turtles with [ cured? ]))  ;; Number of susceptibles nowinfect
-  let s0 count turtles with [ susceptible? ] ;; Initial number of susceptibles
-
+  let susceptible-t (N-people - (count turtles with [ infected? ]) - (count turtles with [ cured? ]))  ;; Number of susceptibles now
   ifelse nb-infected-previous < 10
   [ set beta-n 0 ]
   [

@@ -1,6 +1,6 @@
 __includes [ "DiseaseConfig.nls" "output.nls" "SocialNetwork.nls" "layout.nls"]
 
-extensions [csv profiler]
+extensions [csv]
 
 undirected-link-breed [households household]
 undirected-link-breed [relations relation]
@@ -15,12 +15,14 @@ globals
   tests-remaining      ;; Counter for tests
   tests-performed      ;; How many people were tested
   nb-infected-previous ;; Number of infected people at the previous tick
+  nb-recovered         ;; Number of recovered people at the end of the tick
   in-hospital          ;; Number of people currently in hospital
   hospital-beds        ;; Number of places in the hospital
   contact-tracing      ;; If true a contact tracing app exists
   angle                ;; Heading for individuals
   beta-n               ;; The average number of new secondary infections per infected this tick
   gamma                ;; The average number of new recoveries per infected this tick
+  s0                   ;; Initial number of susceptibles
   r0                   ;; The number of secondary infections that arise due to a single infective introduced in a wholly susceptible population
   lockdown?            ;; If true we are in a state of lockdown
 ]
@@ -51,7 +53,7 @@ turtles-own
 
   susceptible?         ;; Tracks whether the person was initially susceptible
   nb-infected          ;; Number of secondary infections caused by an infected person at the end of the tick
-  nb-recovered         ;; Number of recovered people at the end of the tick
+
 
   has-app?             ;; If true the agent carries the contact-tracing app
   tested-today?        ;; The agent
@@ -126,6 +128,7 @@ to infect-initial-agents
     set infected? true
     set susceptible? false
   ]
+  set s0 count turtles with [susceptible?]
 end
 
 to reset-variables
@@ -201,10 +204,8 @@ to go
     stop
   ]
 
-  ask turtles [
-    clear-count
-    set tested-today? false
-  ]
+  clear-count
+  ask turtles [set tested-today? false]
 
   if contact-tracing = true [ask tracings with [day <= (ticks - 14)][die]]
 
@@ -248,12 +249,11 @@ to go
   if show-layout [ask turtles [assign-color]]
   calculate-r0
 
-
   tick
 end
 
 to clear-count
-  set nb-infected 0
+  ask turtles [set nb-infected 0]
   set nb-recovered 0
 end
 
