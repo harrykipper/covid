@@ -25,6 +25,7 @@ to-report probability-of-showing-symptoms [agent-age]
   ;; the agent has the following probability of developing the symptoms of COVID-19.
   ;; If the person is showing symptoms, it'll take 7 more days to recover.
   report (ifelse-value
+    agent-age < 15 [2]      ;; Children never show symptoms
     agent-age < 30 [25]     ;; Agents below age 30 show symptoms in 25% of cases
     agent-age < 40 [35]     ;; Agents between 30 and 40
     agent-age <= 50 [55]    ;; agents between 40 and 50
