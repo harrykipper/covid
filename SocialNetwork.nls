@@ -1,5 +1,5 @@
 to export-network
-  file-open "net.csv"
+  file-open "network.csv"
   ask households [
     ask both-ends [
       file-type (word who ",")
@@ -9,12 +9,12 @@ to export-network
   ask friendships [
     ask both-ends [file-type (word who ",")]
     file-print (word mean-age ",friendship")
-  ]
+  ] 
   file-close
 end
 
 to import-network
-  foreach csv:from-file "net.csv" [lnk ->
+  foreach csv:from-file "network.csv" [lnk ->
     let orig item 0 lnk
     let dest item 1 lnk
     let attr item 2 lnk
@@ -28,9 +28,6 @@ to import-network
     [ask turtle orig [create-household-with turtle dest [set ltype attr]]]
   ]
 end
-
-
-
 
 ;; ==========================================================
 ;;                     SOCIAL NETWORK GENERATION
@@ -105,17 +102,22 @@ to create-relations
 end
 
 to create-friendships
-  ask turtles with [age >= 12][repeat 5 + random 10 [create-friendship-with find-partner]]
+  ask turtles with [age >= 14][repeat 5 + random 10 [create-friendship-with find-partner]]
   if show-layout [layout]
+end
+
+to create-schools
+  ask turtles with [age >= 6 and age < 18] [create-classes-with other turtles with [age = [age] of myself]]
 end
 
 ;; make the initial network of initial-links-per-age-group edges per age group
 to make-initial-links
   foreach (list [6 10][11 14][15 19][20 25][26 36][37 49][50 65][66 80][81 103]) [a-g ->
     repeat initial-links-per-age-group [
-      ask one-of turtles with [age >= item 0 a-g and age <= item 1 a-g] [
-        create-friendship-with one-of other turtles with [age >= item 0 a-g and age <= item 1 a-g] [
-          set color green
+      let theseguys turtles with [age >= item 0 a-g and age <= item 1 a-g]
+      ask one-of theseguys [
+        create-friendship-with one-of other theseguys [
+          if show-layout [set color green]
           set mean-age mean [age] of both-ends
         ]
       ]
@@ -123,15 +125,9 @@ to make-initial-links
   ]
 end
 
-;; This code is the heart of the "preferential attachment" mechanism, and acts like
-;; a lottery where each node gets a ticket for every connection it already has.
-;; While the basic idea is the same as in the Lottery Example (in the Code Examples
-;; section of the Models Library), things are made simpler here by the fact that we
-;; can just use the links as if they were the "tickets": we first pick a random link,
-;; and than we pick one of the two ends of that link.
-
-
-;; In our case we change the mechanism a bit to allow for friendships being built 
+;; This code is the heart of the "preferential attachment" mechanism. 
+;; We exploit the asyncronous nature of NetLogo and link agents to other agents who already have links
+;; We skew the mechanism a bit to allow for friendships being built 
 ;; within age classes as much as possible.
 
 to-report find-partner

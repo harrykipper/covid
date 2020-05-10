@@ -3,22 +3,18 @@
 ;; ============================================
 
 to calculate-r0
-  let new-infected sum [ nb-infected ] of turtles
+  let new-infected nb-infected
   let new-recovered nb-recovered
   set nb-infected-previous (count turtles with [ infected? ] + new-recovered - new-infected)  ;; Number of infected people at the previous tick
   let susceptible-t (N-people - (count turtles with [ infected? ]) - (count turtles with [ cured? ]))  ;; Number of susceptibles now
   ifelse nb-infected-previous < 10
   [ set beta-n 0 ]
-  [
-    set beta-n (new-infected / nb-infected-previous)       ;; This is the average number of new secondary infections per infected this tick
-  ]
-
+  [ set beta-n (new-infected / nb-infected-previous) ]       ;; This is the average number of new secondary infections per infected this tick
+  
   ifelse nb-infected-previous < 5
   [ set gamma 0 ]
-  [
-    set gamma (new-recovered / nb-infected-previous)     ;; This is the average number of new recoveries per infected this tick
-  ]
-
+  [ set gamma (new-recovered / nb-infected-previous) ]    ;; This is the average number of new recoveries per infected this tick
+  
   if ((N-people - susceptible-t) != 0 and (susceptible-t != 0))   ;; Prevent from dividing by 0
   [
     ;; This is derived from integrating dI / dS = (beta*SI - gamma*I) / (-beta*SI)
@@ -54,7 +50,11 @@ to print-final-summary
   output-print (word "Total deaths: " deaths " - Mortality rate: " precision ((deaths / totalinf) * 100) 2 "%")
   output-print (word "Median age of victims: " median [age] of turtles with [dead?] " " 
     count turtles with [dead? and sex = "M"] " M - " count turtles with [dead? and sex = "F"] " F.")
-  output-print (word "R0: " precision r0 2)
+  ;output-print (word "R0: " precision r0 2)
+  let tot sum table:values counters
+  output-type "Infections from family, friends, school, random: "
+  foreach table:values counters [c -> 
+    output-type (word (precision (c / tot) 2) " ")]
 end
 
 to save-output
@@ -64,12 +64,31 @@ to save-output
   [file-open "covid19.csv"]
   [
     file-open "covid19.csv"
-    file-print "pctApp,pctTest,lockdown,deaths,propInfected,R0,mortality,days"
+    file-print "pctApp,pctTest,lockdown,schools,deaths,propInfected,R0,mortality,days,household,friends,school,random"
   ]
-  file-print (
-    word pct-with-tracing-app "," tests-per-100-people "," lockdown-at-first-death "," deaths
+  let tot sum table:values counters
+  file-type (
+    word pct-with-tracing-app "," tests-per-100-people "," lockdown-at-first-death "," schools-open? "," deaths
     "," (((count turtles with [ cured? ] + count turtles with [ infected? ]) / N-people) * 100)
-    "," r0 "," (precision ((deaths / totalinf) * 100) 2) "," ticks
-    )
-    file-close
+    "," r0 "," (precision ((deaths / totalinf) * 100) 2) "," ticks ",")
+  ifelse tot > 0 
+  [foreach table:values counters [c -> file-type (word (precision (c / tot) 2) ",")]]
+  [file-type "0,0,0,0"]
+  file-print ""
+  file-close
+end
+
+to save-individual
+  ifelse file-exists? "covid19_ind.csv"
+  [file-open "covid19_ind.csv"]
+  [
+    file-open "covid19_ind.csv"
+    file-print "run,t,pctApp,pctTest,lockdown,schools,infected,recovered,susceptible,dead,hospitalized,isolated"
+  ]
+  file-print (word behaviorspace-run-number "," ticks "," pct-with-tracing-app "," tests-per-100-people "," 
+    lockdown-at-first-death ","  schools-open? "," count turtles with [infected?] "," count turtles with [cured?] "," 
+    count turtles with [not infected? and not cured?] "," count turtles with [dead?] "," in-hospital "," 
+    count turtles with [isolated?]
+  ) 
+  file-close
 end
