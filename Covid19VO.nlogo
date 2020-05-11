@@ -393,24 +393,45 @@ to infect  ;; turtle procedure
   let infectious? infection-length >= infectivity-time
   let random-passersby nobody
 
-  if isolated? = false and lockdown? = false [
+  if isolated? = false and lockdown? = false and (age <= 65 or ticks mod 2 = 0) [
     ifelse use-network?
-    [set random-passersby n-of (1 + random 5) other turtles]
-    [set random-passersby n-of (1 + random 30) other turtles]
+    [set random-passersby (turtle-set
+      n-of (1 + random 3) other turtles with [age <= 65]
+      n-of (1 + random 2) other turtles with [age > 65])
+    ]
+    [set random-passersby (turtle-set
+      n-of (1 + random 20) other turtles with [age <= 65]
+      n-of (1 + random 10) other turtles with [age > 65])]
   ]
 
   if use-network? [
-    let proportion 10
-    if any? my-classes [set proportion 20]  ;; Children who go to school will meet less friends
-    let all-ppl friendship-neighbors
 
-    ;;; Every day the agent meets a certain fraction of her friends.
-    ;;; If the agent has the contact tracing app, a link is created between she and the friends who also have the app.
-    ;;; If the agent is infective, with probability infection-chance the agent the infects the susceptible friends who she is meeting.
-    if count all-ppl > 0 [
-      let howmany (1 + random round (count all-ppl / proportion))
-      if howmany > 50 [set howmany 50]
-      ask n-of howmany all-ppl [
+    if age < 65 or ticks mod 2 = 0 [                ;; Old people only meet friends on even days (= go out half of the times younger people do).
+
+      let proportion 10
+      if any? my-classes [set proportion 20]  ;; Children who go to school will meet less friends
+      let young-ppl friendship-neighbors with [age < 65]
+      let old-ppl friendship-neighbors with [age >= 65]
+
+      ;;; Every day the agent meets a certain fraction of her friends.
+      ;;; If the agent has the contact tracing app, a link is created between she and the friends who also have the app.
+      ;;; If the agent is infective, with probability infection-chance the agent the infects the susceptible friends who she is meeting.
+      if count young-ppl > 0 [
+        let howmany (1 + random round (count young-ppl / proportion))
+        if howmany > 30 [set howmany 30]
+        set young-ppl n-of howmany young-ppl
+      ]
+
+      ;; Older people go out less, so we meet less of them
+      if count old-ppl > 0 [
+        let howmany random round (count young-ppl / (proportion * 0.66))
+        if howmany > 15 [set howmany 15]
+        set old-ppl n-of howmany old-ppl
+      ]
+
+      let allppl (turtle-set old-ppl young-ppl)
+
+      ask allppl [
         ; show (word "I'm meeting " howmany " friends!")
         if not infected? and not cured? and [removed?] of friendship-with spreader = false [
           if has-app? and [has-app?] of spreader [add-contact spreader]
@@ -418,14 +439,12 @@ to infect  ;; turtle procedure
       ]
     ]
 
-    if schools-open? [
-      ;; Schoolchildren meet their schoolmates every day, and can infect them.
-      if any? class-neighbors [
-        ask class-neighbors [
-          if not infected? and not cured? and not [removed?] of class-with spreader [
-            if has-app? and [has-app?] of spreader [add-contact spreader]
-            if infectious? and random 100 < (infection-chance * 1.3) [newinfection spreader "school"]
-          ]
+    ;; Schoolchildren meet their schoolmates every day, and can infect them.
+    if schools-open? and any? class-neighbors [
+      ask class-neighbors [
+        if not infected? and not cured? and not [removed?] of class-with spreader [
+          if has-app? and [has-app?] of spreader [add-contact spreader]
+          if infectious? and random 100 < (infection-chance * 1.3) [newinfection spreader "school"]
         ]
       ]
     ]
@@ -894,7 +913,7 @@ tests-per-100-people
 tests-per-100-people
 0
 5
-1.0
+0.0
 0.01
 1
 NIL
@@ -943,7 +962,7 @@ MONITOR
 220
 160
 332
-206
+209
 Tests available
 tests-remaining
 0
