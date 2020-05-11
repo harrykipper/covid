@@ -14,12 +14,12 @@ globals
   N-people
   use-existing-nw?
   tests-remaining      ;; Counter for tests
-  tests-per-week
+  tests-per-day
   nb-infected          ;; Number of secondary infections caused by an infected person at the end of the tick
   nb-infected-previous ;; Number of infected people at the previous tick
   nb-recovered         ;; Number of recovered people at the end of the tick
   in-hospital          ;; Number of people currently in hospital
-  hospital-beds        ;; Number of places in the hospital
+  hospital-beds        ;; Number of places in the hospital (currently unused)
   contact-tracing      ;; If true a contact tracing app exists
   angle                ;; Heading for individuals
   beta-n               ;; The average number of new secondary infections per infected this tick
@@ -124,6 +124,7 @@ to setup
     ]
   ]
   set counters table:from-list (list ["household" 0]["friends" 0]["school" 0]["random" 0])
+  ;set populations table:from-list (list ["susceptible" 0]["infected" 0]["recovered" 0]["dead" 0])
 
   reset-ticks
 
@@ -131,8 +132,8 @@ to setup
   set s0 count turtles with [susceptible?]
   if behaviorspace-run-number = 0 [output-print (word "Infected agents: " [who] of turtles with [infected?])]
 
-  set tests-per-week round ((tests-per-100-people / 100) * N-People)
-  set tests-remaining tests-per-week
+  set tests-per-day round ((tests-per-100-people / 100) * N-People / 7)
+  set tests-remaining tests-per-day
 
   let adults turtles with [age > 14]
   ask n-of (round count adults * (pct-with-tracing-app / 100)) adults [set has-app? true]
@@ -215,40 +216,41 @@ to go
   if all? turtles [ not infected? ][
     ifelse behaviorspace-run-number = 0
     [print-final-summary]
-    [save-output]
+    [ let deaths count turtles with [dead?]
+      if deaths > 2 and deaths / (deaths + count turtles with [cured?]) < 5 [ save-output ]
+    ]
     stop
   ]
 
   clear-count     ; this is to compute R0 the epiDEM's way
 
-  if ticks mod 7 = 0 [set tests-remaining tests-remaining + tests-per-week]
+  set tests-remaining tests-remaining + tests-per-day
   ask turtles [set tested-today? false]
 
   if contact-tracing [ask tracings with [day <= (ticks - 10)][die]]
 
-  ask turtles with [(isolated? or hospitalized?) and cured?] [unisolate]
-
   ask turtles with [isolated?] [
     set days-isolated days-isolated + 1
-    if not symptomatic? and days-isolated = 14 [unisolate]
+    if (symptomatic? = false and days-isolated = 10) [unisolate]
   ]
+
 
   ;; If you're in hospital you don't infect anyone. If you're isolated you can infect members of your household
   ask turtles with [infected? and not hospitalized?] [ infect ]
 
-  ask turtles with [not hospitalized? and infected? and severe-symptoms?] [ hospitalize ]
+  ask turtles with [hospitalized? = false and infected? and severe-symptoms?] [ hospitalize ]
 
   ask turtles with [infected?] [
     set infection-length infection-length + 1
 
      ;; It takes time to get tested and receive the response
-    if symptomatic? and not tested-today? and not aware? and infection-length = 3 [
+    if symptomatic? and tested-today? = false and aware? = false and infection-length = 3 [
       ifelse tests-remaining > 0
       [get-tested]
       [
         if isolated? = false [
           maybe-isolate
-          ask household-neighbors with [not isolated? and not aware? and not tested-today?] [maybe-isolate]
+          ask household-neighbors with [(not isolated?) and (not aware?) and (not tested-today?)] [maybe-isolate]
         ]
         if has-app? [ask tracing-neighbors [maybe-isolate]]
       ]
@@ -256,8 +258,8 @@ to go
 
     ;; Progression of the infection
     if severe-symptoms? and infection-length = recovery-time [maybe-die]
-    if symptomatic? and not severe-symptoms? and infection-length = recovery-time [maybe-worsen]
-    if not symptomatic? and infection-length = symptom-time [maybe-show-symptoms]
+    if symptomatic? and (not severe-symptoms?) and infection-length = recovery-time [maybe-worsen]
+    if (not symptomatic?) and infection-length = symptom-time [maybe-show-symptoms]
 
     ;; If we get to this stage we are safe.
     if infection-length > recovery-time [recover]
@@ -307,14 +309,12 @@ end
 
 to recover
   set infected? false
+  set symptomatic? false
   set cured? true
   set cured-since ticks
-  if isolated? [unisolate]
+  if isolated? or hospitalized? [unisolate]
   set nb-recovered (nb-recovered + 1)
-  if hospitalized? [
-    set in-hospital in-hospital - 1
-    unisolate
-  ]
+  if hospitalized? [set in-hospital (in-hospital - 1)]
 end
 
 to kill-agent
@@ -323,6 +323,10 @@ to kill-agent
   ask my-relations [die]
   ask my-classes [die]
   set dead? true
+  if hospitalized? [
+    set hospitalized? false
+    set in-hospital (in-hospital - 1)
+  ]
   set cured-since ticks
   if count turtles with [dead?] = 1 [
     if lockdown-at-first-death [lockdown]
@@ -355,13 +359,18 @@ end
 ;; After unisolating, links return in place
 to unisolate  ;; turtle procedure
   set isolated? false
-  set hospitalized? false
+  set days-isolated 0
+  if hospitalized? [
+    set hospitalized? false
+    set in-hospital (in-hospital - 1)
+  ]
   ask my-links with [removed? = true][set removed? false]
 end
 
 ;; To hospitalize, remove all links.
 to hospitalize ;; turtle procedure
   set hospitalized? true
+  set aware? true
   set in-hospital in-hospital + 1
 
   ;; We assume that hospitals always have tests. If I end up in hospital, the app will tell people.
@@ -401,7 +410,8 @@ to infect  ;; turtle procedure
     ]
     [set random-passersby (turtle-set
       n-of (1 + random 20) other turtles with [age <= 65]
-      n-of (1 + random 10) other turtles with [age > 65])]
+      n-of (1 + random 10) other turtles with [age > 65])
+    ]
   ]
 
   if use-network? [
@@ -424,7 +434,7 @@ to infect  ;; turtle procedure
 
       ;; Older people go out less, so we meet less of them
       if count old-ppl > 0 [
-        let howmany random round (count young-ppl / (proportion * 0.66))
+        let howmany random round (count old-ppl / (proportion * 0.66))
         if howmany > 15 [set howmany 15]
         set old-ppl n-of howmany old-ppl
       ]
@@ -433,7 +443,7 @@ to infect  ;; turtle procedure
 
       ask allppl [
         ; show (word "I'm meeting " howmany " friends!")
-        if not infected? and not cured? and [removed?] of friendship-with spreader = false [
+        if (not infected?) and (not cured?) and [removed?] of friendship-with spreader = false [
           if has-app? and [has-app?] of spreader [add-contact spreader]
           if infectious? and random 100 < infection-chance [newinfection spreader "friends"]]
       ]
@@ -442,7 +452,7 @@ to infect  ;; turtle procedure
     ;; Schoolchildren meet their schoolmates every day, and can infect them.
     if schools-open? and any? class-neighbors [
       ask class-neighbors [
-        if not infected? and not cured? and not [removed?] of class-with spreader [
+        if (not infected?) and (not cured?) and (not [removed?] of class-with spreader) [
           if has-app? and [has-app?] of spreader [add-contact spreader]
           if infectious? and random 100 < (infection-chance * 1.3) [newinfection spreader "school"]
         ]
@@ -458,7 +468,7 @@ to infect  ;; turtle procedure
       if isolated? [set hh-infection-chance infection-chance * 0.7]
 
       ask household-neighbors [
-        if not infected? and not cured? and not [removed?] of household-with spreader and
+        if (not infected?) and (not cured?) and (not [removed?] of household-with spreader) and
         infectious? and random 100 < hh-infection-chance [newinfection spreader "household"]
       ]
     ]
@@ -469,7 +479,7 @@ to infect  ;; turtle procedure
   ;; Here, again, if both parties have the app a link is created to keep track of the meeting
   if random-passersby != nobody [
     ask random-passersby [
-      if not infected? and not cured? and not isolated? [
+      if (not infected?) and (not cured?) and (not isolated?) [
         if has-app? and [has-app?] of spreader [add-contact spreader]
         if infectious? and random 100 < (infection-chance * 0.1) [newinfection spreader "random"]
       ]
@@ -514,18 +524,18 @@ to get-tested
     ;show (word "  day " ticks ": tested-today?: " tested-today? " - aware?: " aware? "  - now getting tested")
     set tested-today? true
     set tests-remaining tests-remaining - 1
-    if tests-remaining = 0 and behaviorspace-run-number = 0 [output-print (word "Day " ticks ": tests finished")]
+   ; if tests-remaining = 0 and behaviorspace-run-number = 0 [output-print (word "Day " ticks ": tests finished")]
     if infected? [
       set aware? true
       isolate
       ask household-neighbors with [tested-today? = false and aware? = false] [
-        ifelse tests-remaining > 0 [get-tested] [maybe-isolate]
+        ifelse tests-remaining > 0 [get-tested] [ if not isolated? [maybe-isolate ]]
       ]
       if has-app? [
         ask tracing-neighbors with [tested-today? = false and aware? = false] [
           ifelse tests-remaining > 0
           [ get-tested ]
-          [ maybe-isolate]
+          [ if not isolated? [maybe-isolate ]]
         ]
       ]
     ]
@@ -632,8 +642,6 @@ true
 "" ""
 PENS
 "Infected" 1.0 0 -2674135 true "" "plot count turtles with [ infected? ] "
-"Susceptible" 1.0 0 -10899396 true "" "plot count turtles with [ not infected? and not cured? ] "
-"Recovered" 1.0 0 -7500403 true "" "plot count turtles with [ cured? ] "
 "Dead" 1.0 0 -16777216 true "" "plot count turtles with [dead?] "
 "Hospitalized" 1.0 0 -955883 true "" "plot in-hospital"
 "Self-Isolating" 1.0 0 -13791810 true "" "plot count turtles with [isolated?]"
@@ -666,7 +674,7 @@ infection-chance
 infection-chance
 10
 100
-15.0
+10.0
 5
 1
 NIL
@@ -1008,7 +1016,7 @@ SWITCH
 153
 schools-open?
 schools-open?
-1
+0
 1
 -1000
 
@@ -1480,7 +1488,7 @@ NetLogo 6.1.1
       <value value="0"/>
       <value value="0.6"/>
       <value value="1"/>
-      <value value="1.5"/>
+      <value value="1.6"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="use-existing-nw">
       <value value="true"/>
@@ -1494,7 +1502,57 @@ NetLogo 6.1.1
     <enumeratedValueSet variable="lockdown-at-first-death">
       <value value="false"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="schools?">
+    <enumeratedValueSet variable="schools-open?">
+      <value value="true"/>
+      <value value="false"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="contact-test" repetitions="1" sequentialRunOrder="false" runMetricsEveryStep="false">
+    <setup>setup</setup>
+    <go>go</go>
+    <enumeratedValueSet variable="show-layout">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-network?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infection-chance">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="incubation-days">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-infected">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-links-per-age-group">
+      <value value="25"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="pct-with-tracing-app">
+      <value value="0"/>
+      <value value="40"/>
+      <value value="60"/>
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tests-per-100-people">
+      <value value="0"/>
+      <value value="0.6"/>
+      <value value="1"/>
+      <value value="1.6"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-existing-nw">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-seed?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="average-isolation-tendency">
+      <value value="70"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="lockdown-at-first-death">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="schools-open?">
       <value value="true"/>
       <value value="false"/>
     </enumeratedValueSet>
