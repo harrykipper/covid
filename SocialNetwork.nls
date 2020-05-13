@@ -97,9 +97,20 @@ to attach-children
   if show-layout [layout]
 end
 
-to create-relations
-  ; not there yet ;-)
-end
+;to create-relations
+;  ask turtles with [sex = "F" and age >= 65][
+;    let grannie self
+;    let age-interval-min age + 23
+;    let age-interval-max age + 37
+;    ask n-of round random-normal 2 0.5 turtles with [  ;; non devono essere già imparentati tra loro però!
+;      age <= age-interval-max and age >= age-interval-min and
+;      count my-relations = 0 [
+;        create-relation-with grannie
+;        if any? my-households [ask my-households [create-relation-with grannie]]
+;      ]
+;    ]
+;  ]
+;end
 
 to create-friendships
   ask turtles with [age >= 14][repeat 5 + random 10 [create-friendship-with find-partner]]

@@ -55,6 +55,7 @@ turtles-own
 
   prob-symptoms        ;; Probability that the person is symptomatic
   isolation-tendency   ;; Chance the person will self-quarantine when symptomatic.
+  testing-urgency      ;; When the person will seek to get tested after the onset of symptoms
 
   susceptible?         ;; Tracks whether the person was initially susceptible
 
@@ -77,7 +78,7 @@ tracings-own [day]
 
 to setup
 
-  set rnd 1304196825
+  set rnd  1580319122 ; 1304196825
   if use-seed? = false [
     set rnd new-seed
   ]
@@ -189,22 +190,6 @@ end
 
 ;=====================================================================================
 
-to assign-tendency ;; Turtle procedure (derived from epiDEM - buggy and inefficient)
-  set isolation-tendency random-normal average-isolation-tendency (average-isolation-tendency / 4)
-  set recovery-time 1 + round (random-normal (average-recovery-time age) (average-recovery-time age / 4))
-  set prob-symptoms probability-of-showing-symptoms age * gender-discount
-  set symptom-time round random-normal incubation-days 0.5
-  set infectivity-time symptom-time - 1    ;; Apparently people are infectious 1 day before showing symptoms
-
-  ;; Make sure recovery-time lies between 0 and 2x average-recovery-time
-  if recovery-time > (average-recovery-time age) * 2 [ set recovery-time (average-recovery-time age) ]
-  if recovery-time < 0 [ set recovery-time 4 ]
-
-  ;; Similarly for isolation and hospital going tendencies
-  if isolation-tendency > 100 [ set isolation-tendency 90 ]
-  if isolation-tendency < 0 [ set isolation-tendency 10 ]
-end
-
 to-report gender-discount
   if sex = "F" [report 0.8]
   report 1
@@ -216,9 +201,10 @@ to go
   if all? turtles [ not infected? ][
     ifelse behaviorspace-run-number = 0
     [print-final-summary]
-    [ let deaths count turtles with [dead?]
-      if deaths > 2 and deaths / (deaths + count turtles with [cured?]) < 5 [ save-output ]
-    ]
+    [save-output]
+    ;[ let deaths count turtles with [dead?]
+    ;  if deaths > 2 and deaths / (deaths + count turtles with [cured?]) < 5 [ save-output ]
+    ;]
     stop
   ]
 
@@ -416,36 +402,26 @@ to infect  ;; turtle procedure
 
   if use-network? [
 
-    if age < 65 or ticks mod 2 = 0 [                ;; Old people only meet friends on even days (= go out half of the times younger people do).
+    if age <= 67 or ticks mod 2 = 0 [                ;; Old people only meet friends on even days (= go out half of the times younger people do).
 
       let proportion 10
       if any? my-classes [set proportion 20]  ;; Children who go to school will meet less friends
-      let young-ppl friendship-neighbors with [age < 65]
-      let old-ppl friendship-neighbors with [age >= 65]
+      ;let young-ppl friendship-neighbors with [age < 65]
+      ;let old-ppl friendship-neighbors with [age >= 65]
 
-      ;;; Every day the agent meets a certain fraction of her friends.
-      ;;; If the agent has the contact tracing app, a link is created between she and the friends who also have the app.
-      ;;; If the agent is infective, with probability infection-chance the agent the infects the susceptible friends who she is meeting.
-      if count young-ppl > 0 [
-        let howmany (1 + random round (count young-ppl / proportion))
-        if howmany > 30 [set howmany 30]
-        set young-ppl n-of howmany young-ppl
-      ]
+      let all-ppl friendship-neighbors
 
-      ;; Older people go out less, so we meet less of them
-      if count old-ppl > 0 [
-        let howmany random round (count old-ppl / (proportion * 0.66))
-        if howmany > 15 [set howmany 15]
-        set old-ppl n-of howmany old-ppl
-      ]
-
-      let allppl (turtle-set old-ppl young-ppl)
-
-      ask allppl [
-        ; show (word "I'm meeting " howmany " friends!")
-        if (not infected?) and (not cured?) and [removed?] of friendship-with spreader = false [
-          if has-app? and [has-app?] of spreader [add-contact spreader]
-          if infectious? and random 100 < infection-chance [newinfection spreader "friends"]]
+    ;;; Every day the agent meets a certain fraction of her friends.
+    ;;; If the agent has the contact tracing app, a link is created between she and the friends who also have the app.
+    ;;; If the agent is infective, with probability infection-chance the agent the infects the susceptible friends who she is meeting.
+      if count all-ppl > 0 [
+        let howmany (1 + random round (count all-ppl / proportion))
+        if howmany > 50 [set howmany 50]
+        ask n-of howmany all-ppl [
+          if (not infected?) and (not cured?) and [removed?] of friendship-with spreader = false [
+            if has-app? and [has-app?] of spreader [add-contact spreader]
+            if infectious? and random 100 < infection-chance [newinfection spreader "friends"]]
+        ]
       ]
     ]
 
@@ -577,10 +553,10 @@ day
 30.0
 
 BUTTON
-1020
-410
-1103
-443
+1025
+545
+1108
+578
 setup
 setup
 NIL
@@ -594,10 +570,10 @@ NIL
 1
 
 BUTTON
-1020
-445
-1085
-478
+1025
+580
+1090
+613
 go
 go
 T
@@ -672,10 +648,10 @@ SLIDER
 43
 infection-chance
 infection-chance
-10
-100
+0
+50
 10.0
-5
+0.1
 1
 NIL
 HORIZONTAL
@@ -726,10 +702,10 @@ NIL
 HORIZONTAL
 
 PLOT
-425
-335
-715
-553
+415
+540
+705
+758
 Degree distribution (log-log)
 log(degree)
 log(#of nodes)
@@ -744,10 +720,10 @@ PENS
 "default" 1.0 2 -16777216 true "" "let max-degree max [count friendship-neighbors] of turtles with [age > 12]\n;; for this plot, the axes are logarithmic, so we can't\n;; use \"histogram-from\"; we have to plot the points\n;; ourselves one at a time\nplot-pen-reset  ;; erase what we plotted before\n;; the way we create the network there is never a zero degree node,\n;; so start plotting at degree one\nlet degree 1\nwhile [degree <= max-degree] [\n  let matches turtles with [age > 12 and count friendship-neighbors = degree]\n  if any? matches\n    [ plotxy log degree 10\n             log (count matches) 10 ]\n  set degree degree + 1\n]"
 
 PLOT
-723
-334
-1013
-554
+713
+539
+1003
+759
 Degree distribution
 NIL
 NIL
@@ -762,10 +738,10 @@ PENS
 "default" 1.0 1 -16777216 true "" "let max-degree max [count friendship-neighbors] of turtles with [age > 12]\nplot-pen-reset  ;; erase what we plotted before\nset-plot-x-range 1 (max-degree + 1)  ;; + 1 to make room for the width of the last bar\nhistogram [count friendship-neighbors] of turtles with [age > 12]"
 
 SWITCH
-785
-260
-917
-293
+940
+255
+1072
+288
 show-layout
 show-layout
 1
@@ -773,10 +749,10 @@ show-layout
 -1000
 
 BUTTON
-1020
-520
-1113
-554
+1025
+655
+1118
+689
 LOCKDOWN!
 lockdown
 NIL
@@ -790,10 +766,10 @@ NIL
 1
 
 TEXTBOX
-549
-307
-905
-334
+539
+512
+895
+539
 ====== \"Friendship\" network ======
 20
 0.0
@@ -833,10 +809,10 @@ lockdown-at-first-death
 -1000
 
 TEXTBOX
-923
-272
-993
-290
+1078
+267
+1148
+285
 (Very slow!)
 12
 0.0
@@ -872,8 +848,8 @@ SLIDER
 initially-infected
 initially-infected
 0
-10
-2.0
+50
+30.0
 1
 1
 NIL
@@ -881,10 +857,10 @@ HORIZONTAL
 
 PLOT
 420
-560
+305
 750
-750
-Spreaders
+495
+Infections per agent
 # agents infected
 # agents
 0.0
@@ -920,7 +896,7 @@ SLIDER
 tests-per-100-people
 tests-per-100-people
 0
-5
+50
 0.0
 0.01
 1
@@ -928,10 +904,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-1020
-485
-1100
-518
+1025
+620
+1105
+653
 Export NW
 export-network
 NIL
@@ -951,7 +927,7 @@ SWITCH
 118
 use-seed?
 use-seed?
-1
+0
 1
 -1000
 
@@ -962,7 +938,7 @@ SWITCH
 153
 use-existing-nw
 use-existing-nw
-0
+1
 1
 -1000
 
@@ -983,16 +959,16 @@ MONITOR
 162
 205
 current R0
-mean ([spreading-to] of turtles with [cured? or dead?]) ;[cured-since >= (ticks - 14)])
+mean ([spreading-to] of turtles with [cured-since >= (ticks - 7)])
 4
 1
 11
 
 PLOT
 755
-560
+305
 1105
-765
+510
 Sources of infection
 NIL
 NIL
@@ -1016,14 +992,18 @@ SWITCH
 153
 schools-open?
 schools-open?
-0
+1
 1
 -1000
 
 @#$#@#$#@
-# covid19 in Vo' Euganeo (or anywhere else)
+# covid19 in small communities
 
 A tentative multi-level network based SIR model of the progression of the COVID19 infection.
+
+## A preliminary warning
+
+This is a simulation with random events and plausible but unverified assumptions, please do not take it a a sure forecasting machine, it is a reasoning machine, a sort of very complex “what if” mental experiment.
 
 ## The model
 
@@ -1507,7 +1487,7 @@ NetLogo 6.1.1
       <value value="false"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="contact-test" repetitions="1" sequentialRunOrder="false" runMetricsEveryStep="false">
+  <experiment name="contact_seeded" repetitions="1" sequentialRunOrder="false" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
     <enumeratedValueSet variable="show-layout">
@@ -1523,7 +1503,7 @@ NetLogo 6.1.1
       <value value="5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initially-infected">
-      <value value="2"/>
+      <value value="30"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-links-per-age-group">
       <value value="25"/>
@@ -1539,6 +1519,58 @@ NetLogo 6.1.1
       <value value="0.6"/>
       <value value="1"/>
       <value value="1.6"/>
+      <value value="50"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-existing-nw">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-seed?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="average-isolation-tendency">
+      <value value="70"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="lockdown-at-first-death">
+      <value value="true"/>
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="schools-open?">
+      <value value="true"/>
+      <value value="false"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="contact_unseeded" repetitions="50" sequentialRunOrder="false" runMetricsEveryStep="false">
+    <setup>setup</setup>
+    <go>go</go>
+    <enumeratedValueSet variable="show-layout">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-network?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infection-chance">
+      <value value="10"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="incubation-days">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-infected">
+      <value value="30"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-links-per-age-group">
+      <value value="25"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="pct-with-tracing-app">
+      <value value="0"/>
+      <value value="40"/>
+      <value value="60"/>
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tests-per-100-people">
+      <value value="0"/>
+      <value value="0.6"/>
+      <value value="1.6"/>
+      <value value="50"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="use-existing-nw">
       <value value="true"/>
@@ -1553,7 +1585,6 @@ NetLogo 6.1.1
       <value value="false"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="schools-open?">
-      <value value="true"/>
       <value value="false"/>
     </enumeratedValueSet>
   </experiment>
