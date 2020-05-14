@@ -1,6 +1,6 @@
 __includes ["DiseaseConfig.nls" "output.nls" "SocialNetwork.nls" "layout.nls"]
 
-extensions [csv table]
+extensions [csv table profiler]
 
 undirected-link-breed [households household]
 undirected-link-breed [relations relation]   ;; Relatives who don't live in the same household (todo)
@@ -12,7 +12,6 @@ globals
 [
   rnd                  ;; Random seed
   N-people
-  use-existing-nw?
   tests-remaining      ;; Counter for tests
   tests-per-day
   nb-infected          ;; Number of secondary infections caused by an infected person at the end of the tick
@@ -221,23 +220,21 @@ to go
   ]
 
 
-  ;; If you're in hospital you don't infect anyone. If you're isolated you can infect members of your household
-  ask turtles with [infected? and not hospitalized?] [ infect ]
-
-  ask turtles with [hospitalized? = false and infected? and severe-symptoms?] [ hospitalize ]
-
-  ask turtles with [infected?] [
+ask turtles with [infected?] [
     set infection-length infection-length + 1
 
-     ;; It takes time to get tested and receive the response
-    if symptomatic? and tested-today? = false and aware? = false and infection-length = 3 [
+    if not hospitalized? [
+      ;; If you're in hospital you don't infect anyone. If you're isolated you can infect members of your household
+      infect
+      if severe-symptoms?  [ hospitalize ]
+    ]
+
+    if symptomatic? and tested-today? = false and aware? = false and infection-length = testing-urgency [
       ifelse tests-remaining > 0
       [get-tested]
       [
-        if isolated? = false [
-          maybe-isolate
-          ask household-neighbors with [(not isolated?) and (not aware?) and (not tested-today?)] [maybe-isolate]
-        ]
+        if isolated? = false [maybe-isolate]
+        ask household-neighbors with [(not isolated?) and (not aware?) and (not tested-today?)] [maybe-isolate]
         if has-app? [ask tracing-neighbors [maybe-isolate]]
       ]
     ]
@@ -650,7 +647,7 @@ infection-chance
 infection-chance
 0
 50
-10.0
+4.0
 0.1
 1
 NIL
@@ -927,18 +924,18 @@ SWITCH
 118
 use-seed?
 use-seed?
-0
+1
 1
 -1000
 
 SWITCH
 270
 120
-410
+415
 153
-use-existing-nw
-use-existing-nw
-1
+use-existing-nw?
+use-existing-nw?
+0
 1
 -1000
 

@@ -1,7 +1,7 @@
 to export-network
   file-open "network.csv"
   ask households [
-    ask both-ends [
+    ask both-ends [;
       file-type (word who ",")
     ]
     file-print (word ltype ",household" )
@@ -104,6 +104,8 @@ end
 ;    let age-interval-max age + 37
 ;    ask n-of round random-normal 2 0.5 turtles with [  ;; non devono essere già imparentati tra loro però!
 ;      age <= age-interval-max and age >= age-interval-min and
+;      not
+
 ;      count my-relations = 0 [
 ;        create-relation-with grannie
 ;        if any? my-households [ask my-households [create-relation-with grannie]]
