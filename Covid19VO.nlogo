@@ -1,6 +1,6 @@
 __includes ["DiseaseConfig.nls" "output.nls" "SocialNetwork.nls" "layout.nls"]
 
-extensions [csv table profiler]
+extensions [csv table]
 
 undirected-link-breed [households household]
 undirected-link-breed [relations relation]   ;; Relatives who don't live in the same household (todo)
@@ -12,19 +12,24 @@ globals
 [
   rnd                  ;; Random seed
   N-people
+
   tests-remaining      ;; Counter for tests
   tests-per-day
+
   nb-infected          ;; Number of secondary infections caused by an infected person at the end of the tick
   nb-infected-previous ;; Number of infected people at the previous tick
   nb-recovered         ;; Number of recovered people at the end of the tick
+
   in-hospital          ;; Number of people currently in hospital
   hospital-beds        ;; Number of places in the hospital (currently unused)
+
   contact-tracing      ;; If true a contact tracing app exists
-  angle                ;; Heading for individuals
+
   beta-n               ;; The average number of new secondary infections per infected this tick
   gamma                ;; The average number of new recoveries per infected this tick
   s0                   ;; Initial number of susceptibles
   r0                   ;; The number of secondary infections that arise due to a single infective introduced in a wholly susceptible population
+
   lockdown?            ;; If true we are in a state of lockdown
 
   counters             ;; Table containing various information
