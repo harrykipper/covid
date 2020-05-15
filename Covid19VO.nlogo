@@ -13,8 +13,9 @@ globals
   rnd                  ;; Random seed
   N-people
 
-  tests-remaining      ;; Counter for tests
+  tests-remaining      ;; Counters for tests
   tests-per-day
+  tests-performed
 
   nb-infected          ;; Number of secondary infections caused by an infected person at the end of the tick
   nb-infected-previous ;; Number of infected people at the previous tick
@@ -143,6 +144,7 @@ to setup
 
   set tests-per-day round ((tests-per-100-people / 100) * N-People / 7)
   set tests-remaining tests-per-day
+  set tests-performed 0
 
   let adults turtles with [age > 14]
   ask n-of (round count adults * (pct-with-tracing-app / 100)) adults [set has-app? true]
@@ -537,6 +539,7 @@ to get-tested
     ;show (word "  day " ticks ": tested-today?: " tested-today? " - aware?: " aware? "  - now getting tested")
     set tested-today? true
     set tests-remaining tests-remaining - 1
+    set tests-performed tests-performed + 1
    ; if tests-remaining = 0 and behaviorspace-run-number = 0 [output-print (word "Day " ticks ": tests finished")]
     if infected? [
       set aware? true
@@ -817,9 +820,9 @@ TEXTBOX
 1
 
 MONITOR
-340
+185
 305
-408
+253
 350
 Deaths
 count turtles with [dead?]
@@ -984,15 +987,15 @@ use-existing-nw?
 -1000
 
 MONITOR
-225
-305
-337
-354
-Tests available
+270
+310
+340
+351
+Available
 tests-remaining
 0
 1
-12
+11
 
 MONITOR
 90
@@ -1093,6 +1096,27 @@ NIL
 NIL
 NIL
 NIL
+1
+
+MONITOR
+345
+310
+415
+355
+Performed
+tests-performed
+1
+1
+11
+
+TEXTBOX
+295
+295
+395
+313
+Tests ======
+11
+0.0
 1
 
 @#$#@#$#@
