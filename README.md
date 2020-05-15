@@ -40,9 +40,9 @@ The model can be configured changing the transition probabilities and timings in
 | Parameter 		      | Description
 | --------------------------- | ------------------------------------------------------------ |
 | infection-chance            | Daily probability of infecting a subset of one infected person's network |
-| initially-infected          | No. of agents infected on simulation day 0 |
-| incubation-days             | days before an infected agent becomes infectious and may show symptoms |
-| average-isolation-tendency  | probability of self-isolating after displaying symptoms      |
+| initially-infected          | Proportion of the population infected on simulation day 0 |
+| incubation-days             | Days before an infected agent becomes infectious and may show symptoms |
+| average-isolation-tendency  | Probability of self-isolating after displaying symptoms      |
 | use-network?                | If false contagion happens randomly                          |
 | initial-links-per-age-group | No. of random friendship links within each group upon initialization |
 | show-layout?                | Display the whole social network stricture. **WARNING: VERY SLOW** |
