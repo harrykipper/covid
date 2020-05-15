@@ -339,6 +339,12 @@ end
 
 ;; ===============================================================================
 
+to-report should-test? [agent]
+  let te 0
+  ask agent [if not tested-today? and not aware? [set te 1]]
+  ifelse te = 1 [report true][report false]
+end
+
 to-report should-isolate? [agent]
   let is 0
   ask agent [if not isolated? and not aware? and not tested-today? [set is 1]]
@@ -378,7 +384,7 @@ to hospitalize ;; turtle procedure
   set in-hospital in-hospital + 1
 
   ;; We assume that hospitals always have tests. If I end up in hospital, the app will tell people.
-  ask tracing-neighbors with [tested-today? = false and aware? = false] [
+  ask tracing-neighbors with [should-test? self] [
     ifelse tests-remaining > 0
     [get-tested]
     [maybe-isolate]
@@ -545,14 +551,14 @@ to get-tested
       set aware? true
       isolate
       let needtesting household-neighbors with [tested-today? = false and aware? = false]
-      if visited-relations-this-week != nobody and [not tested-today? and not aware?] of visited-relations-this-week [
+      if visited-relations-this-week != nobody and should-test? visited-relations-this-week [
         set needtesting (turtle-set needtesting visited-relations-this-week)
       ]
       ask needtesting [
         ifelse tests-remaining > 0 [get-tested] [ if not isolated? [maybe-isolate ]]
       ]
       if has-app? [
-        ask tracing-neighbors with [tested-today? = false and aware? = false] [
+        ask tracing-neighbors with [should-test? self] [
           ifelse tests-remaining > 0
           [ get-tested ]
           [ if not isolated? [maybe-isolate ]]
@@ -796,7 +802,7 @@ BUTTON
 840
 260
 935
-291
+293
 LOCKDOWN
 lockdown
 NIL
@@ -926,7 +932,7 @@ pct-with-tracing-app
 pct-with-tracing-app
 0
 100
-0.0
+60.0
 1
 1
 %
@@ -940,8 +946,8 @@ SLIDER
 tests-per-100-people
 tests-per-100-people
 0
-5
-0.0
+20
+20.0
 0.01
 1
 NIL
@@ -990,7 +996,7 @@ MONITOR
 270
 310
 340
-351
+355
 Available
 tests-remaining
 0
@@ -1037,7 +1043,7 @@ SWITCH
 328
 schools-open?
 schools-open?
-1
+0
 1
 -1000
 

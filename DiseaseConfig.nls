@@ -61,7 +61,7 @@ to assign-tendency
   set symptom-time round random-gamma incubation-days 0.95   ;5.8 0.95
   if recovery-time < symptom-time [set recovery-time symptom-time + 1]
 
-  set infectivity-time symptom-time - (random 3)  ;; Apparently people are infectious up to 3 (wasn't it one?) days before showing symptoms
+  set infectivity-time max (list 1 (symptom-time - random 3))  ;; Apparently people are infectious up to 3 (wasn't it one?) days before showing symptoms
   
   set testing-urgency 1 + random 3 
 
