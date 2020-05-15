@@ -20,10 +20,12 @@ A **relation** network links people who are related but don't live in the same h
 
 ### Infection
 
-The infection is assumed to follow _mainly_ social links. People in an infected agent's social network are much more exposed, with very few random encounters. When someone becomes infected, after a period of incubation, she starts infecting people in her network. 
+The infection is assumed to follow _predominantly_ social links. People in an infected agent's household and social network are more exposed, due to the high frequency of contact. Random encounters are more rare. When someone becomes infected, after a period of incubation, she starts infecting people in her network. 
 
 The progression of the disease is based on data from China and Italy. Agents have a probability of developing symptoms after incubation, based on their age; another probability of worsening; another of dying. The probability is slightly lower for women in all three phases. 
 The probabilities can be modified editing the DiseaseConfig.nls file.
+
+![Disease progression](https://raw.githubusercontent.com/harrykipper/covid/master/infection.png)
 
 ### Lockdown
 
