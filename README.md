@@ -48,7 +48,7 @@ The model can be configured changing the transition probabilities and timings in
 | show-layout?                | Display the whole social network stricture. **WARNING: VERY SLOW** |
 | lockdown-at-first-death     | Implement a full lockdown upon the first reported death (as happened in Vo' Euganeo) |
 | pct-with-tracing-app	      | Percentage of the population carrying the contact-tracing app |
-| tests-per-100-people	      | Probability that a symptomatic individual is tested for COVID19 |
+| tests-per-100-people	      | Number of tests available **per week** as proportion of the population |
 | schools-open?               | Whether kids go to school each morning |
 | use-seed                    | The simulation uses a fixed random seed |
 | use-existing-nw             | Use a pre-made social network instead of creating one at setup (much faster) |
