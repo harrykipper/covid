@@ -52,7 +52,7 @@ to print-final-summary
     count turtles with [dead? and sex = "M"] " M - " count turtles with [dead? and sex = "F"] " F.")
   ;output-print (word "R0: " precision r0 2)
   let tot sum table:values counters
-  output-type "Infections from family, friends, school, random: "
+  output-type "Infections from household, relations, friends, school, random: "
   foreach table:values counters [c -> 
     output-type (word (precision (c / tot) 2) " ")]
 end
@@ -64,7 +64,7 @@ to save-output
   [file-open "covid19.csv"]
   [
     file-open "covid19.csv"
-    file-print "run,pctApp,pctTest,lockdown,schools,deaths,propInfected,R0,mortality,days,household,friends,school,random"
+    file-print "run,pctApp,pctTest,lockdown,schools,deaths,propInfected,R0,mortality,days,household,relations,friends,school,random"
   ]
   let tot sum table:values counters
   file-type (
@@ -73,7 +73,7 @@ to save-output
     "," r0 "," (precision ((deaths / totalinf) * 100) 2) "," ticks)
   ifelse tot > 0 
   [foreach table:values counters [c -> file-type (word "," (precision (c / tot) 2))]]
-  [file-type ",0,0,0,0"]
+  [file-type ",0,0,0,0,0"]
   file-print ""
   file-close
 end

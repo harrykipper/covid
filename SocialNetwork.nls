@@ -10,6 +10,10 @@ to export-network
     ask both-ends [file-type (word who ",")]
     file-print (word mean-age ",friendship")
   ] 
+  ask relations [
+    ask both-ends [file-type (word who ",")]
+    file-print ",relation"
+  ]
   file-close
 end
 
@@ -25,7 +29,10 @@ to import-network
         ]
       ]
     ]
-    [ask turtle orig [create-household-with turtle dest [set ltype attr]]]
+    [ifelse item 3 lnk = "relation" 
+      [ask turtle orig [create-relation-with turtle dest]]
+      [ask turtle orig [create-household-with turtle dest [set ltype attr]]]
+    ]
   ]
 end
 
@@ -62,11 +69,11 @@ to create-marriages
     sex = "F"
   ]
 
-  ask n-of (count zitelle / 2) zitelle [
+  ask zitelle [
     let pretendenti turtles with [
       sex = "M" and
       status = 0 and
-      not any? my-households with [ltype = 0]
+      not any? my-households ;with [ltype = 0]
     ]
     let marito min-one-of pretendenti [abs (age - [age] of myself)]
     create-household-with marito [set ltype 0]
@@ -79,40 +86,41 @@ to attach-children
     status = 0 and
     not any? my-households with [ltype = 0]
   ][
-    let age-interval-min age + 23
+    let age-interval-min age + 22
     let age-interval-max age + 37
     let thekid self
     ask min-one-of turtles with [
       status != 0 and
       sex = "M" and
-      age <= age-interval-max and age >= age-interval-min and
-      count my-households <= 4
+      age <= age-interval-max and age >= age-interval-min and count my-households <= 4
     ][count my-households]
     [
-      ifelse any? my-households [
-        ask my-households [ask both-ends [create-household-with thekid [set ltype 1]]]
-      ][create-household-with thekid [set ltype 1]]
+      if any? my-households [ask household-neighbors [create-household-with thekid [set ltype 1]]]
+      create-household-with thekid [set ltype 1]
     ]
   ]
   if show-layout [layout]
 end
 
-;to create-relations
-;  ask turtles with [sex = "F" and age >= 65][
-;    let grannie self
-;    let age-interval-min age + 23
-;    let age-interval-max age + 37
-;    ask n-of round random-normal 2 0.5 turtles with [  ;; non devono essere già imparentati tra loro però!
-;      age <= age-interval-max and age >= age-interval-min and
-;      not
-
-;      count my-relations = 0 [
-;        create-relation-with grannie
-;        if any? my-households [ask my-households [create-relation-with grannie]]
-;      ]
-;    ]
-;  ]
-;end
+to create-relations
+  if count my-relations = 0 [
+    let granpa self
+    let age-interval-max age - 20
+    let age-interval-min age - 37
+    let howmanyrels round random-normal 2 0.8
+    repeat howmanyrels [
+      let candidate one-of turtles with [age <= age-interval-max and age >= age-interval-min and count my-relations <= 2 and not household-neighbor? granpa]
+      if candidate != nobody [
+        ask candidate [
+          create-relation-with granpa
+          ask household-neighbors [create-relation-with granpa]
+        ]
+        ask household-neighbors [create-relation-with candidate]
+        ;ask relation-neighbors [create-relation-with candidate] 
+      ]
+    ]
+  ]
+end
 
 to create-friendships
   ask turtles with [age >= 14][repeat 5 + random 10 [create-friendship-with find-partner]]

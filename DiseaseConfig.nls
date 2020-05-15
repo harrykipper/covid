@@ -7,17 +7,17 @@
 to-report average-recovery-time [agent-age]
   ;; Agents recover, on average, after these many days since being infected
   report (ifelse-value
-    agent-age < 40 [8]    ;; agents < 40 y.o recover in 7 days on average
+    agent-age < 40 [8]    ;; agents < 40 y.o recover in 8 days on average
     agent-age < 50 [12]   ;; agents between 40 and 50 recover in 10 days on avg.
     agent-age < 60 [15]   ;; agents between 50 and 60
     [20]                  ;; agents above 60
     )
 end
 
-;; The three parameters below obviously interact.
+;; The three parameters below interact.
 ;; The probability of someone dying of covid is:
 ;; probability-of-showing-syptoms * probability-of-worsening * probability-of-dying
-;; For someone between 30 and 40 this is currently 0.25 * 0.02 * 0.05 = 0.00025 or 0.025%
+;; For someone between 30 and 40 this is currently 0.45 * 0.02 * 0.05 = 0.00045 or 0.045%
 
 to-report probability-of-showing-symptoms [agent-age]
   ;; When the incubation period ('incubation-days' in main interface) is over

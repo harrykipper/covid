@@ -3,7 +3,7 @@ __includes ["DiseaseConfig.nls" "output.nls" "SocialNetwork.nls" "layout.nls"]
 extensions [csv table]
 
 undirected-link-breed [households household]
-undirected-link-breed [relations relation]   ;; Relatives who don't live in the same household (todo)
+undirected-link-breed [relations relation]   ;; Relatives who don't live in the same household
 undirected-link-breed [friendships friendship]
 undirected-link-breed [tracings tracing]     ;; The contact tracing app
 undirected-link-breed [classes class]        ;; Schools
@@ -33,13 +33,15 @@ globals
   lockdown?            ;; If true we are in a state of lockdown
 
   counters             ;; Table containing various information
+  howmanyrnd
 ]
 
 turtles-own
 [
   sex
   age
-  status               ;; Marital status
+  status               ;; Marital status 0 = single 1 = married 2 = divorced 3 = widowed
+
   infected?            ;; If true, the person is infected.
   cured?               ;; If true, the person has lived through an infection. They cannot be re-infected.
   symptomatic?         ;; If true, the person is showing symptoms of infection
@@ -63,11 +65,10 @@ turtles-own
 
   susceptible?         ;; Tracks whether the person was initially susceptible
 
-
-
   has-app?             ;; If true the agent carries the contact-tracing app
   tested-today?        ;; The agent
   aware?
+  visited-relations-this-week    ; Who have I seen this week?
 ]
 
 links-own [mean-age removed?]
@@ -103,6 +104,7 @@ to setup
 
   read-agents
   set N-people count turtles
+  set howmanyrnd round (N-people * 0.0015)
 
   if use-network? [
     ifelse use-existing-nw? = true
@@ -112,6 +114,8 @@ to setup
     ]
     [
       create-hh
+      ask turtles with [age >= 65] [create-relations]
+
       make-initial-links
       if schools-open? [create-schools]
       create-friendships
@@ -128,7 +132,7 @@ to setup
       repeat 50 [layout]
     ]
   ]
-  set counters table:from-list (list ["household" 0]["friends" 0]["school" 0]["random" 0])
+  set counters table:from-list (list ["household" 0]["relations" 0]["friends" 0]["school" 0]["random" 0])
   ;set populations table:from-list (list ["susceptible" 0]["infected" 0]["recovered" 0]["dead" 0])
 
   reset-ticks
@@ -146,7 +150,7 @@ to setup
 end
 
 to infect-initial-agents
-  ask n-of initially-infected turtles with [age > 25][
+  ask n-of (round (N-people / 100) * initially-infected) turtles with [age > 25][
     set infected? true
     set susceptible? false
   ]
@@ -179,8 +183,8 @@ to read-agents
           ifelse i < 5 [set sex "M"][set sex "F"]
           ifelse i = 1 or i = 5 [set status 0][
             ifelse i = 2 or i = 6 [set status 1][
-              ifelse i = 3 or i = 7 [set status 2][
-                ifelse i = 4 or i = 8 [set status 3][set status 4]
+              ifelse i = 3 or i = 7 [set status 2][set status 3
+                ;ifelse i = 4 or i = 8 [set status 3][set status 4]
               ]
             ]
           ]
@@ -215,7 +219,9 @@ to go
   clear-count     ; this is to compute R0 the epiDEM's way
 
   set tests-remaining tests-remaining + tests-per-day
+
   ask turtles [set tested-today? false]
+  if ticks mod 7 = 0 [ask turtles [set visited-relations-this-week nobody]]
 
   if contact-tracing [ask tracings with [day <= (ticks - 10)][die]]
 
@@ -225,7 +231,7 @@ to go
   ]
 
 
-ask turtles with [infected?] [
+  ask turtles with [infected?] [
     set infection-length infection-length + 1
 
     if not hospitalized? [
@@ -234,12 +240,15 @@ ask turtles with [infected?] [
       if severe-symptoms?  [ hospitalize ]
     ]
 
-    if symptomatic? and tested-today? = false and aware? = false and infection-length = testing-urgency [
+    if symptomatic? and (should-isolate? self) and infection-length = testing-urgency [
       ifelse tests-remaining > 0
       [get-tested]
       [
-        if isolated? = false [maybe-isolate]
-        ask household-neighbors with [(not isolated?) and (not aware?) and (not tested-today?)] [maybe-isolate]
+        maybe-isolate
+        let needisolating household-neighbors with [should-isolate? self]
+        if visited-relations-this-week != nobody and should-isolate? visited-relations-this-week [
+          set needisolating (turtle-set needisolating visited-relations-this-week)]
+        ask needisolating [maybe-isolate]
         if has-app? [ask tracing-neighbors [maybe-isolate]]
       ]
     ]
@@ -328,6 +337,11 @@ end
 
 ;; ===============================================================================
 
+to-report should-isolate? [agent]
+  let is 0
+  ask agent [if not isolated? and not aware? and not tested-today? [set is 1]]
+  ifelse is = 1 [report true][report false]
+end
 
 to maybe-isolate
   let tendency isolation-tendency
@@ -393,12 +407,12 @@ to infect  ;; turtle procedure
   if isolated? = false and lockdown? = false and (age <= 65 or ticks mod 2 = 0) [
     ifelse use-network?
     [set random-passersby (turtle-set
-      n-of (1 + random 3) other turtles with [age <= 65]
-      n-of (1 + random 2) other turtles with [age > 65])
+      n-of random (round howmanyrnd * 0.66) other turtles with [age <= 65]
+      n-of random (round howmanyrnd * 0.33) other turtles with [age > 65])
     ]
     [set random-passersby (turtle-set
-      n-of (1 + random 20) other turtles with [age <= 65]
-      n-of (1 + random 10) other turtles with [age > 65])
+      n-of random (round (howmanyrnd * 10) * 0.66) other turtles with [age <= 65]
+      n-of random (round (howmanyrnd * 10) * 0.33) other turtles with [age > 65])
     ]
   ]
 
@@ -420,9 +434,9 @@ to infect  ;; turtle procedure
         let howmany (1 + random round (count all-ppl / proportion))
         if howmany > 50 [set howmany 50]
         ask n-of howmany all-ppl [
-          if (not infected?) and (not cured?) and [removed?] of friendship-with spreader = false [
+          if (not infected?) and (not aware?) and [removed?] of friendship-with spreader = false [
             if has-app? and [has-app?] of spreader [add-contact spreader]
-            if infectious? and random 100 < infection-chance [newinfection spreader "friends"]]
+            if infectious? and (not cured?) and random 100 < infection-chance [newinfection spreader "friends"]]
         ]
       ]
     ]
@@ -430,9 +444,9 @@ to infect  ;; turtle procedure
     ;; Schoolchildren meet their schoolmates every day, and can infect them.
     if schools-open? and any? class-neighbors [
       ask class-neighbors [
-        if (not infected?) and (not cured?) and (not [removed?] of class-with spreader) [
+        if (not infected?) and (not aware?) and (not [removed?] of class-with spreader) [
           if has-app? and [has-app?] of spreader [add-contact spreader]
-          if infectious? and random 100 < (infection-chance * 1.3) [newinfection spreader "school"]
+          if infectious? and (not cured?) and random 100 < (infection-chance * 1.3) [newinfection spreader "school"]
         ]
       ]
     ]
@@ -452,14 +466,24 @@ to infect  ;; turtle procedure
     ]
   ]
 
+  ;; Every week we visit granpa and infect him
+  if (ticks mod 7 = 0 or ticks mod 6 = 0) and any? my-relations [
+    ask one-of relation-neighbors [
+      if not [removed?] of relation-with spreader [
+        ask spreader [set visited-relations-this-week (turtle-set myself)]
+        if (not cured?) and infectious? and random 100 < infection-chance [newinfection spreader "relations"]
+      ]
+    ]
+  ]
+
   ;; Infected agents will also infect someone at random.
   ;; If we're not using the network this is the sole mode of contact.
   ;; Here, again, if both parties have the app a link is created to keep track of the meeting
   if random-passersby != nobody [
     ask random-passersby [
-      if (not infected?) and (not cured?) and (not isolated?) [
+      if (not infected?) and (not aware?) and (not isolated?) [
         if has-app? and [has-app?] of spreader [add-contact spreader]
-        if infectious? and random 100 < (infection-chance * 0.1) [newinfection spreader "random"]
+        if infectious? and (not cured?) and random 100 < (infection-chance * 0.1) [newinfection spreader "random"]
       ]
     ]
   ]
@@ -493,8 +517,19 @@ to lockdown
   close-schools
 end
 
+to remove-lockdown
+  if behaviorspace-run-number = 0 [
+    output-print " ================================ "
+    output-print (word "Day " ticks ": Now removing lockingdown!")
+  ]
+  set lockdown? false
+  ask turtles with [not isolated?] [ask my-links [set removed? false]]
+  set schools-open? true
+end
+
 to close-schools
   ask classes [set removed? true]
+  set schools-open? false
 end
 
 to get-tested
@@ -506,7 +541,11 @@ to get-tested
     if infected? [
       set aware? true
       isolate
-      ask household-neighbors with [tested-today? = false and aware? = false] [
+      let needtesting household-neighbors with [tested-today? = false and aware? = false]
+      if visited-relations-this-week != nobody and [not tested-today? and not aware?] of visited-relations-this-week [
+        set needtesting (turtle-set needtesting visited-relations-this-week)
+      ]
+      ask needtesting [
         ifelse tests-remaining > 0 [get-tested] [ if not isolated? [maybe-isolate ]]
       ]
       if has-app? [
@@ -528,10 +567,10 @@ to-report impossible-run
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-0
-760
-489
-1250
+415
+830
+904
+1320
 -1
 -1
 2.393035
@@ -555,10 +594,10 @@ day
 30.0
 
 BUTTON
-1025
-545
-1108
-578
+240
+225
+323
+258
 setup
 setup
 NIL
@@ -572,10 +611,10 @@ NIL
 1
 
 BUTTON
-1025
-580
-1090
-613
+325
+225
+390
+258
 go
 go
 T
@@ -589,10 +628,10 @@ NIL
 0
 
 SLIDER
-193
-10
-408
-43
+155
+65
+355
+98
 average-isolation-tendency
 average-isolation-tendency
 0
@@ -604,10 +643,10 @@ NIL
 HORIZONTAL
 
 PLOT
-0
-390
-406
-582
+5
+535
+411
+727
 Populations
 days
 # people
@@ -625,10 +664,10 @@ PENS
 "Self-Isolating" 1.0 0 -13791810 true "" "plot count turtles with [isolated?]"
 
 PLOT
--2
-589
-407
-757
+3
+734
+412
+902
 Infection and Recovery Rates
 days
 rate
@@ -644,25 +683,25 @@ PENS
 "Recovery Rate" 1.0 0 -10899396 true "" "plot (gamma * nb-infected-previous)"
 
 SLIDER
-7
 10
-187
-43
+30
+155
+63
 infection-chance
 infection-chance
 0
 50
-4.0
+4.5
 0.1
 1
-NIL
+%
 HORIZONTAL
 
 MONITOR
-10
-160
-80
-205
+15
+305
+85
+350
 R0
 r0
 2
@@ -670,10 +709,10 @@ r0
 11
 
 PLOT
-2
-210
-404
-385
+7
+355
+409
+530
 Cumulative Infected and Recovered
 days
 % total pop.
@@ -689,10 +728,10 @@ PENS
 "% recovered" 1.0 0 -9276814 true "" "plot ((count turtles with [ cured? ] / N-people) * 100)"
 
 SLIDER
-193
-47
-410
-80
+10
+180
+205
+213
 initial-links-per-age-group
 initial-links-per-age-group
 0
@@ -704,10 +743,10 @@ NIL
 HORIZONTAL
 
 PLOT
-415
-540
-705
-758
+420
+600
+710
+818
 Degree distribution (log-log)
 log(degree)
 log(#of nodes)
@@ -722,10 +761,10 @@ PENS
 "default" 1.0 2 -16777216 true "" "let max-degree max [count friendship-neighbors] of turtles with [age > 12]\n;; for this plot, the axes are logarithmic, so we can't\n;; use \"histogram-from\"; we have to plot the points\n;; ourselves one at a time\nplot-pen-reset  ;; erase what we plotted before\n;; the way we create the network there is never a zero degree node,\n;; so start plotting at degree one\nlet degree 1\nwhile [degree <= max-degree] [\n  let matches turtles with [age > 12 and count friendship-neighbors = degree]\n  if any? matches\n    [ plotxy log degree 10\n             log (count matches) 10 ]\n  set degree degree + 1\n]"
 
 PLOT
-713
-539
-1003
-759
+718
+599
+1008
+819
 Degree distribution
 NIL
 NIL
@@ -740,10 +779,10 @@ PENS
 "default" 1.0 1 -16777216 true "" "let max-degree max [count friendship-neighbors] of turtles with [age > 12]\nplot-pen-reset  ;; erase what we plotted before\nset-plot-x-range 1 (max-degree + 1)  ;; + 1 to make room for the width of the last bar\nhistogram [count friendship-neighbors] of turtles with [age > 12]"
 
 SWITCH
-940
-255
-1072
-288
+10
+220
+142
+253
 show-layout
 show-layout
 1
@@ -751,11 +790,11 @@ show-layout
 -1000
 
 BUTTON
-1025
-655
-1118
-689
-LOCKDOWN!
+840
+260
+935
+291
+LOCKDOWN
 lockdown
 NIL
 1
@@ -765,23 +804,23 @@ NIL
 NIL
 NIL
 NIL
-1
+0
 
 TEXTBOX
-539
-512
-895
-539
+544
+572
+900
+599
 ====== \"Friendship\" network ======
 20
 0.0
 1
 
 MONITOR
-335
-160
-403
-205
+340
+305
+408
+350
 Deaths
 count turtles with [dead?]
 0
@@ -789,10 +828,10 @@ count turtles with [dead?]
 11
 
 SWITCH
-5
-120
-135
-153
+10
+145
+140
+178
 use-network?
 use-network?
 0
@@ -800,10 +839,10 @@ use-network?
 -1000
 
 SWITCH
-225
-85
-410
-118
+920
+295
+1105
+328
 lockdown-at-first-death
 lockdown-at-first-death
 1
@@ -811,20 +850,20 @@ lockdown-at-first-death
 -1000
 
 TEXTBOX
-1078
-267
-1148
-285
-(Very slow!)
+145
+220
+220
+255
+(Very slow Don't use)
 12
 0.0
 1
 
 SLIDER
-5
-45
-185
-78
+10
+65
+155
+98
 incubation-days
 incubation-days
 0
@@ -836,32 +875,32 @@ NIL
 HORIZONTAL
 
 OUTPUT
-425
+405
 10
 1140
-250
+255
 16
 
 SLIDER
-5
-85
-120
-118
+155
+30
+300
+63
 initially-infected
 initially-infected
 0
-50
-30.0
+5
+1.0
+0.1
 1
-1
-NIL
+%
 HORIZONTAL
 
 PLOT
 420
-305
+345
 750
-495
+535
 Infections per agent
 # agents infected
 # agents
@@ -876,10 +915,10 @@ PENS
 "default" 1.0 1 -16777216 true "" "let max-spreading max [spreading-to] of turtles\nplot-pen-reset  ;; erase what we plotted before\nset-plot-x-range 1 (max-spreading + 1)  ;; + 1 to make room for the width of the last bar\nhistogram [spreading-to] of turtles with [spreading-to > 0]"
 
 SLIDER
-425
-260
-599
-293
+420
+295
+594
+328
 pct-with-tracing-app
 pct-with-tracing-app
 0
@@ -891,14 +930,14 @@ pct-with-tracing-app
 HORIZONTAL
 
 SLIDER
-605
-260
-780
-293
+600
+295
+775
+328
 tests-per-100-people
 tests-per-100-people
 0
-50
+5
 0.0
 0.01
 1
@@ -906,11 +945,11 @@ NIL
 HORIZONTAL
 
 BUTTON
-1025
-620
-1105
-653
-Export NW
+10
+255
+132
+288
+Export network
 export-network
 NIL
 1
@@ -923,10 +962,10 @@ NIL
 1
 
 SWITCH
-120
-85
-225
-118
+240
+155
+385
+188
 use-seed?
 use-seed?
 1
@@ -934,10 +973,10 @@ use-seed?
 -1000
 
 SWITCH
-270
-120
-415
-153
+240
+190
+385
+223
 use-existing-nw?
 use-existing-nw?
 0
@@ -945,10 +984,10 @@ use-existing-nw?
 -1000
 
 MONITOR
-220
-160
-332
-209
+225
+305
+337
+354
 Tests available
 tests-remaining
 0
@@ -956,10 +995,10 @@ tests-remaining
 12
 
 MONITOR
-85
-160
-162
-205
+90
+305
+167
+350
 current R0
 mean ([spreading-to] of turtles with [cured-since >= (ticks - 7)])
 4
@@ -968,9 +1007,9 @@ mean ([spreading-to] of turtles with [cured-since >= (ticks - 7)])
 
 PLOT
 755
-305
+345
 1105
-510
+550
 Sources of infection
 NIL
 NIL
@@ -986,17 +1025,75 @@ PENS
 "Friends" 1.0 0 -13791810 true "" "plot table:get counters \"friends\""
 "School" 1.0 0 -2674135 true "" "plot table:get counters \"school\""
 "Strangers" 1.0 0 -955883 true "" "plot table:get counters \"random\""
+"Relations" 1.0 0 -7500403 true "" "plot table:get counters \"relations\""
 
 SWITCH
-135
-120
-270
-153
+780
+295
+915
+328
 schools-open?
 schools-open?
 1
 1
 -1000
+
+TEXTBOX
+10
+10
+385
+30
+Disease Configuration (see also DiseaseConfig.nls)
+14
+0.0
+1
+
+TEXTBOX
+10
+125
+180
+156
+Network configuration
+14
+0.0
+1
+
+TEXTBOX
+280
+130
+440
+161
+Runtime config
+14
+0.0
+1
+
+TEXTBOX
+460
+265
+855
+291
+============| MITIGATIONS |===========
+14
+0.0
+1
+
+BUTTON
+940
+260
+1097
+293
+REMOVE LOCKDOWN
+remove-lockdown
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
 
 @#$#@#$#@
 # covid19 in small communities
