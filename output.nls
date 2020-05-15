@@ -50,6 +50,7 @@ to print-final-summary
   output-print (word "Total deaths: " deaths " - Mortality rate: " precision ((deaths / totalinf) * 100) 2 "%")
   output-print (word "Median age of victims: " median [age] of turtles with [dead?] " " 
     count turtles with [dead? and sex = "M"] " M - " count turtles with [dead? and sex = "F"] " F.")
+  output-print (word "Tests performed: " tests-performed)
   ;output-print (word "R0: " precision r0 2)
   let tot sum table:values counters
   output-type "Infections from household, relations, friends, school, random: "
@@ -64,13 +65,13 @@ to save-output
   [file-open "covid19.csv"]
   [
     file-open "covid19.csv"
-    file-print "run,pctApp,pctTest,lockdown,schools,deaths,propInfected,R0,mortality,days,household,relations,friends,school,random"
+    file-print "run,pctApp,pctTest,lockdown,schools,deaths,propInfected,R0,mortality,days,tests,household,relations,friends,school,random"
   ]
   let tot sum table:values counters
   file-type (
     word behaviorspace-run-number "," pct-with-tracing-app "," tests-per-100-people "," lockdown-at-first-death "," schools-open? "," deaths
     "," (((count turtles with [ cured? ] + count turtles with [ infected? ]) / N-people) * 100)
-    "," r0 "," (precision ((deaths / totalinf) * 100) 2) "," ticks)
+    "," r0 "," (precision ((deaths / totalinf) * 100) 2) "," ticks "," tests-performed)
   ifelse tot > 0 
   [foreach table:values counters [c -> file-type (word "," (precision (c / tot) 2))]]
   [file-type ",0,0,0,0,0"]
@@ -83,12 +84,12 @@ to save-individual
   [file-open "covid19_ind.csv"]
   [
     file-open "covid19_ind.csv"
-    file-print "run,t,pctApp,pctTest,lockdown,schools,infected,recovered,susceptible,dead,hospitalized,isolated"
+    file-print "run,t,pctApp,pctTest,lockdown,schoolsopen,infected,recovered,susceptible,dead,hospitalized,isolated,tests"
   ]
   file-print (word behaviorspace-run-number "," ticks "," pct-with-tracing-app "," tests-per-100-people "," 
     lockdown-at-first-death ","  schools-open? "," count turtles with [infected?] "," count turtles with [cured?] "," 
     count turtles with [not infected? and not cured?] "," count turtles with [dead?] "," in-hospital "," 
-    count turtles with [isolated?]
+    count turtles with [isolated?] "," tests-performed
   ) 
   file-close
 end
