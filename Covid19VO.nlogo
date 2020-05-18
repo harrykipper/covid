@@ -105,7 +105,7 @@ to setup
 
   read-agents
   set N-people count turtles
-  set howmanyrnd round (N-people * 0.0015)
+  set howmanyrnd round (N-people * 0.001) ;; Number of people we meet at random every day. 1 per 1000 residents.
 
   if use-network? [
     ifelse use-existing-nw? = true
@@ -200,11 +200,6 @@ end
 
 ;=====================================================================================
 
-to-report gender-discount
-  if sex = "F" [report 0.8]
-  report 1
-end
-
 to go
   ;if behaviorspace-run-number != 0 and ticks = 0 [if impossible-run [stop]]
 
@@ -232,7 +227,6 @@ to go
     if (symptomatic? = false and days-isolated = 10) [unisolate]
   ]
 
-
   ask turtles with [infected?] [
     set infection-length infection-length + 1
 
@@ -242,7 +236,7 @@ to go
       if severe-symptoms?  [ hospitalize ]
     ]
 
-    if symptomatic? and (should-isolate? self) and infection-length = testing-urgency [
+    if symptomatic? and (should-test? self) and (infection-length = testing-urgency) [
       ifelse tests-remaining > 0
       [get-tested]
       [
@@ -251,14 +245,14 @@ to go
         if visited-relations-this-week != nobody and should-isolate? visited-relations-this-week [
           set needisolating (turtle-set needisolating visited-relations-this-week)]
         ask needisolating [maybe-isolate]
-        if has-app? [ask tracing-neighbors [maybe-isolate]]
+        if has-app? [ask tracing-neighbors with [should-isolate? self] [maybe-isolate]]
       ]
     ]
 
     ;; Progression of the infection
     if severe-symptoms? and infection-length = recovery-time [maybe-die]
     if symptomatic? and (not severe-symptoms?) and infection-length = recovery-time [maybe-worsen]
-    if (not symptomatic?) and infection-length = symptom-time [maybe-show-symptoms]
+    if (not symptomatic?) and (infection-length = symptom-time) [maybe-show-symptoms]
 
     ;; If we get to this stage we are safe.
     if infection-length > recovery-time [recover]
@@ -339,6 +333,11 @@ end
 
 ;; ===============================================================================
 
+to-report gender-discount
+  if sex = "F" [report 0.8]
+  report 1
+end
+
 to-report should-test? [agent]
   let te 0
   ask agent [if not tested-today? and not aware? [set te 1]]
@@ -357,13 +356,14 @@ to maybe-isolate
   if random 100 < tendency [isolate]
 end
 
-;; When the agent is isolating all friendhips and relations are frozen.
+;; When the agent is isolating all friendhips and relations are frozen. If she goes to school, she stops.
 ;; Crucially household links stay in place, as it is assumed that one isolates at home
 ;; Other household members may also have to isolate.
-to isolate ;; turtle procedure
+to isolate
   set isolated? true
   ask my-friendships [set removed? true]
   ask my-relations [set removed? true]
+  ask my-classes [set removed? true]
 end
 
 ;; After unisolating, links return in place
@@ -410,8 +410,11 @@ end
 to infect  ;; turtle procedure
   let spreader self
   let infectious? infection-length >= infectivity-time
-  let random-passersby nobody
 
+  ;; Here we define the unknown people we encounter. This is the 'random' group.
+  ;; If we are isolated or there is a lockdown, this is assumed to be zero.
+  ;; If not, it is assumed to be 1/1000 of the population, 1/3 elderly.
+  let random-passersby nobody
   if isolated? = false and lockdown? = false and (age <= 65 or ticks mod 2 = 0) [
     ifelse use-network?
     [set random-passersby (turtle-set
@@ -426,7 +429,7 @@ to infect  ;; turtle procedure
 
   if use-network? [
 
-    if age <= 67 or ticks mod 2 = 0 [                ;; Old people only meet friends on even days (= go out half of the times younger people do).
+    if age <= 67 or ticks mod 2 = 0 [      ;; Old people only meet friends on even days (= go out half of the times younger people do).
 
       let proportion 10
       if any? my-classes [set proportion 20]  ;; Children who go to school will meet less friends
@@ -435,9 +438,9 @@ to infect  ;; turtle procedure
 
       let all-ppl friendship-neighbors
 
-    ;;; Every day the agent meets a certain fraction of her friends.
-    ;;; If the agent has the contact tracing app, a link is created between she and the friends who also have the app.
-    ;;; If the agent is infective, with probability infection-chance the agent the infects the susceptible friends who she is meeting.
+      ;;; Every day the agent meets a certain fraction of her friends.
+      ;;; If the agent has the contact tracing app, a link is created between she and the friends who also have the app.
+      ;;; If the agent is infective, with probability infection-chance the agent the infects the susceptible friends who she is meeting.
       if count all-ppl > 0 [
         let howmany (1 + random round (count all-ppl / proportion))
         if howmany > 50 [set howmany 50]
@@ -459,8 +462,7 @@ to infect  ;; turtle procedure
       ]
     ]
 
-    ;; Every day an infected person has the chance to infect all their household members.
-    ;; Even if the agent is isolating.
+    ;; Every day an infected person has the chance to infect all their household members. Even if the agent is isolating
     if any? household-neighbors  [
       let hh-infection-chance infection-chance
 
@@ -474,7 +476,7 @@ to infect  ;; turtle procedure
     ]
   ]
 
-  ;; Every week we visit granpa and infect him
+  ;; Every week we visit granpa and risk infecting him
   if (ticks mod 7 = 0 or ticks mod 6 = 0) and any? my-relations [
     ask one-of relation-neighbors [
       if not [removed?] of relation-with spreader [
@@ -484,7 +486,7 @@ to infect  ;; turtle procedure
     ]
   ]
 
-  ;; Infected agents will also infect someone at random.
+  ;; Infected agents will also infect someone at random. The probability is 1/10 of the normal infection-chance
   ;; If we're not using the network this is the sole mode of contact.
   ;; Here, again, if both parties have the app a link is created to keep track of the meeting
   if random-passersby != nobody [
@@ -517,7 +519,7 @@ end
 to lockdown
   if behaviorspace-run-number = 0 [
     output-print " ================================ "
-    output-print (word "Day " ticks ": Now locking down!")
+    output-print (word "Day " ticks ": Locking down!")
   ]
   set lockdown? true
   ask friendships [set removed? true]
@@ -528,7 +530,7 @@ end
 to remove-lockdown
   if behaviorspace-run-number = 0 [
     output-print " ================================ "
-    output-print (word "Day " ticks ": Now removing lockingdown!")
+    output-print (word "Day " ticks ": Removing lockdown!")
   ]
   set lockdown? false
   ask turtles with [not isolated?] [ask my-links [set removed? false]]
@@ -605,7 +607,7 @@ day
 BUTTON
 240
 225
-323
+320
 258
 setup
 setup
@@ -620,9 +622,9 @@ NIL
 1
 
 BUTTON
-325
+320
 225
-390
+385
 258
 go
 go
@@ -789,9 +791,9 @@ PENS
 
 SWITCH
 10
-220
+215
 142
-253
+248
 show-layout
 show-layout
 1
@@ -899,7 +901,7 @@ initially-infected
 initially-infected
 0
 5
-1.0
+0.9
 0.1
 1
 %
@@ -932,7 +934,7 @@ pct-with-tracing-app
 pct-with-tracing-app
 0
 100
-60.0
+0.0
 1
 1
 %
@@ -947,7 +949,7 @@ tests-per-100-people
 tests-per-100-people
 0
 20
-20.0
+4.0
 0.01
 1
 NIL
@@ -994,9 +996,9 @@ use-existing-nw?
 
 MONITOR
 270
-310
+305
 340
-355
+350
 Available
 tests-remaining
 0
@@ -1106,9 +1108,9 @@ NIL
 
 MONITOR
 345
-310
+305
 415
-355
+350
 Performed
 tests-performed
 1
@@ -1117,9 +1119,9 @@ tests-performed
 
 TEXTBOX
 295
-295
+290
 395
-313
+308
 Tests ======
 11
 0.0
@@ -1128,11 +1130,11 @@ Tests ======
 @#$#@#$#@
 # covid19 in small communities
 
-A tentative multi-level network based SIR model of the progression of the COVID19 infection.
+A tentative multi-level network based SEIR model of the progression of the COVID19 infection.
 
 ## A preliminary warning
 
-This is a simulation with random events and plausible but unverified assumptions, please do not take it a a sure forecasting machine, it is a reasoning machine, a sort of very complex “what if” mental experiment.
+This is a simulation with random events and plausible but (partially) unverified assumptions, please do not take it a a sure forecasting machine, it is a reasoning machine, a sort of very complex “what if” mental experiment.
 
 ## The model
 
@@ -1146,47 +1148,65 @@ The population is imported in the model upon setup from the file vo.csv. Agent a
 
 Agents in the model belong to three intertwined networks: 'household', 'relation' and 'friendship' 
 
-A **household** structure is created as follows: married males and females are linked together on the basis of age distance, single people below the age of 26 are assumed to live at home with one or two parents and siblings. Single people above the age of 26 are assumed to live on their own, a certain proportion cohabiting. Links of type 'household' are built among these people.
+A **household** structure is created as follows: married males and females are linked together on the basis of age distance, single people below the age of 28 are assumed to live at home with one or two parents and siblings. Single people above the age of 26 are assumed to live on their own, a certain proportion cohabiting. Links of type 'household' are built among these people.
 
-A **friendship** network is created among all agents > 12 y.o. based on the *preferential attachment* principle, so that a scale-free network is produced. Friendships are skewed towards people of the same age group.
+A **friendship** network is created among all agents > 14 y.o. based on the *preferential attachment* principle, so that a scale-free network is produced. Friendships are skewed towards people of the same age group.
 
-*(TODO*) A 'relation' network links people who are related but don't live in the same household
+A **relation** network links people who are related but don't live in the same household (i.e. grandparents).
 
 ### Infection
 
-The infection is assumed to follow social links. Only people in an infected agent's social network can be infected. When someone becomes infected, after a period of incubation, she starts infecting people 
+The infection is assumed to predominantly follow social links. People in an infected agent's social network can be infected. When someone becomes infected, after a period of incubation, she becomes infective starts infecting others.
 
-The progression of the disease is based on data from China and Italy. Agents have a probability of developing symptoms after incubation, based on their age, another probability of worsening and another of dying. These are at the top of the 'Code' section in Netlogo.
+The progression of the disease is based on data from China and Italy. Agents have a probability of developing symptoms after incubation, based on their age, another probability of worsening and another of dying. These are set up in DiseaseConfig.nls
+
+![Progression of the infection](https://raw.githubusercontent.com/harrykipper/covid/master/infection.png)
 
 ### Lockdown
 
-The model implements lockdown policies based on the response of nearly all European countries. In a lockdown all _friendship_ links are dropped (= no one can be infected through their friends). Crucially, agents are assumed to be segregating at home, therefore household members are still susceptible to the infection.
+The model implements lockdown policies based on the response of nearly all European countries. In a lockdown all friendship links are dropped (= no one can be infected through their friends) and schools are closed. Crucially, agents are assumed to be segregating at home, therefore household members are still somewhat exposed to the infection.
 
-### Contact tracing 
+### Contact tracing
 
-The model also tries to simulate a proposed contact tracing strategy for the "second phase" of epidemic control: an opt-in smartphone app. Upon model initialization a certain proportion of agents are given the "app". If an agent with the app tests positive for COVID19 all other agents who have come into contact with her, and also have the app, are notified and have the option to self-segregate as a precaution.
+The model also simulates a proposed contact tracing strategy for the "second phase" of epidemic control: an opt-in smartphone app. Upon model initialization a certain proportion of agents are given the "app". If an agent with the app tests positive for COVID19 all other agents who have come into contact with her in the previous 10 days, and also have the app, are notified and have the option to self-segregate as a precaution.
+In case tests are unavailable, the app is alerts contacts when an agent is experiencing symptoms, so they have the choice of self isolating.
 
 ## Model configuration
 
 The model can be configured changing the transition probabilities and timings at the beginning of the Code section in Netlogo and the following parameters in Netlogo's interface:
 
+**Disease configuration**
+
 * *infection-chance*  Daily probability of infecting a subset of one infected person's network 
 * *initially-infected* Number of agents infected at simulation day 0
 * *incubation-days* Days before an infected agent becomes infectious and may show symptoms 
-* *average-isolation-tendency* Probability of self-isolating after displaying symptoms      
-* *initial-links-per-age-group* No. of random friendship links within each group upon initialization 
+* *average-isolation-tendency* Probability of self-isolating after displaying symptoms   
+
+**Network related**
+
 * *use-network?* If false contagion happens randomly                          
+* *initial-links-per-age-group* No. of random friendship links within each group upon initialization 
 * *show-layout?* Display the whole social network stricture. **WARNING: VERY SLOW** 
 * *lockdown-at-first-death* Implement a full lockdown upon the first reported death (as happened in Vo' Euganeo) 
-* *pct-with-tracing-app* Percentage of the population carrying the contact-tracing app |
-* *tests-per-100-people* Probability that a symptomatic individual is tested for COVID19
+
+**Mitigtions**
+
+* *pct-with-tracing-app* Percentage of the population carrying the contact-tracing app
+* *tests-per-100-people* Number of tests available per week as proportion of the population
+* *schools-open?* Whether kids go to school each morning
+
+**Runtime config**
+
+* *use-seed* The simulation uses a fixed random seed
+* *use-existing-nw* Use a pre-generated social network instead of creating one at setup (much faster)
 
 ## What to do with this
 
-The model is useful to show the progression of the infection in a small community and appreciate the difference in infections and casualties with and without social distancing and lockdown measures.
-It also shows that, when we assume that the viral transmission runs predominantly through one's social network, the dynamic of the infection is different from that emerging under the assumption of most SEIR models of an equal probability of everyone infecting everyone else.
+The model is useful to show the progression of the infection in a small community and appreciate the difference in infections and casualties with and without social distancing/lockdown measures, and to test the effectiveness of infection mitigation strategies such as contact tracing apps.
 
-The model is easy to adapt to test different levels of infectiousness and different proportions of people becoming symptomatic and severely ill. 
+The model also shows that, when we assume that the viral transmission runs predominantly through one's social network, the dynamic of the infection is different from that emerging under the assumption of most SEIR models of an equal probability of everyone infecting everyone else.
+
+The model is easy to adapt to test different levels of infectiousness and different proportions of people becoming symptomatic and severely ill.
 
 
 ## The Vo' Euganeo case
@@ -1668,7 +1688,7 @@ NetLogo 6.1.1
       <value value="false"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="contact_unseeded" repetitions="50" sequentialRunOrder="false" runMetricsEveryStep="false">
+  <experiment name="contact_unseeded" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
     <enumeratedValueSet variable="show-layout">
@@ -1678,13 +1698,13 @@ NetLogo 6.1.1
       <value value="true"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="infection-chance">
-      <value value="10"/>
+      <value value="4.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="incubation-days">
       <value value="5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initially-infected">
-      <value value="30"/>
+      <value value="1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-links-per-age-group">
       <value value="25"/>
@@ -1699,9 +1719,9 @@ NetLogo 6.1.1
       <value value="0"/>
       <value value="0.6"/>
       <value value="1.6"/>
-      <value value="50"/>
+      <value value="25"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="use-existing-nw">
+    <enumeratedValueSet variable="use-existing-nw?">
       <value value="true"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="use-seed?">
@@ -1714,7 +1734,7 @@ NetLogo 6.1.1
       <value value="false"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="schools-open?">
-      <value value="false"/>
+      <value value="true"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>

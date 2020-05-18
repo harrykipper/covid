@@ -1,5 +1,5 @@
 to export-network
-  file-open "network.csv"
+  file-open "vo_net.csv"
   ask households [
     ask both-ends [;
       file-type (word who ",")
@@ -49,11 +49,11 @@ to create-hh
 end
 
 to create-marriages
-  ask turtles with [sex = "F" and status = 1][
+  ask turtles with [sex = "M" and status = 1][
     let pretendenti turtles with [
-      sex = "M" and
+      sex = "F" and
       status = 1 and
-      not any? my-households with [ltype = 0]
+      count my-households with [ltype = 0] = 0
     ]
     let marito min-one-of pretendenti [abs (age - [age] of myself)]
     create-household-with marito [set ltype 0]
@@ -63,15 +63,14 @@ to create-marriages
     ]
   ]
   
-  let zitelle turtles with [
+  ask turtles with [
     age >= 28 and
     status = 0 and
-    sex = "F"
+    sex = "M"
   ]
-
-  ask zitelle [
+  [
     let pretendenti turtles with [
-      sex = "M" and
+      sex = "F" and
       status = 0 and
       not any? my-households ;with [ltype = 0]
     ]
@@ -91,7 +90,7 @@ to attach-children
     let thekid self
     ask min-one-of turtles with [
       status != 0 and
-      sex = "M" and
+      sex = "F" and
       age <= age-interval-max and age >= age-interval-min and count my-households <= 4
     ][count my-households]
     [
@@ -128,7 +127,18 @@ to create-friendships
 end
 
 to create-schools
-  ask turtles with [age >= 6 and age < 18] [create-classes-with other turtles with [age = [age] of myself]]
+  foreach [6 7 8 9 10 11 12 13 14 15 16 17][a ->
+    let thesekids turtles with [age = a]
+    ifelse count thesekids > 30 [
+      let howManyClasses ceiling (count thesekids / 30)
+      let kidsperclass (count thesekids / howManyClasses)
+      repeat howManyClasses [
+        let thisclass up-to-n-of kidsperclass thesekids with [count my-classes = 0]
+        ask thisclass [create-classes-with other thisclass]
+      ]
+    ]
+    [ask turtles with [age = a and count my-classes = 0] [create-classes-with other turtles with [age = a and count my-classes = 0]]]
+  ]
 end
 
 ;; make the initial network of initial-links-per-age-group edges per age group
