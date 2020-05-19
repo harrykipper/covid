@@ -18,7 +18,7 @@ A **friendship** network is created among all agents > 12 y.o. based on the *pre
 
 A **relation** network links people who are related but don't live in the same household (i.e. grandparents)
 
-A **classroom** network links children between 6-17 years of age in groups of maximum 30.
+A **classroom** network links children between 6-17 years of age in groups of maximum 30 children of the same age.
 
 ### Infection
 
