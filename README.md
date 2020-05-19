@@ -10,7 +10,7 @@ The population of Vo' Euganeo (Padua, Italy - 3300 residents) is imported in the
 
 ### Networks
 
-Agents in the model belong to three intertwined networks: 'household', 'relation' and 'friendship' 
+Agents in the model belong to three intertwined networks: 'household', 'relation' and 'friendship'. Children between 6-17 y.o. also belong to a 'classroom' network
 
 A **household** structure is created as follows: married males and females are linked together on the basis of age distance, single people below the age of 26 are assumed to live at home with one or two parents and siblings. Single people above the age of 26 are assumed to live on their own, a certain proportion cohabiting. Links of type 'household' are built among these people.
 
