@@ -60,6 +60,9 @@ to assign-tendency
   set prob-symptoms ((probability-of-showing-symptoms age) * gender-discount)
   set symptom-time round random-gamma incubation-days 0.95   ;5.8 0.95
   if recovery-time < symptom-time [set recovery-time symptom-time + 1]
+  
+  ;; The moment someone deteriorates: minimum bw (7 to 12) and recovery time.
+  set worsening-time min (list (7 + random 5) recovery-time)
 
   set infectivity-time max (list 1 (symptom-time - random 3))  ;; Apparently people are infectious up to 3 (wasn't it one?) days before showing symptoms
   

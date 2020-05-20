@@ -36,6 +36,9 @@ globals
   counters             ;; Table containing various information
   howmanyrnd           ;; Number of random people we meet
   howmanyelder         ;; Number of random people (> 67 y.o.) we meet
+
+  high-prob-isolating  ;;
+  low-prob-isolating
 ]
 
 turtles-own
@@ -58,7 +61,9 @@ turtles-own
   infection-length     ;; How long the person has been infected.
   recovery-time        ;; Time (in days) it takes before the person has a chance to recover from the infection
   symptom-time         ;; Time (in days) it takes before the person shows symptoms
+  worsening-time       ;; Time (in days) it takes before a symptomatic agent's disease may become severe and require hospitalization
   infectivity-time     ;; Time (in days) it takes before an infected person becomes infectious
+  chance-of-infecting  ;; Probability that the person (if infective) will infect someone he comes close with
   cured-since          ;; Day the person was cured
 
   prob-symptoms        ;; Probability that the person is symptomatic
@@ -70,12 +75,12 @@ turtles-own
   has-app?             ;; If true the agent carries the contact-tracing app
   tested-today?        ;; The agent
   aware?
-  visited-relations-this-week    ; Who have I seen this week?
 ]
 
 links-own [mean-age removed?]
 households-own [ltype]  ; ltype 0 is a spouse; ltype 1 is offspring/sibling
 tracings-own [day]
+relations-own [visited?]   ; If the relative has been visited this week
 
 ;; ===========================================================================
 ;;;
@@ -102,12 +107,11 @@ to setup
   ;]
 
   set-default-shape turtles "circle"
-  ifelse pct-with-tracing-app > 0 [set contact-tracing true][set contact-tracing false]
 
   read-agents
   set N-people count turtles
-  set howmanyrnd round (count turtles with [age <= 67] * 0.001 * 0.66) ;; Number of people we meet at random every day. 1 per 1000 residents.
-  set howmanyelder round (count turtles with [age > 67] * 0.001 * 0.33)
+
+  set-initial-variables
 
   if use-network? [
     ifelse use-existing-nw? = true
@@ -129,20 +133,35 @@ to setup
     ]
 
     ask links [set removed? false]
+    ask relations [set visited? false]
 
     if show-layout [
       resize-nodes
       repeat 50 [layout]
     ]
   ]
-  set counters table:from-list (list ["household" 0]["relations" 0]["friends" 0]["school" 0]["random" 0])
-  ;set populations table:from-list (list ["susceptible" 0]["infected" 0]["recovered" 0]["dead" 0])
 
   reset-ticks
 
   infect-initial-agents
+
   set s0 count turtles with [susceptible?]
   if behaviorspace-run-number = 0 [output-print (word "Infected agents: " [who] of turtles with [infected?])]
+
+end
+
+to set-initial-variables
+  ;; Number of people we meet at random every day. 1 per 1000 young residents, 0.6 per 1000 elderly resindent.
+  set howmanyrnd round (count turtles with [age <= 67] * 0.001)
+  set howmanyelder round (count turtles with [age > 67] * 0.00066)
+
+  ifelse pct-with-tracing-app > 0 [set contact-tracing true][set contact-tracing false]
+
+  set high-prob-isolating ["symptomatic-individual" "positive-individual" "relative-of-symptomatic" "relative-of-positive"]
+  set low-prob-isolating ["relation-of-symptomatic" "relation-of-positive" "app-contact-of-symptomatic" "app-contact-of-positive"]
+
+  set counters table:from-list (list ["household" 0]["relations" 0]["friends" 0]["school" 0]["random" 0])
+  ;set populations table:from-list (list ["susceptible" 0]["infected" 0]["recovered" 0]["dead" 0])
 
   set tests-per-day round ((tests-per-100-people / 100) * N-People / 7)
   set tests-remaining tests-per-day
@@ -220,7 +239,6 @@ to go
   set tests-remaining tests-remaining + tests-per-day
 
   ask turtles [set tested-today? false]
-  if ticks mod 7 = 0 [ask turtles [set visited-relations-this-week nobody]]
 
   ; The contact tracing app retains contacts for 10 days
   if contact-tracing [ask tracings with [day < (ticks - 10)][die]]
@@ -232,6 +250,10 @@ to go
 
   ask turtles with [infected?] [
     set infection-length infection-length + 1
+    if infection-length = infectivity-time [set chance-of-infecting infection-chance]
+
+    ; if we're not symptomatic after 8 days our ability to infect starts declining
+    if (not symptomatic?) and (infection-length > 8) [set chance-of-infecting chance-of-infecting * 0.95]
 
     if not hospitalized? [
       ;; If you're in hospital you don't infect anyone.
@@ -240,22 +262,17 @@ to go
       if severe-symptoms?  [ hospitalize ]
     ]
 
+    if ticks mod 7 = 0 [ask relations [set visited? false]]
+
     if symptomatic? and (should-test? self) and (infection-length = testing-urgency) [
       ifelse tests-remaining > 0
       [get-tested]
-      [
-        maybe-isolate        ;; FIXED PROBABILITY FOR THE FAMILY HERE!!
-        let needisolating household-neighbors with [should-isolate? self]
-        if visited-relations-this-week != nobody and should-isolate? visited-relations-this-week [
-          set needisolating (turtle-set needisolating visited-relations-this-week)]
-        ask needisolating [maybe-isolate]
-        if has-app? [ask tracing-neighbors with [should-isolate? self] [maybe-isolate]]
-      ]
+      [maybe-isolate "symptomatic-individual"]
     ]
 
     ;; Progression of the infection
     if severe-symptoms? and infection-length = recovery-time [maybe-die]
-    if symptomatic? and (not severe-symptoms?) and infection-length = recovery-time [maybe-worsen]
+    if symptomatic? and (not severe-symptoms?) and infection-length = worsening-time [maybe-worsen]
     if (not symptomatic?) and (infection-length = symptom-time) [maybe-show-symptoms]
 
     ;; If we get to this stage we are safe.
@@ -359,10 +376,23 @@ to-report should-isolate? [agent]
   ifelse is = 1 [report true][report false]
 end
 
-to maybe-isolate
+to maybe-isolate [origin]
   let tendency isolation-tendency
-  if not symptomatic? [set tendency tendency * 0.7]
-  if random 100 < tendency [isolate]
+  if member? origin low-prob-isolating and not symptomatic? [set tendency tendency * 0.7]
+
+  if random 100 < tendency [
+
+    isolate
+
+    ;; When someone in a household is isolating with symptoms, everybody else also should. Fixed probability here.
+    if origin = "symptomatic-individual" [
+      ask household-neighbors with [should-isolate? self][maybe-isolate "relative-of-symptomatic"]
+      let pplvisited my-relations with [visited?]
+      if any? pplvisited [ask pplvisited [ask other-end [if should-isolate? self [maybe-isolate "relation-of-symptomatic"]]]]
+      if has-app? [ask tracing-neighbors with [should-isolate? self] [maybe-isolate "app-contact-of-symptomatic"]]
+    ]
+
+  ]
 end
 
 ;; When the agent is isolating all friendhips and relations are frozen. If she goes to school, she stops.
@@ -396,7 +426,7 @@ to hospitalize ;; turtle procedure
   ask tracing-neighbors with [should-test? self] [
     ifelse tests-remaining > 0
     [get-tested]
-    [maybe-isolate]
+    [maybe-isolate "app-contact-of-positive"]
   ]
 
   ask my-links [set removed? true]
@@ -418,13 +448,12 @@ end
 
 to infect  ;; turtle procedure
   let spreader self
-  let infectious? infection-length >= infectivity-time
 
-  ;; Here we define the unknown people we encounter. This is the 'random' group.
+  ;; Here we determine who are the unknown people we encounter. This is the 'random' group.
   ;; If we are isolated or there is a lockdown, this is assumed to be zero.
-  ;; If not, it is assumed to be 1/1000 of the population, 1/3 elderly.
+  ;; Elderly people are assumed to go out half as much as everyone else
   let random-passersby nobody
-  if isolated? = false and lockdown? = false and (age <= 65 or ticks mod 2 = 0) [
+  if isolated? = false and lockdown? = false and (age <= 67 or ticks mod 2 = 0) [
     ifelse use-network?
     [set random-passersby (turtle-set
       n-of random howmanyrnd other turtles with [age <= 67]
@@ -456,7 +485,7 @@ to infect  ;; turtle procedure
         ask n-of howmany all-ppl [
           if (not infected?) and (not aware?) and [removed?] of friendship-with spreader = false [
             if has-app? and [has-app?] of spreader [add-contact spreader]
-            if infectious? and (not cured?) and random 100 < (infection-chance * age-discount) [newinfection spreader "friends"]]
+            if (not cured?) and random 100 < (chance-of-infecting * age-discount) [newinfection spreader "friends"]]
         ]
       ]
     ]
@@ -466,21 +495,21 @@ to infect  ;; turtle procedure
       ask class-neighbors [
         if (not infected?) and (not aware?) and (not [removed?] of class-with spreader) [
           if has-app? and [has-app?] of spreader [add-contact spreader]
-          if infectious? and (not cured?) and random 100 < (infection-chance * age-discount) [newinfection spreader "school"]
+          if (not cured?) and random 100 < (chance-of-infecting * age-discount) [newinfection spreader "school"]
         ]
       ]
     ]
 
     ;; Every day an infected person risks infecting all other household members. Even if the agent is isolating
     if any? household-neighbors  [
-      let hh-infection-chance infection-chance
+      let hh-infection-chance chance-of-infecting
 
       ;; if the person is isolating the people in the household will try to stay away...
       if isolated? [set hh-infection-chance infection-chance * 0.7]
 
       ask household-neighbors [
         if (not infected?) and (not cured?) and (not [removed?] of household-with spreader) and
-        infectious? and random 100 < (hh-infection-chance * age-discount) [newinfection spreader "household"]
+        random 100 < (hh-infection-chance * age-discount) [newinfection spreader "household"]
       ]
     ]
   ]
@@ -489,8 +518,8 @@ to infect  ;; turtle procedure
   if (ticks mod 7 = 0 or ticks mod 6 = 0) and any? my-relations [
     ask one-of relation-neighbors [
       if not [removed?] of relation-with spreader [
-        ask spreader [set visited-relations-this-week (turtle-set myself)]
-        if (not cured?) and infectious? and random 100 < (infection-chance * age-discount) [newinfection spreader "relations"]
+        ask relation-with spreader [set visited? true]
+        if (not cured?) and random 100 < (chance-of-infecting * age-discount) [newinfection spreader "relations"]
       ]
     ]
   ]
@@ -502,7 +531,7 @@ to infect  ;; turtle procedure
     ask random-passersby [
       if (not infected?) and (not aware?) and (not isolated?) [
         if has-app? and [has-app?] of spreader [add-contact spreader]
-        if infectious? and (not cured?) and random 100 < ((infection-chance * age-discount) * 0.1) [newinfection spreader "random"]
+        if (not cured?) and random 100 < ((chance-of-infecting * age-discount) * 0.1) [newinfection spreader "random"]
       ]
     ]
   ]
@@ -518,6 +547,7 @@ to newinfection [spreader origin]
   set severe-symptoms? false
   set aware? false
   set nb-infected (nb-infected + 1)
+  set chance-of-infecting 0
   set infected-by spreader
   ask spreader [set spreading-to spreading-to + 1]
   table:put counters origin (table:get counters origin + 1)
@@ -553,26 +583,30 @@ end
 
 to get-tested
   if not tested-today? [  ;; I'm only doing this because there are some who for some reason test more times on the same day and I can't catch them...
-                          ;show (word "  day " ticks ": tested-today?: " tested-today? " - aware?: " aware? "  - now getting tested")
+    ;show (word "  day " ticks ": tested-today?: " tested-today? " - aware?: " aware? "  - now getting tested")
     set tested-today? true
     set tests-remaining tests-remaining - 1
     set tests-performed tests-performed + 1
     ; if tests-remaining = 0 and behaviorspace-run-number = 0 [output-print (word "Day " ticks ": tests finished")]
+
+    ;; If someone is found to be positive they:
+    ;; 1. Isolate, 2. Their household decides whether to isolate, 3. The relations visited this week also decide whether to isolate
+    ;; 4. If they use the app, the contacts are notified and have the option of getting tested or isolate.
     if infected? [
       set aware? true
       isolate
-      let needtesting household-neighbors with [tested-today? = false and aware? = false]
-      if visited-relations-this-week != nobody and should-test? visited-relations-this-week [
-        set needtesting (turtle-set needtesting visited-relations-this-week)
-      ]
-      ask needtesting [ if not isolated? [maybe-isolate ]]
-      ;ifelse tests-remaining > 0 [get-tested] [ if not isolated? [maybe-isolate ]] ;; We don't test relatives anymore. They can only isolate.
-    ]
-    if has-app? [
-      ask tracing-neighbors with [should-test? self] [
-        ifelse tests-remaining > 0
-        [ get-tested ]
-        [ if not isolated? [maybe-isolate ]]
+      ask household-neighbors with [should-test? self]
+      [if not isolated? [maybe-isolate "relative-of-positive"]]
+
+      let pplvisited my-relations with [visited?]
+      if any? pplvisited [ask pplvisited [ask other-end [if should-isolate? self [maybe-isolate "relation-of-positive"]]]]
+
+      if has-app? [
+        ask tracing-neighbors with [should-test? self] [
+          ifelse tests-remaining > 0
+          [ get-tested ]
+          [ if not isolated? [maybe-isolate "app-contact-of-positive"]]
+        ]
       ]
     ]
   ]
