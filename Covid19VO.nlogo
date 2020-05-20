@@ -448,6 +448,7 @@ end
 
 to infect  ;; turtle procedure
   let spreader self
+  let chance chance-of-infecting
 
   ;; Here we determine who are the unknown people we encounter. This is the 'random' group.
   ;; If we are isolated or there is a lockdown, this is assumed to be zero.
@@ -485,7 +486,7 @@ to infect  ;; turtle procedure
         ask n-of howmany all-ppl [
           if (not infected?) and (not aware?) and [removed?] of friendship-with spreader = false [
             if has-app? and [has-app?] of spreader [add-contact spreader]
-            if (not cured?) and random 100 < (chance-of-infecting * age-discount) [newinfection spreader "friends"]]
+            if (not cured?) and random 100 < (chance * age-discount) [newinfection spreader "friends"]]
         ]
       ]
     ]
@@ -495,14 +496,14 @@ to infect  ;; turtle procedure
       ask class-neighbors [
         if (not infected?) and (not aware?) and (not [removed?] of class-with spreader) [
           if has-app? and [has-app?] of spreader [add-contact spreader]
-          if (not cured?) and random 100 < (chance-of-infecting * age-discount) [newinfection spreader "school"]
+          if (not cured?) and random 100 < (chance * age-discount) [newinfection spreader "school"]
         ]
       ]
     ]
 
     ;; Every day an infected person risks infecting all other household members. Even if the agent is isolating
     if any? household-neighbors  [
-      let hh-infection-chance chance-of-infecting
+      let hh-infection-chance chance
 
       ;; if the person is isolating the people in the household will try to stay away...
       if isolated? [set hh-infection-chance infection-chance * 0.7]
@@ -519,7 +520,7 @@ to infect  ;; turtle procedure
     ask one-of relation-neighbors [
       if not [removed?] of relation-with spreader [
         ask relation-with spreader [set visited? true]
-        if (not cured?) and random 100 < (chance-of-infecting * age-discount) [newinfection spreader "relations"]
+        if (not cured?) and random 100 < (chance * age-discount) [newinfection spreader "relations"]
       ]
     ]
   ]
@@ -531,7 +532,7 @@ to infect  ;; turtle procedure
     ask random-passersby [
       if (not infected?) and (not aware?) and (not isolated?) [
         if has-app? and [has-app?] of spreader [add-contact spreader]
-        if (not cured?) and random 100 < ((chance-of-infecting * age-discount) * 0.1) [newinfection spreader "random"]
+        if (not cured?) and random 100 < ((chance * age-discount) * 0.1) [newinfection spreader "random"]
       ]
     ]
   ]
