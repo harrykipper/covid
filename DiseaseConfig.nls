@@ -56,6 +56,8 @@ end
 
 to assign-tendency 
   set isolation-tendency random-normal average-isolation-tendency (average-isolation-tendency / 4)
+  if isolation-tendency > 100 [ set isolation-tendency 100 ]
+  if isolation-tendency < 0 [ set isolation-tendency 0 ]
   set recovery-time round (random-normal (average-recovery-time age) 1)
   set prob-symptoms ((probability-of-showing-symptoms age) * gender-discount)
   set symptom-time round random-gamma incubation-days 0.95   ;5.8 0.95
@@ -68,6 +70,5 @@ to assign-tendency
   
   set testing-urgency 1 + random 3 
 
-  if isolation-tendency > 100 [ set isolation-tendency 90 ]
-  if isolation-tendency < 0 [ set isolation-tendency 10 ]
+ 
 end

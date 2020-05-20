@@ -760,7 +760,7 @@ infection-chance
 infection-chance
 0
 50
-10.4
+4.5
 0.1
 1
 %
