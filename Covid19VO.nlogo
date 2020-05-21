@@ -152,7 +152,7 @@ end
 
 to set-initial-variables
   ;; Number of people we meet at random every day: 1 per 1000 people. Elderly goes out 1/2 less than other
-  let nmMeet 0.001 * count turtles
+  let nmMeet 10;;0.001 * count turtles
   let propelderly  0.5 * count turtles with [age > 67]/ count turtles
   set howmanyelder round(nmMeet * propelderly)
   set howmanyrnd nmMeet - howmanyelder
@@ -253,10 +253,11 @@ to go
 
   ask turtles with [infected?] [
     set infection-length infection-length + 1
+    ;;this marks presymtomatic infection starts
     if infection-length = infectivity-time [set chance-of-infecting infection-chance]
 
     ; if we're not symptomatic after 8 days our ability to infect starts declining
-    if (not symptomatic?) and (infection-length > 3)  [set chance-of-infecting chance-of-infecting * 0.9]   ;;changed here that it starts declinning sooner by 10% each additional day
+    if (not symptomatic?) and (infection-length - infectivity-time > 3)  [set chance-of-infecting chance-of-infecting * 0.9]   ;;changed here that it starts declinning by 10% daily after 3 days from being infectious
 
     if not hospitalized? [
       ;; If you're in hospital you don't infect anyone.
@@ -265,7 +266,7 @@ to go
       if severe-symptoms?  [ hospitalize ]
     ]
 
-    if ticks mod 7 = 0 [ask relations [set visited? false]]  ;;can you explain me why you did the vsits in this way?
+    if ticks mod 7 = 0 [ask relations [set visited? false]]  ;;can you explain me why you did the vIsits in this way?
 
     if symptomatic? and (should-test? self) and (infection-length = testing-urgency) [
       ifelse tests-remaining > 0
@@ -760,7 +761,7 @@ infection-chance
 infection-chance
 0
 50
-10.4
+5.0
 0.1
 1
 %
