@@ -12,6 +12,7 @@ globals
 [
   rnd                  ;; Random seed
   N-people
+  average-isolation-tendency
 
   tests-remaining      ;; Counters for tests
   tests-per-day
@@ -39,6 +40,8 @@ globals
 
   high-prob-isolating  ;;
   low-prob-isolating
+
+  compliance-adjustment
 ]
 
 turtles-own
@@ -106,6 +109,9 @@ to setup
   ;]
 
   set-default-shape turtles "circle"
+  set average-isolation-tendency 80
+
+  ifelse app-compliance = "High" [set compliance-adjustment 0.9][set compliance-adjustment 0.7]
 
   read-agents
   set N-people count turtles
@@ -138,7 +144,6 @@ to setup
     repeat 50 [layout]
   ]
 
-
   reset-ticks
 
   infect-initial-agents
@@ -154,7 +159,6 @@ to set-initial-variables
   let propelderly  0.5 * count turtles with [age > 67]/ count turtles
   set howmanyelder round(nmMeet * propelderly)
   set howmanyrnd nmMeet - howmanyelder
-
 
   ifelse pct-with-tracing-app > 0 [set contact-tracing true][set contact-tracing false]
 
@@ -377,7 +381,7 @@ end
 
 to maybe-isolate [origin]
   let tendency isolation-tendency
-  if member? origin low-prob-isolating and not symptomatic? [set tendency tendency * 0.7]
+  if member? origin low-prob-isolating and not symptomatic? [set tendency tendency * compliance-adjustment]
 
   if random 100 < tendency [
 
@@ -460,11 +464,7 @@ to infect  ;; turtle procedure
     set random-passersby (turtle-set
       n-of random-poisson howmanyrnd other turtles with [age <= 67 and (not aware?) and (not isolated?)]
       n-of random-poisson howmanyelder other turtles with [age > 67 and (not aware?) and (not isolated?)])
-
-
   ]
-
-
 
   if age <= 67 or 0.5 > random-float 1 [    ;; Old people only meet friends on even days (= go out half of the times younger people do).
 
@@ -606,8 +606,6 @@ to get-tested
         ]
       ]
 
-
-
       if has-app? [
         ask tracing-neighbors with [should-test? self] [
           ifelse tests-remaining > 0
@@ -655,10 +653,10 @@ day
 30.0
 
 BUTTON
-240
-190
-320
-223
+245
+250
+325
+283
 setup
 setup
 NIL
@@ -672,10 +670,10 @@ NIL
 1
 
 BUTTON
-320
-190
-385
-223
+325
+250
+390
+283
 go
 go
 T
@@ -687,21 +685,6 @@ NIL
 NIL
 NIL
 0
-
-SLIDER
-155
-65
-355
-98
-average-isolation-tendency
-average-isolation-tendency
-0
-100
-70.0
-5
-1
-NIL
-HORIZONTAL
 
 PLOT
 5
@@ -1013,10 +996,10 @@ NIL
 1
 
 SWITCH
-240
-155
-385
-188
+245
+215
+390
+248
 use-seed?
 use-seed?
 1
@@ -1110,10 +1093,10 @@ Network configuration
 1
 
 TEXTBOX
-280
-130
-440
-161
+285
+190
+445
+221
 Runtime config
 14
 0.0
@@ -1184,6 +1167,26 @@ false
 "" ""
 PENS
 "default" 1.0 1 -16777216 false "" "let maxage max [age] of turtles\nplot-pen-reset  ;; erase what we plotted before\nset-plot-x-range 1 (maxage + 1)  ;; + 1 to make room for the width of the last bar\nhistogram [age] of turtles"
+
+TEXTBOX
+300
+95
+395
+113
+Behaviour config
+12
+0.0
+1
+
+CHOOSER
+255
+115
+393
+160
+app-compliance
+app-compliance
+"High" "Low"
+0
 
 @#$#@#$#@
 # covid19 in small communities
