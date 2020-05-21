@@ -252,7 +252,7 @@ to go
   ]
 
   clear-count     ; this is to compute R0 the epiDEM's way
-  ;;to initial the app onece 5% of the population are cured
+  ;;to initial the app onece 5% of the population a
   if count turtles with [cured?]/ count turtles > 0.05 and app-initalize? = false
       [initial-app
        set app-initalize? true]
