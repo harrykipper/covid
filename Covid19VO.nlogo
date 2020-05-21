@@ -112,32 +112,32 @@ to setup
 
   set-initial-variables
 
-  if use-network? [
-    ifelse use-existing-nw? = true
-    [
-      import-network
-      if schools-open? [create-schools]
-    ]
-    [
-      create-hh
-      ask turtles with [age >= 65] [create-relations]
 
-      make-initial-links
-      if schools-open? [create-schools]
-      create-friendships
-    ]
-    ask turtles [
-      assign-tendency
-      reset-variables
-    ]
-
-    ask links [set removed? false]
-
-    if show-layout [
-      resize-nodes
-      repeat 50 [layout]
-    ]
+  ifelse use-existing-nw? = true
+  [
+    import-network
+    if schools-open? [create-schools]
   ]
+  [
+    create-hh
+    ask turtles with [age >= 65] [create-relations]
+
+    make-initial-links
+    if schools-open? [create-schools]
+    create-friendships
+  ]
+  ask turtles [
+    assign-tendency
+    reset-variables
+  ]
+
+  ask links [set removed? false]
+
+  if show-layout [
+    resize-nodes
+    repeat 50 [layout]
+  ]
+
 
   reset-ticks
 
@@ -198,7 +198,7 @@ end
 
 to read-agents
   let row 0
-  foreach csv:from-file "vo.csv" [ag ->
+  foreach csv:from-file "lizzanello.csv" [ag ->
     let i 1
     if row > 0 [
       while [i < length ag][
@@ -456,65 +456,61 @@ to infect  ;; turtle procedure
   let random-passersby nobody
 
   if isolated? = false and lockdown? = false and (age <= 67 or 0.5 > random-float 1) [
-    ifelse use-network?[
-      set random-passersby (turtle-set
+
+    set random-passersby (turtle-set
       n-of random-poisson howmanyrnd other turtles with [age <= 67 and (not aware?) and (not isolated?)]
       n-of random-poisson howmanyelder other turtles with [age > 67 and (not aware?) and (not isolated?)])
-     ]
-     [
-      set random-passersby (turtle-set
-      n-of random-poisson (howmanyrnd * 10) other turtles with [age <= 67 and (not aware?) and (not isolated?)]
-      n-of random-poisson (howmanyelder * 10) other turtles with [age > 67 and (not aware?) and (not isolated?)])
-     ]
+
+
   ]
 
-  if use-network? [
 
-    if age <= 67 or 0.5 > random-float 1 [    ;; Old people only meet friends on even days (= go out half of the times younger people do).
 
-      let proportion 10
-      if any? my-classes [set proportion 20]  ;; Children who go to school will meet less friends
-      ;let young-ppl friendship-neighbors with [age < 65]
-      ;let old-ppl friendship-neighbors with [age >= 65]
+  if age <= 67 or 0.5 > random-float 1 [    ;; Old people only meet friends on even days (= go out half of the times younger people do).
 
-      let all-ppl friendship-neighbors
+    let proportion 10
+    if any? my-classes [set proportion 20]  ;; Children who go to school will meet less friends
+                                            ;let young-ppl friendship-neighbors with [age < 65]
+                                            ;let old-ppl friendship-neighbors with [age >= 65]
 
-      ;;; Every day the agent meets a certain fraction of her friends.
-      ;;; If the agent has the contact tracing app, a link is created between she and the friends who also have the app.
-      ;;; If the agent is infective, with probability infection-chance, he infects the susceptible friends who he's is meeting.
-      if count all-ppl > 0 [
-        let howmany min( list (1 + random round (count all-ppl / proportion)) 50)
-        ask n-of howmany all-ppl [
-          if (not infected?) and (not aware?) and [removed?] of friendship-with spreader = false [
-            if has-app? and [has-app?] of spreader [add-contact spreader]
-            if (not cured?) and random 100 < (chance * age-discount) [newinfection spreader "friends"]]
-        ]
-      ]
-    ]
+    let all-ppl friendship-neighbors
 
-    ;; Schoolchildren meet their schoolmates every SCHOOLDAY, and can infect them.
-    if schools-open? and any? class-neighbors and (ticks mod 7 != 0) and (ticks mod 6 != 0) [
-      ask class-neighbors [
-        if (not infected?) and (not aware?) and (not [removed?] of class-with spreader) [
+    ;;; Every day the agent meets a certain fraction of her friends.
+    ;;; If the agent has the contact tracing app, a link is created between she and the friends who also have the app.
+    ;;; If the agent is infective, with probability infection-chance, he infects the susceptible friends who he's is meeting.
+    if count all-ppl > 0 [
+      let howmany min( list (1 + random round (count all-ppl / proportion)) 50)
+      ask n-of howmany all-ppl [
+        if (not infected?) and (not aware?) and [removed?] of friendship-with spreader = false [
           if has-app? and [has-app?] of spreader [add-contact spreader]
-          if (not cured?) and random 100 < (chance * age-discount) [newinfection spreader "school"]
-        ]
-      ]
-    ]
-
-    ;; Every day an infected person risks infecting all other household members. Even if the agent is isolating
-    if any? household-neighbors  [
-      let hh-infection-chance chance
-
-      ;; if the person is isolating the people in the household will try to stay away...
-      if isolated? [set hh-infection-chance infection-chance * 0.7]
-
-      ask household-neighbors [
-        if (not infected?) and (not cured?) and (not [removed?] of household-with spreader) and
-        random 100 < (hh-infection-chance * age-discount) [newinfection spreader "household"]
+          if (not cured?) and random 100 < (chance * age-discount) [newinfection spreader "friends"]]
       ]
     ]
   ]
+
+  ;; Schoolchildren meet their schoolmates every SCHOOLDAY, and can infect them.
+  if schools-open? and any? class-neighbors and (ticks mod 7 != 0) and (ticks mod 6 != 0) [
+    ask class-neighbors [
+      if (not infected?) and (not aware?) and (not [removed?] of class-with spreader) [
+        if has-app? and [has-app?] of spreader [add-contact spreader]
+        if (not cured?) and random 100 < (chance * age-discount) [newinfection spreader "school"]
+      ]
+    ]
+  ]
+
+  ;; Every day an infected person risks infecting all other household members. Even if the agent is isolating
+  if any? household-neighbors  [
+    let hh-infection-chance chance
+
+    ;; if the person is isolating the people in the household will try to stay away...
+    if isolated? [set hh-infection-chance infection-chance * 0.7]
+
+    ask household-neighbors [
+      if (not infected?) and (not cured?) and (not [removed?] of household-with spreader) and
+      random 100 < (hh-infection-chance * age-discount) [newinfection spreader "household"]
+    ]
+  ]
+
 
   ;; Every week we visit granpa twice and risk infecting him
   if (2 / 7) > random-float 1  and any? my-relations [
@@ -660,9 +656,9 @@ day
 
 BUTTON
 240
-225
+190
 320
-258
+223
 setup
 setup
 NIL
@@ -677,9 +673,9 @@ NIL
 
 BUTTON
 320
-225
+190
 385
-258
+223
 go
 go
 T
@@ -894,17 +890,6 @@ count turtles with [dead?]
 11
 
 SWITCH
-10
-145
-140
-178
-use-network?
-use-network?
-0
-1
--1000
-
-SWITCH
 920
 295
 1105
@@ -1039,10 +1024,10 @@ use-seed?
 -1000
 
 SWITCH
-240
-190
-385
-223
+10
+145
+155
+178
 use-existing-nw?
 use-existing-nw?
 0
@@ -1100,7 +1085,7 @@ SWITCH
 328
 schools-open?
 schools-open?
-0
+1
 1
 -1000
 
@@ -1198,7 +1183,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 0 -16777216 true "" "histogram [age] of turtles"
+"default" 1.0 1 -16777216 false "" "let maxage max [age] of turtles\nplot-pen-reset  ;; erase what we plotted before\nset-plot-x-range 1 (maxage + 1)  ;; + 1 to make room for the width of the last bar\nhistogram [age] of turtles"
 
 @#$#@#$#@
 # covid19 in small communities
