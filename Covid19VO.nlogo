@@ -151,9 +151,12 @@ to setup
 end
 
 to set-initial-variables
-  ;; Number of people we meet at random every day. 1 per 1000 young residents, 0.6 per 1000 elderly resindent.
-  set howmanyrnd round (count turtles with [age <= 67] * 0.001)
-  set howmanyelder round (count turtles with [age > 67] * 0.00066)
+  ;; Number of people we meet at random every day: 1 per 1000 people. Elderly goes out 1/2 less than other
+  let nmMeet 10;;0.001 * count turtles
+  let propelderly  0.5 * count turtles with [age > 67]/ count turtles
+  set howmanyelder round(nmMeet * propelderly)
+  set howmanyrnd nmMeet - howmanyelder
+
 
   ifelse pct-with-tracing-app > 0 [set contact-tracing true][set contact-tracing false]
 
@@ -250,10 +253,11 @@ to go
 
   ask turtles with [infected?] [
     set infection-length infection-length + 1
+    ;;this marks presymtomatic infection starts
     if infection-length = infectivity-time [set chance-of-infecting infection-chance]
 
     ; if we're not symptomatic after 8 days our ability to infect starts declining
-    if (not symptomatic?) and (infection-length > 8) [set chance-of-infecting chance-of-infecting * 0.95]
+    if (not symptomatic?) and (infection-length - infectivity-time > 3)  [set chance-of-infecting chance-of-infecting * 0.9]   ;;changed here that it starts declinning by 10% daily after 3 days from being infectious
 
     if not hospitalized? [
       ;; If you're in hospital you don't infect anyone.
@@ -262,7 +266,7 @@ to go
       if severe-symptoms?  [ hospitalize ]
     ]
 
-    if ticks mod 7 = 0 [ask relations [set visited? false]]
+    if ticks mod 7 = 0 [ask relations [set visited? false]]  ;;can you explain me why you did the vIsits in this way?
 
     if symptomatic? and (should-test? self) and (infection-length = testing-urgency) [
       ifelse tests-remaining > 0
@@ -271,10 +275,9 @@ to go
     ]
 
     ;; Progression of the infection
-    if severe-symptoms? and infection-length = recovery-time [maybe-die]
-    if symptomatic? and (not severe-symptoms?) and infection-length = worsening-time [maybe-worsen]
     if (not symptomatic?) and (infection-length = symptom-time) [maybe-show-symptoms]
-
+    if symptomatic? and (not severe-symptoms?) and infection-length = worsening-time [maybe-worsen]
+    if severe-symptoms? and infection-length = recovery-time [maybe-die]
     ;; If we get to this stage we are safe.
     if infection-length > recovery-time [recover]
   ]
@@ -453,22 +456,25 @@ to infect  ;; turtle procedure
   ;; Here we determine who are the unknown people we encounter. This is the 'random' group.
   ;; If we are isolated or there is a lockdown, this is assumed to be zero.
   ;; Elderly people are assumed to go out half as much as everyone else
+  ;;currently an individual meets on average howmany/2 because it is randomly between 0 to howmany- I changed it to a draw from poisson distribution with average howmanyrnd or howmanyelder
   let random-passersby nobody
-  if isolated? = false and lockdown? = false and (age <= 67 or ticks mod 2 = 0) [
-    ifelse use-network?
-    [set random-passersby (turtle-set
-      n-of random howmanyrnd other turtles with [age <= 67]
-      n-of random howmanyelder other turtles with [age > 67])
-    ]
-    [set random-passersby (turtle-set
-      n-of random (howmanyrnd * 10) other turtles with [age <= 67]
-      n-of random (howmanyelder * 10) other turtles with [age > 67])
-    ]
+
+  if isolated? = false and lockdown? = false and (age <= 67 or 0.5 > random-float 1) [
+    ifelse use-network?[
+      set random-passersby (turtle-set
+      n-of random-poisson howmanyrnd other turtles with [age <= 67 and (not aware?) and (not isolated?)]
+      n-of random-poisson howmanyelder other turtles with [age > 67 and (not aware?) and (not isolated?)])
+     ]
+     [
+      set random-passersby (turtle-set
+      n-of random-poisson (howmanyrnd * 10) other turtles with [age <= 67 and (not aware?) and (not isolated?)]
+      n-of random-poisson (howmanyelder * 10) other turtles with [age > 67 and (not aware?) and (not isolated?)])
+     ]
   ]
 
   if use-network? [
 
-    if age <= 67 or ticks mod 2 = 0 [    ;; Old people only meet friends on even days (= go out half of the times younger people do).
+    if age <= 67 or 0.5 > random-float 1 [    ;; Old people only meet friends on even days (= go out half of the times younger people do).
 
       let proportion 10
       if any? my-classes [set proportion 20]  ;; Children who go to school will meet less friends
@@ -481,8 +487,7 @@ to infect  ;; turtle procedure
       ;;; If the agent has the contact tracing app, a link is created between she and the friends who also have the app.
       ;;; If the agent is infective, with probability infection-chance, he infects the susceptible friends who he's is meeting.
       if count all-ppl > 0 [
-        let howmany (1 + random round (count all-ppl / proportion))
-        if howmany > 50 [set howmany 50]
+        let howmany min( list (1 + random round (count all-ppl / proportion)) 50)
         ask n-of howmany all-ppl [
           if (not infected?) and (not aware?) and [removed?] of friendship-with spreader = false [
             if has-app? and [has-app?] of spreader [add-contact spreader]
@@ -515,8 +520,8 @@ to infect  ;; turtle procedure
     ]
   ]
 
-  ;; Every week we visit granpa and risk infecting him
-  if (ticks mod 7 = 0 or ticks mod 6 = 0) and any? my-relations [
+  ;; Every week we visit granpa twice and risk infecting him
+  if (2 / 7) > random-float 1  and any? my-relations [
     ask one-of relation-neighbors [
       if not [removed?] of relation-with spreader [
         ask relation-with spreader [set visited? true]
@@ -530,7 +535,7 @@ to infect  ;; turtle procedure
   ;; Here, again, if both parties have the app a link is created to keep track of the meeting
   if random-passersby != nobody [
     ask random-passersby [
-      if (not infected?) and (not aware?) and (not isolated?) [
+      if (not infected?)  [
         if has-app? and [has-app?] of spreader [add-contact spreader]
         if (not cured?) and random 100 < ((chance * age-discount) * 0.1) [newinfection spreader "random"]
       ]
@@ -596,11 +601,21 @@ to get-tested
     if infected? [
       set aware? true
       isolate
-      ask household-neighbors with [should-test? self]
-      [if not isolated? [maybe-isolate "relative-of-positive"]]
+      ask household-neighbors with [should-test? self]   ;;check this: here it should be all household members who are not cured should isolate
+      [if not isolated? [maybe-isolate "relative-of-positive"]] ;;shouldn't we do one probability for the whole family- currently each of them decides separtly
 
-      let pplvisited my-relations with [visited?]
-      if any? pplvisited [ask pplvisited [ask other-end [if should-isolate? self [maybe-isolate "relation-of-positive"]]]]
+      let pplvisited my-relations with [visited?]  ;;check my change!!!!!!!!: the relation should try to test and if no tests available he should maybe-isolate
+      if any? pplvisited [
+        ask pplvisited [ask other-end [
+          if should-isolate? self
+            [ifelse tests-remaining > 0
+               [get-tested]
+               [maybe-isolate "relation-of-positive"]]
+          ]
+        ]
+      ]
+
+
 
       if has-app? [
         ask tracing-neighbors with [should-test? self] [
@@ -746,7 +761,7 @@ infection-chance
 infection-chance
 0
 50
-4.5
+5.0
 0.1
 1
 %
@@ -764,23 +779,24 @@ r0
 11
 
 PLOT
-7
+10
 355
-409
+445
 530
-Cumulative Infected and Recovered
+Prevelance of Suceptible/Infected/Recovered
 days
 % total pop.
 0.0
 10.0
 0.0
-10.0
+100.0
 true
 true
 "" ""
 PENS
-"% infected" 1.0 0 -2674135 true "" "plot (((count turtles with [ cured? ] + count turtles with [ infected? ]) / N-people) * 100)"
-"% recovered" 1.0 0 -9276814 true "" "plot ((count turtles with [ cured? ] / N-people) * 100)"
+"% Currently infected" 1.0 0 -2674135 true "" "plot (((count turtles with [ infected? ]) / N-people) * 100)"
+"% Recovered" 1.0 0 -9276814 true "" "plot ((count turtles with [ cured? ] / N-people) * 100)"
+"% Suceptible" 1.0 0 -10899396 true "" "plot (((count turtles with [  (not infected?) and (not cured?)  ]) / N-people) * 100)"
 
 SLIDER
 10
@@ -952,10 +968,10 @@ initially-infected
 HORIZONTAL
 
 PLOT
-420
-345
-750
-535
+530
+350
+870
+545
 Infections per agent
 # agents infected
 # agents
@@ -1061,10 +1077,10 @@ mean ([spreading-to] of turtles with [cured-since >= (ticks - 7)])
 11
 
 PLOT
-755
-345
-1105
-550
+890
+350
+1240
+555
 Sources of infection
 NIL
 NIL
