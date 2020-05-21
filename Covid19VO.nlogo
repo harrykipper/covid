@@ -80,7 +80,6 @@ turtles-own
 links-own [mean-age removed?]
 households-own [ltype]  ; ltype 0 is a spouse; ltype 1 is offspring/sibling
 tracings-own [day]
-relations-own [visited?]   ; If the relative has been visited this week
 
 ;; ===========================================================================
 ;;;
@@ -133,7 +132,6 @@ to setup
     ]
 
     ask links [set removed? false]
-    ask relations [set visited? false]
 
     if show-layout [
       resize-nodes
@@ -266,8 +264,6 @@ to go
       if severe-symptoms?  [ hospitalize ]
     ]
 
-    if ticks mod 7 = 0 [ask relations [set visited? false]]  ;;can you explain me why you did the vIsits in this way?
-
     if symptomatic? and (should-test? self) and (infection-length = testing-urgency) [
       ifelse tests-remaining > 0
       [get-tested]
@@ -390,7 +386,7 @@ to maybe-isolate [origin]
     ;; When someone in a household is isolating with symptoms, everybody else also should. Fixed probability here.
     if origin = "symptomatic-individual" [
       ask household-neighbors with [should-isolate? self][maybe-isolate "relative-of-symptomatic"]
-      let pplvisited my-relations with [visited?]
+      let pplvisited my-relations
       if any? pplvisited [ask pplvisited [ask other-end [if should-isolate? self [maybe-isolate "relation-of-symptomatic"]]]]
       if has-app? [ask tracing-neighbors with [should-isolate? self] [maybe-isolate "app-contact-of-symptomatic"]]
     ]
@@ -524,7 +520,6 @@ to infect  ;; turtle procedure
   if (2 / 7) > random-float 1  and any? my-relations [
     ask one-of relation-neighbors [
       if not [removed?] of relation-with spreader [
-        ask relation-with spreader [set visited? true]
         if (not cured?) and random 100 < (chance * age-discount) [newinfection spreader "relations"]
       ]
     ]
@@ -604,7 +599,7 @@ to get-tested
       ask household-neighbors with [should-test? self]   ;;check this: here it should be all household members who are not cured should isolate
       [if not isolated? [maybe-isolate "relative-of-positive"]] ;;shouldn't we do one probability for the whole family- currently each of them decides separtly
 
-      let pplvisited my-relations with [visited?]  ;;check my change!!!!!!!!: the relation should try to test and if no tests available he should maybe-isolate
+      let pplvisited my-relations
       if any? pplvisited [
         ask pplvisited [ask other-end [
           if should-isolate? self
@@ -637,10 +632,10 @@ to-report impossible-run
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-415
-830
-904
-1320
+0
+1165
+489
+1655
 -1
 -1
 2.393035
@@ -814,10 +809,10 @@ NIL
 HORIZONTAL
 
 PLOT
-420
-600
-710
-818
+5
+935
+295
+1153
 Degree distribution (log-log)
 log(degree)
 log(#of nodes)
@@ -832,10 +827,10 @@ PENS
 "default" 1.0 2 -16777216 true "" "let max-degree max [count friendship-neighbors] of turtles with [age > 12]\n;; for this plot, the axes are logarithmic, so we can't\n;; use \"histogram-from\"; we have to plot the points\n;; ourselves one at a time\nplot-pen-reset  ;; erase what we plotted before\n;; the way we create the network there is never a zero degree node,\n;; so start plotting at degree one\nlet degree 1\nwhile [degree <= max-degree] [\n  let matches turtles with [age > 12 and count friendship-neighbors = degree]\n  if any? matches\n    [ plotxy log degree 10\n             log (count matches) 10 ]\n  set degree degree + 1\n]"
 
 PLOT
-718
-599
-1008
-819
+303
+934
+593
+1154
 Degree distribution
 NIL
 NIL
@@ -878,10 +873,10 @@ NIL
 0
 
 TEXTBOX
-544
-572
-900
-599
+129
+907
+485
+934
 ====== \"Friendship\" network ======
 20
 0.0
@@ -1186,6 +1181,24 @@ Tests ======
 11
 0.0
 1
+
+PLOT
+445
+560
+860
+820
+Age distribution
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 0 -16777216 true "" "histogram [age] of turtles"
 
 @#$#@#$#@
 # covid19 in small communities
