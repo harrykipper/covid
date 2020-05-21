@@ -197,7 +197,7 @@ end
 
 to read-agents
   let row 0
-  foreach csv:from-file "vo.csv" [ag ->
+  foreach csv:from-file "lizzanello.csv" [ag ->
     let i 1
     if row > 0 [
       while [i < length ag][
@@ -746,7 +746,7 @@ infection-chance
 infection-chance
 0
 50
-4.5
+6.5
 0.1
 1
 %
@@ -993,7 +993,7 @@ tests-per-100-people
 tests-per-100-people
 0
 20
-4.0
+0.0
 0.01
 1
 NIL

@@ -1,5 +1,5 @@
 to export-network
-  file-open "vo_net.csv"
+  file-open "lizzanello_net.csv"
   ask households [
     ask both-ends [;
       file-type (word who ",")
@@ -18,7 +18,7 @@ to export-network
 end
 
 to import-network
-  foreach csv:from-file "network.csv" [lnk ->
+  foreach csv:from-file "lizzanello_net.csv" [lnk ->
     let orig item 0 lnk
     let dest item 1 lnk
     let attr item 2 lnk

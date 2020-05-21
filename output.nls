@@ -47,13 +47,11 @@ to print-final-summary
   output-print " ================================ "
   output-print (word "End of epidemic: day " ticks)
   output-print (word "Total infected: " totalinfpct "% of population" )
-  output-print (word "Total deaths: " deaths " - Mortality rate: " precision ((deaths / totalinf) * 100) 2 "%")
-  output-print (word "Median age of victims: " median [age] of turtles with [dead?] " " 
-    count turtles with [dead? and sex = "M"] " M - " count turtles with [dead? and sex = "F"] " F.")
+  output-print (word "Total deaths: " deaths ". " count turtles with [dead? and sex = "M"] " men, " count turtles with [dead? and sex = "F"] " women. Median age: " median [age] of turtles with [dead?]" - Mortality rate: " precision ((deaths / totalinf) * 100) 2 "%")
   output-print (word "Tests performed: " tests-performed)
   ;output-print (word "R0: " precision r0 2)
   let tot sum table:values counters
-  output-type "Infections from household, relations, friends, school, random: "
+  output-print "Infections from household, relations, friends, school, random: "
   foreach table:values counters [c -> 
     output-type (word (precision (c / tot) 2) " ")]
 end
