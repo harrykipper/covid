@@ -158,8 +158,8 @@ to set-initial-variables
 
   ifelse pct-with-tracing-app > 0 [set contact-tracing true][set contact-tracing false]
 
-  set high-prob-isolating ["symptomatic-individual" "positive-individual" "relative-of-symptomatic" "relative-of-positive"]
-  set low-prob-isolating ["relation-of-symptomatic" "relation-of-positive" "app-contact-of-symptomatic" "app-contact-of-positive"]
+  set high-prob-isolating ["symptomatic-individual" "relative-of-symptomatic" "relative-of-positive" "relation-of-symptomatic" "relation-of-positive" ]
+  set low-prob-isolating ["app-contact-of-symptomatic" "app-contact-of-positive"]
 
   set counters table:from-list (list ["household" 0]["relations" 0]["friends" 0]["school" 0]["random" 0])
   ;set populations table:from-list (list ["susceptible" 0]["infected" 0]["recovered" 0]["dead" 0])
@@ -628,13 +628,13 @@ to-report impossible-run
 end
 @#$#@#$#@
 GRAPHICS-WINDOW
-0
-1165
-489
-1655
+416
+810
+839
+1234
 -1
 -1
-2.393035
+2.065
 1
 10
 1
@@ -805,10 +805,10 @@ NIL
 HORIZONTAL
 
 PLOT
-5
-935
-295
-1153
+855
+585
+1145
+803
 Degree distribution (log-log)
 log(degree)
 log(#of nodes)
@@ -823,10 +823,10 @@ PENS
 "default" 1.0 2 -16777216 true "" "let max-degree max [count friendship-neighbors] of turtles with [age > 12]\n;; for this plot, the axes are logarithmic, so we can't\n;; use \"histogram-from\"; we have to plot the points\n;; ourselves one at a time\nplot-pen-reset  ;; erase what we plotted before\n;; the way we create the network there is never a zero degree node,\n;; so start plotting at degree one\nlet degree 1\nwhile [degree <= max-degree] [\n  let matches turtles with [age > 12 and count friendship-neighbors = degree]\n  if any? matches\n    [ plotxy log degree 10\n             log (count matches) 10 ]\n  set degree degree + 1\n]"
 
 PLOT
-303
-934
-593
-1154
+855
+805
+1145
+1025
 Degree distribution
 NIL
 NIL
@@ -869,11 +869,11 @@ NIL
 0
 
 TEXTBOX
-129
-907
-485
-934
-====== \"Friendship\" network ======
+895
+555
+1251
+581
+\"Friendship\" network
 20
 0.0
 1
@@ -948,10 +948,10 @@ initially-infected
 HORIZONTAL
 
 PLOT
+455
+335
+795
 530
-350
-870
-545
 Infections per agent
 # agents infected
 # agents
@@ -1057,10 +1057,10 @@ mean ([spreading-to] of turtles with [cured-since >= (ticks - 7)])
 11
 
 PLOT
-890
-350
-1240
-555
+815
+335
+1165
+540
 Sources of infection
 NIL
 NIL
@@ -1168,10 +1168,10 @@ Tests ======
 1
 
 PLOT
-445
-560
-860
-820
+420
+545
+835
+805
 Age distribution
 NIL
 NIL
