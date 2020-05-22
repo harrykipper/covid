@@ -14,6 +14,8 @@ globals
   N-people
   average-isolation-tendency
 
+  b                    ;; Symptomatics discount
+
   tests-remaining      ;; Counters for tests
   tests-per-day
   tests-performed
@@ -112,13 +114,14 @@ to setup
   set-default-shape turtles "circle"
   set average-isolation-tendency 80
 
+  set b ifelse-value many-asymptomatics? [1][1.3]
+
   ifelse app-compliance = "High" [set compliance-adjustment 0.9][set compliance-adjustment 0.7]
   set app-initalize? false
   read-agents
   set N-people count turtles
 
   set-initial-variables
-
 
   ifelse use-existing-nw? = true
   [
@@ -133,6 +136,7 @@ to setup
     if schools-open? [create-schools]
     create-friendships
   ]
+
   ask turtles [
     assign-tendency
     reset-variables
@@ -157,7 +161,7 @@ end
 to set-initial-variables
   ;; Number of people we meet at random every day: 1 per 1000 people. Elderly goes out 1/2 less than other
   let nmMeet 10;;0.001 * count turtles
-  let propelderly  0.5 * count turtles with [age > 67]/ count turtles
+  let propelderly  0.5 * count turtles with [age > 67]/ N-people
   set howmanyelder round(nmMeet * propelderly)
   set howmanyrnd nmMeet - howmanyelder
   ;;initially we start the expirement with no app-----------------------
@@ -193,8 +197,6 @@ to initial-app
   let adults turtles with [age > 14]
   ask n-of (round count adults * (pct-with-tracing-app / 100)) adults [set has-app? true]
 end
-
-
 
 to reset-variables
   set has-app? false
@@ -253,7 +255,7 @@ to go
 
   clear-count     ; this is to compute R0 the epiDEM's way
   ;;to initial the app onece 5% of the population are cured
-  if count turtles with [cured?]/ count turtles > 0.05 and app-initalize? = false
+  if count turtles with [cured?]/ N-people > 0.05 and app-initalize? = false
       [initial-app
        set app-initalize? true]
 
@@ -670,9 +672,9 @@ day
 
 BUTTON
 245
-250
+245
 325
-283
+278
 setup
 setup
 NIL
@@ -687,9 +689,9 @@ NIL
 
 BUTTON
 325
-250
+245
 390
-283
+278
 go
 go
 T
@@ -745,7 +747,7 @@ PENS
 SLIDER
 10
 30
-155
+175
 63
 infection-chance
 infection-chance
@@ -932,9 +934,9 @@ OUTPUT
 16
 
 SLIDER
-155
+180
 30
-300
+325
 63
 initially-infected
 initially-infected
@@ -973,7 +975,7 @@ pct-with-tracing-app
 pct-with-tracing-app
 0
 100
-79.0
+0.0
 1
 1
 %
@@ -988,7 +990,7 @@ tests-per-100-people
 tests-per-100-people
 0
 20
-4.0
+0.0
 0.01
 1
 NIL
@@ -1013,9 +1015,9 @@ NIL
 
 SWITCH
 245
-215
+210
 390
-248
+243
 use-seed?
 use-seed?
 0
@@ -1185,24 +1187,35 @@ PENS
 "default" 1.0 1 -16777216 false "" "let maxage max [age] of turtles\nplot-pen-reset  ;; erase what we plotted before\nset-plot-x-range 1 (maxage + 1)  ;; + 1 to make room for the width of the last bar\nset-plot-pen-interval 5\nhistogram [age] of turtles"
 
 TEXTBOX
-300
-95
-395
-113
+295
+110
+390
+128
 Behaviour config
 12
 0.0
 1
 
 CHOOSER
-255
-115
-393
-160
+250
+130
+388
+175
 app-compliance
 app-compliance
 "High" "Low"
 0
+
+SWITCH
+155
+65
+325
+98
+many-asymptomatics?
+many-asymptomatics?
+1
+1
+-1000
 
 @#$#@#$#@
 # covid19 in small communities

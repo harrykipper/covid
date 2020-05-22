@@ -67,7 +67,7 @@ to save-output
   ]
   let tot sum table:values counters
   file-type (
-    word behaviorspace-run-number "," pct-with-tracing-app "," tests-per-100-people "," lockdown-at-first-death "," schools-open? "," compliance-adjustment "," deaths
+    word behaviorspace-run-number "," pct-with-tracing-app "," tests-per-100-people "," lockdown-at-first-death "," schools-open? "," app-compliance "," deaths
     "," (((count turtles with [ cured? ] + count turtles with [ infected? ]) / N-people) * 100)
     "," r0 "," (precision ((deaths / totalinf) * 100) 2) "," ticks "," tests-performed)
   ifelse tot > 0 
@@ -85,7 +85,7 @@ to save-individual
     file-print "run,t,pctApp,pctTest,lockdown,schoolsopen,compliance,infected,recovered,susceptible,dead,hospitalized,isolated,tests"
   ]
   file-print (word behaviorspace-run-number "," ticks "," pct-with-tracing-app "," tests-per-100-people "," 
-    lockdown-at-first-death ","  schools-open? "," count turtles with [infected?] "," count turtles with [cured?] "," 
+    lockdown-at-first-death ","  schools-open? "," app-compliance "," count turtles with [infected?] "," count turtles with [cured?] "," 
     count turtles with [not infected? and not cured?] "," count turtles with [dead?] "," in-hospital "," 
     count turtles with [isolated?] "," tests-performed
   ) 
