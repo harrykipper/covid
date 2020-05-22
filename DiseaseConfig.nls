@@ -26,8 +26,8 @@ to-report probability-of-showing-symptoms [agent-age]
   report (ifelse-value
     agent-age < 15 [3 * b]      ;; Children rarely show any symptoms
     agent-age < 40 [40 * b]     ;; Agents between 30 and 40
-    agent-age <= 50 [55 * b]    ;; agents between 40 and 50
-    agent-age < 60 [65 * b]     ;; agents between 50 and 60
+    agent-age <= 50 [50 * b]    ;; agents between 40 and 50
+    agent-age < 60 [60 * b]     ;; agents between 50 and 60
     [70 * b]                    ;; agents above 60
   )
 end

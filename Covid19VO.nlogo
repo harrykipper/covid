@@ -114,7 +114,7 @@ to setup
   set-default-shape turtles "circle"
   set average-isolation-tendency 80
 
-  set b ifelse-value many-asymptomatics? [1][1.3]
+  set b ifelse-value many-asymptomatics? [1][1.4]
 
   ifelse app-compliance = "High" [set compliance-adjustment 0.9][set compliance-adjustment 0.7]
   set app-initalize? false
@@ -184,11 +184,21 @@ to set-initial-variables
   set lockdown? false
 end
 
+;; In this variant we test the situation of several countries with 5% cured and 0.5% infected
 to infect-initial-agents
-  ask n-of (round (N-people / 100) * initially-infected) turtles with [age > 25][
+  set initially-infected 0.5
+  let initially-cured 5
+
+  ask n-of (round (N-people / 100) * initially-infected) turtles [
    set infected? true
    set susceptible? false
   ]
+
+  ask n-of (round (N-people / 100) * initially-cured) turtles [
+    set cured? true
+    set susceptible? false
+  ]
+
 end
 
 to initial-app
@@ -806,9 +816,9 @@ NIL
 HORIZONTAL
 
 PLOT
-855
+880
 585
-1145
+1170
 803
 Degree distribution (log-log)
 log(degree)
@@ -824,9 +834,9 @@ PENS
 "default" 1.0 2 -16777216 true "" "let max-degree max [count friendship-neighbors] of turtles with [age > 12]\n;; for this plot, the axes are logarithmic, so we can't\n;; use \"histogram-from\"; we have to plot the points\n;; ourselves one at a time\nplot-pen-reset  ;; erase what we plotted before\n;; the way we create the network there is never a zero degree node,\n;; so start plotting at degree one\nlet degree 1\nwhile [degree <= max-degree] [\n  let matches turtles with [age > 12 and count friendship-neighbors = degree]\n  if any? matches\n    [ plotxy log degree 10\n             log (count matches) 10 ]\n  set degree degree + 1\n]"
 
 PLOT
-855
+880
 805
-1145
+1170
 1025
 Degree distribution
 NIL
@@ -870,9 +880,9 @@ NIL
 0
 
 TEXTBOX
-895
+920
 555
-1251
+1276
 581
 \"Friendship\" network
 20
@@ -1213,7 +1223,7 @@ SWITCH
 98
 many-asymptomatics?
 many-asymptomatics?
-1
+0
 1
 -1000
 
@@ -1825,6 +1835,59 @@ NetLogo 6.1.1
     </enumeratedValueSet>
     <enumeratedValueSet variable="schools-open?">
       <value value="true"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="phase2" repetitions="10" sequentialRunOrder="false" runMetricsEveryStep="false">
+    <setup>setup</setup>
+    <go>go</go>
+    <metric>count turtles</metric>
+    <enumeratedValueSet variable="show-layout">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-existing-nw?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infection-chance">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="incubation-days">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tests-per-100-people">
+      <value value="0"/>
+      <value value="0.5"/>
+      <value value="1.5"/>
+      <value value="25"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-links-per-age-group">
+      <value value="25"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="pct-with-tracing-app">
+      <value value="0"/>
+      <value value="40"/>
+      <value value="60"/>
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-infected">
+      <value value="0.9"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-seed?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="app-compliance">
+      <value value="&quot;High&quot;"/>
+      <value value="&quot;Low&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="lockdown-at-first-death">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="schools-open?">
+      <value value="true"/>
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="many-asymptomatics?">
+      <value value="true"/>
+      <value value="false"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>
