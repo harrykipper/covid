@@ -187,7 +187,7 @@ end
 ;; In this variant we test the situation of several countries with 5% cured and 0.5% infected
 to infect-initial-agents
   set initially-infected 0.5
-  let initially-cured 5
+  let initially-cured 5.1
 
   ask n-of (round (N-people / 100) * initially-infected) turtles [
    set infected? true
@@ -265,9 +265,12 @@ to go
 
   clear-count     ; this is to compute R0 the epiDEM's way
   ;;to initial the app onece 5% of the population are cured
-  if count turtles with [cured?]/ N-people > 0.05 and app-initalize? = false
-      [initial-app
-       set app-initalize? true]
+  if app-initalize? = false [
+    if count turtles with [cured?]/ N-people > 0 [
+      initial-app
+      set app-initalize? true
+    ]
+  ]
 
   set tests-remaining tests-remaining + tests-per-day
 
@@ -952,7 +955,7 @@ initially-infected
 initially-infected
 0
 5
-0.9
+0.5
 0.1
 1
 %
@@ -985,7 +988,7 @@ pct-with-tracing-app
 pct-with-tracing-app
 0
 100
-0.0
+40.0
 1
 1
 %
@@ -1000,7 +1003,7 @@ tests-per-100-people
 tests-per-100-people
 0
 20
-0.0
+1.5
 0.01
 1
 NIL
@@ -1223,7 +1226,7 @@ SWITCH
 98
 many-asymptomatics?
 many-asymptomatics?
-0
+1
 1
 -1000
 
