@@ -8,7 +8,7 @@ to-report average-recovery-time [agent-age]
   ;; Agents recover, on average, after these many days since being infected
   report (ifelse-value
     agent-age < 40 [8]    ;; agents < 40 y.o recover in 8 days on average
-    agent-age < 50 [12]   ;; agents between 40 and 50 recover in 10 days on avg.
+    agent-age < 50 [12]   ;; agents between 40 and 50 recover in 12 days on avg.
     agent-age < 60 [15]   ;; agents between 50 and 60
     [20]                  ;; agents above 60
     )
@@ -24,12 +24,11 @@ to-report probability-of-showing-symptoms [agent-age]
   ;; the agent has the following probability of developing the symptoms of COVID-19.
   ;; If the person is showing symptoms, it'll take 7 more days to recover.
   report (ifelse-value
-    agent-age < 15 [2]      ;; Children rarely show any symptoms
-    agent-age < 30 [35]     ;; Agents below age 30 show symptoms in 25% of cases
-    agent-age < 40 [45]     ;; Agents between 30 and 40
-    agent-age <= 50 [60]    ;; agents between 40 and 50
-    agent-age < 60 [75]     ;; agents between 50 and 60
-    [85]                    ;; agents above 60
+    agent-age < 15 [3 * b]      ;; Children rarely show any symptoms
+    agent-age < 40 [40 * b]     ;; Agents between 30 and 40
+    agent-age <= 50 [50 * b]    ;; agents between 40 and 50
+    agent-age < 60 [60 * b]     ;; agents between 50 and 60
+    [70 * b]                    ;; agents above 60
   )
 end
 
@@ -37,10 +36,11 @@ to-report probability-of-worsening [agent-age]
   ;; After 10 days with symptoms the agent has the following probability of
   ;; worsening and needing hospital care.
   report (ifelse-value
-    agent-age < 40 [2]         ;; agents below age 40 who display symptoms have a 2% chance of ending up in hospital
-    agent-age < 50 [8]         ;; agents between 40 and 50 ....
-    agent-age < 60 [10]        ;; agents between 50 and 60
-    [15]                       ;; over 60
+    agent-age < 15 [3 / b]         ;; 
+    agent-age < 40 [4 / b]         ;; agents below age 40 who display symptoms have a 2% chance of ending up in hospital
+    agent-age <= 50 [8 / b]         ;; agents between 40 and 50 ....
+    agent-age < 60 [10 / b]        ;; agents between 50 and 60
+    [15 / b]                       ;; over 60
   )
 end
 
