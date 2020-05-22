@@ -24,7 +24,8 @@ to calculate-r0
     ;; Since N >> 1
     ;; Using this, we have R_0 = beta*N / gamma = N*ln(S(0)/S(t)) / (K-S(t))
     set r0 (ln (s0 / susceptible-t) / (N-people - susceptible-t))
-    set r0 r0 * s0 ]
+    set r0 r0 * s0 
+  ]
 end
 
 ;; =================== SUMMARY ==================

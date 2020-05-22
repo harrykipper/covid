@@ -14,7 +14,7 @@ globals
   N-people
   average-isolation-tendency
 
-  b                    ;; Symptomatics discount
+  ;b                    ;; Symptomatics discount
 
   tests-remaining      ;; Counters for tests
   tests-per-day
@@ -51,6 +51,7 @@ turtles-own
 [
   sex
   age
+  age-discount
   status               ;; Marital status 0 = single 1 = married 2 = divorced 3 = widowed
 
   infected?            ;; If true, the person is infected.
@@ -114,7 +115,7 @@ to setup
   set-default-shape turtles "circle"
   set average-isolation-tendency 80
 
-  set b ifelse-value many-asymptomatics? [1][1.4]
+  ;set b ifelse-value many-asymptomatics? [1][1.4]
 
   ifelse app-compliance = "High" [set compliance-adjustment 0.9][set compliance-adjustment 0.7]
   set app-initalize? false
@@ -160,7 +161,7 @@ end
 
 to set-initial-variables
   ;; Number of people we meet at random every day: 1 per 1000 people. Elderly goes out 1/2 less than other
-  let nmMeet 10;;0.001 * count turtles
+  let nmMeet 10 ; 0.001 * count turtles
   let propelderly  0.5 * count turtles with [age > 67]/ N-people
   set howmanyelder round(nmMeet * propelderly)
   set howmanyrnd nmMeet - howmanyelder
@@ -232,6 +233,7 @@ to read-agents
       while [i < length ag][
         crt item i ag [
           set age item 0 ag + 1 ;; ISTAT data are from 2019, everyone is one year older now..
+          set age-discount agediscount
           ifelse i < 5 [set sex "M"][set sex "F"]
           ifelse i = 1 or i = 5 [set status 0][
             ifelse i = 2 or i = 6 [set status 1][
@@ -343,7 +345,7 @@ end
 
 ;; If the person worsens, after another 7 days he will either die or heal.
 to maybe-worsen
-  if probability-of-worsening age * gender-discount > random 100 [
+  if probability-of-worsening * gender-discount > random 100 [
     set severe-symptoms? true
     set recovery-time round (infection-length + random-normal 7 2 )
   ]
@@ -351,8 +353,8 @@ end
 
 to maybe-die
   ifelse hospitalized?
-  [if probability-of-dying age > random 100 [kill-agent]]
-  [if (probability-of-dying age) * 1.5 > random 100 [kill-agent]]  ; no hospital bed means a dire fate
+  [if probability-of-dying > random 100 [kill-agent]]
+  [if (probability-of-dying) * 1.5 > random 100 [kill-agent]]  ; no hospital bed means a dire fate
 end
 
 to recover
@@ -393,8 +395,8 @@ to-report gender-discount
   report 1
 end
 
-to-report age-discount
-  if age <= 13 [report 0.8]
+to-report agediscount
+  if age <= 15 [report 0.5]
   report 1
 end
 
@@ -501,8 +503,6 @@ to infect  ;; turtle procedure
 
     let proportion 10
     if any? my-classes [set proportion 20]  ;; Children who go to school will meet less friends
-                                            ;let young-ppl friendship-neighbors with [age < 65]
-                                            ;let old-ppl friendship-neighbors with [age >= 65]
 
     let all-ppl friendship-neighbors
 
@@ -766,7 +766,7 @@ infection-chance
 infection-chance
 0
 50
-5.0
+6.7
 0.1
 1
 %
@@ -804,15 +804,15 @@ PENS
 "% Suceptible" 1.0 0 -10899396 true "" "plot (((count turtles with [  (not infected?) and (not cured?)  ]) / N-people) * 100)"
 
 SLIDER
-10
-180
-205
-213
+15
+165
+210
+198
 initial-links-per-age-group
 initial-links-per-age-group
 0
 100
-25.0
+10.0
 1
 1
 NIL
@@ -855,10 +855,10 @@ PENS
 "default" 1.0 1 -16777216 true "" "let max-degree max [count friendship-neighbors] of turtles with [age > 12]\nplot-pen-reset  ;; erase what we plotted before\nset-plot-x-range 1 (max-degree + 1)  ;; + 1 to make room for the width of the last bar\nhistogram [count friendship-neighbors] of turtles with [age > 12]"
 
 SWITCH
-10
-215
-142
-248
+15
+200
+147
+233
 show-layout
 show-layout
 1
@@ -915,10 +915,10 @@ lockdown-at-first-death
 -1000
 
 TEXTBOX
-145
-220
-220
-255
+150
+205
+225
+240
 (Very slow Don't use)
 12
 0.0
@@ -1010,10 +1010,10 @@ NIL
 HORIZONTAL
 
 BUTTON
-10
-255
-132
-288
+15
+240
+137
+273
 Export network
 export-network
 NIL
@@ -1033,15 +1033,15 @@ SWITCH
 243
 use-seed?
 use-seed?
-0
+1
 1
 -1000
 
 SWITCH
-10
-145
-155
-178
+15
+130
+160
+163
 use-existing-nw?
 use-existing-nw?
 0
@@ -1114,10 +1114,10 @@ Disease Configuration (see also DiseaseConfig.nls)
 1
 
 TEXTBOX
-10
-125
-180
-156
+15
+110
+185
+141
 Network configuration
 14
 0.0
@@ -1226,7 +1226,7 @@ SWITCH
 98
 many-asymptomatics?
 many-asymptomatics?
-1
+0
 1
 -1000
 
@@ -1840,10 +1840,9 @@ NetLogo 6.1.1
       <value value="true"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="phase2" repetitions="10" sequentialRunOrder="false" runMetricsEveryStep="false">
+  <experiment name="phase2" repetitions="10" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
-    <metric>count turtles</metric>
     <enumeratedValueSet variable="show-layout">
       <value value="false"/>
     </enumeratedValueSet>
@@ -1890,7 +1889,6 @@ NetLogo 6.1.1
     </enumeratedValueSet>
     <enumeratedValueSet variable="many-asymptomatics?">
       <value value="true"/>
-      <value value="false"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>
