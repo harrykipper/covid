@@ -766,7 +766,7 @@ infection-chance
 infection-chance
 0
 50
-10.8
+5.0
 0.1
 1
 %
@@ -1099,7 +1099,7 @@ SWITCH
 328
 schools-open?
 schools-open?
-1
+0
 1
 -1000
 
