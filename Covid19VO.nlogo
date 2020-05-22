@@ -751,7 +751,7 @@ infection-chance
 infection-chance
 0
 50
-10.8
+5.0
 0.1
 1
 %
@@ -973,7 +973,7 @@ pct-with-tracing-app
 pct-with-tracing-app
 0
 100
-79.0
+0.0
 1
 1
 %
@@ -988,7 +988,7 @@ tests-per-100-people
 tests-per-100-people
 0
 20
-4.0
+0.0
 0.01
 1
 NIL
@@ -1084,7 +1084,7 @@ SWITCH
 328
 schools-open?
 schools-open?
-1
+0
 1
 -1000
 
