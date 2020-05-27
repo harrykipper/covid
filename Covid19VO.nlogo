@@ -156,6 +156,7 @@ to setup
   set s0 table:get populations "susceptible"
   if behaviorspace-run-number = 0 [output-print (word "Infected agents: " [who] of turtles with [infected?])]
   plot-friends
+  plot-age
 end
 
 to set-initial-variables
@@ -1163,7 +1164,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 1 -16777216 false "" "let maxage max [age] of turtles\nplot-pen-reset  ;; erase what we plotted before\nset-plot-x-range 1 (maxage + 1)  ;; + 1 to make room for the width of the last bar\nset-plot-pen-interval 5\nhistogram [age] of turtles"
+"default" 1.0 1 -16777216 false "" ""
 
 TEXTBOX
 295
