@@ -5,8 +5,10 @@
 to calculate-r0
   let new-infected nb-infected
   let new-recovered nb-recovered
-  set nb-infected-previous (count turtles with [ infected? ] + new-recovered - new-infected)  ;; Number of infected people at the previous tick
-  let susceptible-t (N-people - (count turtles with [ infected? ]) - (count turtles with [ cured? ]))  ;; Number of susceptibles now
+  let currently-infected table:get populations "infected"
+  let currently-recovered table:get populations "recovered"
+  set nb-infected-previous (currently-infected + new-recovered - new-infected)  ;; Number of infected people at the previous tick
+  let susceptible-t (N-people - currently-infected - currently-recovered)  ;; Number of susceptibles now
   ifelse nb-infected-previous < 10
   [ set beta-n 0 ]
   [ set beta-n (new-infected / nb-infected-previous) ]       ;; This is the average number of new secondary infections per infected this tick
@@ -28,9 +30,11 @@ to calculate-r0
   ]
 end
 
-to calculate-rt
-  let gonethiswk turtles with [cured-since >= (ticks - 7)]
-  set r-t ifelse-value any? gonethiswk [mean ([spreading-to] of gonethiswk)][0]
+to current-rt
+  let fresh turtles with [cured-since >= (ticks - 7)]
+  set rtime ifelse-value count fresh > 0 
+  [mean ([spreading-to] of fresh)]
+  [0]
 end
 
 ;; =================== SUMMARY ==================
@@ -63,8 +67,9 @@ to print-final-summary
 end
 
 to save-output
-  let deaths count turtles with [dead?]
-  let totalinf count turtles with [cured?] + count turtles with [infected?]
+  let deaths table:get populations "dead"
+  let totalinf table:get populations "infected" + table:get populations "recovered"
+  let recovered table:get populations "recovered"
   ifelse file-exists? "covid19.csv"
   [file-open "covid19.csv"]
   [
@@ -74,7 +79,7 @@ to save-output
   let tot sum table:values counters
   file-type (
     word behaviorspace-run-number "," pct-with-tracing-app "," tests-per-100-people "," lockdown-at-first-death "," schools-open? "," app-compliance "," deaths
-    "," (((count turtles with [ cured? ] + count turtles with [ infected? ]) / N-people) * 100)
+    "," ((totalinf / N-people) * 100)
     "," r0 "," (precision ((deaths / totalinf) * 100) 2) "," ticks "," tests-performed)
   ifelse tot > 0 
   [foreach table:values counters [c -> file-type (word "," (precision (c / tot) 2))]]
@@ -83,17 +88,40 @@ to save-output
   file-close
 end
 
-to save-individual
-  ifelse file-exists? "covid19_ind.csv"
+to save-individual 
+  ifelse file-exists? "covid19_ind.csv" 
   [file-open "covid19_ind.csv"]
   [
     file-open "covid19_ind.csv"
-    file-print "run,t,pctApp,pctTest,lockdown,schoolsopen,compliance,infected,recovered,susceptible,dead,hospitalized,isolated,tests"
+    file-print "run,t,pctApp,pctTest,lockdown,schoolsopen,compliance,susceptible,infected,recovered,isolated,dead,hospitalized,tests"
   ]
-  file-print (word behaviorspace-run-number "," ticks "," pct-with-tracing-app "," tests-per-100-people "," 
-    lockdown-at-first-death ","  schools-open? "," app-compliance "," count turtles with [infected?] "," count turtles with [cured?] "," 
-    count turtles with [not infected? and not cured?] "," count turtles with [dead?] "," in-hospital "," 
-    count turtles with [isolated?] "," tests-performed
-  ) 
+  file-print ( word behaviorspace-run-number "," ticks "," pct-with-tracing-app "," tests-per-100-people ","
+    lockdown-at-first-death ","  schools-open? "," app-compliance "," csv:to-row table:values populations  "," in-hospital "," tests-performed ) 
   file-close
+end
+
+to plot-friends
+  set-current-plot "Degree distribution (log-log)"
+  let max-degree max [count friends] of turtles with [age > 12]
+  ;; for this plot, the axes are logarithmic, so we can't
+  ;; use "histogram-from"; we have to plot the points
+  ;; ourselves one at a time
+  plot-pen-reset  ;; erase what we plotted before
+                  ;; the way we create the network there is never a zero degree node,
+                  ;; so start plotting at degree one
+  let degree 1
+  while [degree <= max-degree] [
+    let matches turtles with [age > 12 and count friends = degree]
+    if any? matches
+    [ plotxy log degree 10
+      log (count matches) 10 ]
+    set degree degree + 1
+  ]
+  
+  
+  set-current-plot "Degree distribution"
+  set max-degree max [count friends] of turtles with [age > 12]
+  plot-pen-reset  ;; erase what we plotted before
+  set-plot-x-range 1 (max-degree + 1)  ;; + 1 to make room for the width of the last bar
+  histogram [count friends] of turtles with [age > 12]
 end
