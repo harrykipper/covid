@@ -1,4 +1,4 @@
-__includes ["DiseaseConfig.nls" "output_t.nls" "SocialNetwork_t.nls" "layout.nls"]
+__includes ["DiseaseConfig.nls" "output.nls" "SocialNetwork.nls" "layout.nls"]
 
 extensions [csv table]
 
