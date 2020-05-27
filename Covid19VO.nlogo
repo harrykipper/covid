@@ -132,11 +132,11 @@ to setup
   ]
   [
     create-hh
-   ; ask turtles with [age >= 65] [create-relations]
+    ask turtles with [age >= 65] [create-relations]
 
     make-initial-links
     if schools-open? [create-schools]
-   ; create-friendships
+    create-friendships
   ]
 
   ask turtles [
@@ -825,7 +825,7 @@ initial-links-per-age-group
 initial-links-per-age-group
 0
 100
-10.0
+100.0
 1
 1
 NIL
@@ -1011,7 +1011,7 @@ SWITCH
 163
 use-existing-nw?
 use-existing-nw?
-0
+1
 1
 -1000
 

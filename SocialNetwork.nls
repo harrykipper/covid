@@ -57,10 +57,9 @@ end
 ;; ==========================================================
 
 to create-hh
- ; create-marriages
+  create-marriages
   if show-layout [repeat 50 [layout]]
- ; attach-children
-  ;repeat count turtles with [status = 0] / 2 [layout]
+  attach-children
   if show-layout [repeat 50 [layout]]
 end
 
@@ -80,6 +79,80 @@ end
 ;    [ask turtles with [age = a and count my-classes = 0] [create-classes-with other turtles with [age = a and count my-classes = 0][set name (word a "-" 0)]]]
 ;  ]
 ;end
+
+
+to attach-children
+  ask turtles with [
+    age < 28 and
+    status = 0 and
+    not any? my-households with [ltype = 0]
+  ][
+    let age-interval-min age + 22
+    let age-interval-max age + 37
+    let thekid self
+    ask min-one-of turtles with [
+      status != 0 and
+      sex = "F" and
+      age <= age-interval-max and age >= age-interval-min and count my-households <= 4
+    ][count my-households]
+    [
+      if any? my-households [ask household-neighbors [create-household-with thekid [set ltype 1]]]
+      create-household-with thekid [set ltype 1]
+    ]
+  ]
+  if show-layout [layout]
+end
+
+to create-marriages
+  ask turtles with [sex = "M" and status = 1][
+    let pretendenti turtles with [
+      sex = "F" and
+      status = 1 and
+      count my-households with [ltype = 0] = 0
+    ]
+    let marito min-one-of pretendenti [abs (age - [age] of myself)]
+    create-household-with marito [set ltype 0]
+    if show-layout [
+      move-to marito
+      fd 8
+    ]
+  ]
+  
+  ask turtles with [
+    age >= 28 and
+    status = 0 and
+    sex = "M"
+  ]
+  [
+    let pretendenti turtles with [
+      sex = "F" and
+      status = 0 and
+      not any? my-households ;with [ltype = 0]
+    ]
+    let marito min-one-of pretendenti [abs (age - [age] of myself)]
+    create-household-with marito [set ltype 0]
+  ]
+end
+
+to create-relations
+  if count my-relations = 0 [
+    let granpa self
+    let age-interval-max age - 20
+    let age-interval-min age - 37
+    let howmanyrels round random-normal 2 0.8
+    repeat howmanyrels [
+      let candidate one-of turtles with [age <= age-interval-max and age >= age-interval-min and count my-relations <= 2 and not household-neighbor? granpa]
+      if candidate != nobody [
+        ask candidate [
+          create-relation-with granpa
+          ask household-neighbors [create-relation-with granpa]
+        ]
+        ask household-neighbors [create-relation-with candidate]
+        ;ask relation-neighbors [create-relation-with candidate] 
+      ]
+    ]
+  ]
+end
 
 to create-schools
   set school table:make
@@ -120,6 +193,11 @@ to make-initial-links
   ]
 end
 
+to create-friendships
+  ask turtles with [age >= 14][repeat 5 + random 10 [create-friendship-with find-partner]]
+  if show-layout [layout]
+end
+
 ;; This code is the heart of the "preferential attachment" mechanism. 
 ;; We exploit the asyncronous nature of NetLogo and link agents to other agents who already have links
 ;; We skew the mechanism a bit to allow for friendships being built 
@@ -129,6 +207,25 @@ to-report find-partner
   let partner nobody
   let connection nobody
   
+  let allinks friendships with [not member? myself both-ends]
   
+  let goodlinks allinks with [abs ([age] of myself - mean-age) <= 12]   
+  ifelse any? goodlinks
+    [set connection one-of goodlinks]
+    [set connection one-of allinks]
+  
+  ifelse age >= 25 [   
+    ;; 15% chance of having a friend of a very different age
+    if random 100 < 15 [set connection one-of allinks]
+  ][
+    ifelse age >= 15
+    [
+      set goodlinks allinks with [abs ([age] of myself - mean-age) <= 8]
+      if any? goodlinks [set connection one-of goodlinks]
+    ]
+    [if age >= 12 [set connection one-of allinks with [mean-age - [age] of myself <= 5]]]
+  ]
+  ask connection [set partner one-of both-ends]
+  report partner 
 end
 
