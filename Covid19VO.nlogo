@@ -110,10 +110,10 @@ to setup
 
   clear-all
 
-  if impossible-run [
-    reset-ticks
-    stop
-  ]
+ ; if impossible-run [
+ ;   reset-ticks
+ ;   stop
+ ; ]
 
   set-default-shape turtles "circle"
 
@@ -261,16 +261,21 @@ end
 ;=====================================================================================
 
 to go
-  if behaviorspace-run-number != 0 and ticks = 0 [if impossible-run [stop]]
+  ;if behaviorspace-run-number != 0 and ticks = 0 [if impossible-run [stop]]
 
   if table:get populations "infected" = 0 [
     ifelse behaviorspace-run-number = 0
-    [print-final-summary]
+    [
+      print-final-summary
+      plot-spreaders
+    ]
     [save-output]
     ;[ let deaths count turtles with [dead?]
     ;  if deaths > 2 and deaths / (deaths + count turtles with [cured?]) < 5 [ save-output ]
     ;]
     show timer
+
+
     stop
   ]
 
@@ -560,8 +565,9 @@ to infect  ;; turtle procedure
     if (age <= 67 or 0.5 > random-float 1) [
 
       set random-passersby (turtle-set
-        n-of random-poisson howmanyrnd other turtles with [age <= 67 and (not aware?) and (not isolated?)]
-        n-of random-poisson howmanyelder other turtles with [age > 67 and (not aware?) and (not isolated?)])
+        n-of random-poisson howmanyrnd other turtles with [age <= 67]
+        n-of random-poisson howmanyelder other turtles with [age > 67]
+      )
     ]
 
     ;; Here we determine who are the unknown people we encounter. This is the 'random' group.
@@ -570,7 +576,7 @@ to infect  ;; turtle procedure
     ;;currently an individual meets on average howmany/2 because it is randomly between 0 to howmany- I changed it to a draw from poisson distribution with average howmanyrnd or howmanyelder
     if random-passersby != nobody [
       ask random-passersby [
-        if can-be-infected?  [
+        if can-be-infected? and (not isolated?) [
           if has-app? and [has-app?] of spreader [add-contact spreader]
           if (not cured?) and random 100 < ((chance * age-discount) * 0.1) [newinfection spreader "random"]
         ]
@@ -826,7 +832,7 @@ initial-links-per-age-group
 initial-links-per-age-group
 0
 100
-100.0
+30.0
 1
 1
 NIL
@@ -844,9 +850,9 @@ show-layout
 -1000
 
 BUTTON
-770
+685
 260
-865
+780
 293
 LOCKDOWN
 lockdown
@@ -910,7 +916,7 @@ HORIZONTAL
 OUTPUT
 405
 10
-1140
+1165
 255
 16
 
@@ -945,7 +951,7 @@ true
 false
 "" ""
 PENS
-"default" 1.0 1 -16777216 true "" "let max-spreading max [spreading-to] of turtles\nplot-pen-reset  ;; erase what we plotted before\nset-plot-x-range 1 (max-spreading + 1)  ;; + 1 to make room for the width of the last bar\nhistogram [spreading-to] of turtles with [spreading-to > 0]"
+"default" 1.0 1 -16777216 true "" ""
 
 SLIDER
 420
@@ -956,7 +962,7 @@ pct-with-tracing-app
 pct-with-tracing-app
 0
 100
-40.0
+25.0
 1
 1
 %
@@ -971,7 +977,7 @@ tests-per-100-people
 tests-per-100-people
 0
 20
-3.0
+5.8
 0.01
 1
 NIL
@@ -1012,7 +1018,7 @@ SWITCH
 163
 use-existing-nw?
 use-existing-nw?
-1
+0
 1
 -1000
 
@@ -1102,19 +1108,19 @@ Runtime config
 1
 
 TEXTBOX
-460
+480
 265
-855
+645
 291
-=========| MITIGATIONS |========
+==| MITIGATIONS |==
 14
 0.0
 1
 
 BUTTON
-870
+785
 260
-995
+910
 293
 REMOVE LOCKDOWN
 remove-lockdown
@@ -1185,7 +1191,7 @@ CHOOSER
 app-compliance
 app-compliance
 "High" "Low"
-0
+1
 
 SLIDER
 180
@@ -1203,9 +1209,9 @@ initially-cured
 HORIZONTAL
 
 BUTTON
-1000
+915
 260
-1090
+1005
 293
 NIL
 close-schools
@@ -1220,9 +1226,9 @@ NIL
 1
 
 BUTTON
-1090
+1005
 260
-1190
+1105
 293
 NIL
 reopen-schools
@@ -1741,15 +1747,15 @@ NetLogo 6.1.1
       <value value="true"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="infection-chance">
-      <value value="5"/>
+      <value value="6.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="incubation-days">
       <value value="5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="tests-per-100-people">
       <value value="0"/>
-      <value value="0.5"/>
       <value value="1.5"/>
+      <value value="3"/>
       <value value="25"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initial-links-per-age-group">
@@ -1762,13 +1768,15 @@ NetLogo 6.1.1
       <value value="100"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initially-infected">
-      <value value="0.9"/>
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-cured">
+      <value value="5.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="use-seed?">
       <value value="false"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="app-compliance">
-      <value value="&quot;High&quot;"/>
       <value value="&quot;Low&quot;"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="lockdown-at-first-death">
@@ -1777,9 +1785,6 @@ NetLogo 6.1.1
     <enumeratedValueSet variable="schools-open?">
       <value value="true"/>
       <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="many-asymptomatics?">
-      <value value="true"/>
     </enumeratedValueSet>
   </experiment>
   <experiment name="speedtest" repetitions="1" runMetricsEveryStep="true">

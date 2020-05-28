@@ -37,11 +37,11 @@ to-report probability-of-worsening
   ;; After 10 days with symptoms the agent has the following probability of
   ;; worsening and needing hospital care.
   report (ifelse-value
-    age < 15 [2]         ;; 
-    age < 40 [5]         ;; agents below age 40 who display symptoms have a 2% chance of ending up in hospital
-    age <= 50 [8]        ;; agents between 40 and 50 ....
-    age < 60 [12]        ;; agents between 50 and 60
-    [16]                 ;; over 60
+    age < 15 [3]         ;; 
+    age < 40 [6]         ;; agents below age 40 who display symptoms have a 2% chance of ending up in hospital
+    age <= 50 [9]        ;; agents between 40 and 50 ....
+    age < 60 [13]        ;; agents between 50 and 60
+    [17]                 ;; over 60
   )
 end
 
