@@ -133,10 +133,9 @@ to setup
   [
     create-hh
     ask turtles with [age >= 65] [create-relations]
-
     make-initial-links
-    if schools-open? [create-schools]
     create-friendships
+    if schools-open? [create-schools]
   ]
 
   ask turtles [
@@ -154,16 +153,18 @@ to setup
   infect-initial-agents
 
   set s0 table:get populations "susceptible"
-  if behaviorspace-run-number = 0 [output-print (word "Infected agents: " [who] of turtles with [infected?])]
-  plot-friends
-  plot-age
+  if behaviorspace-run-number = 0 [
+    output-print (word "Infected agents: " [who] of turtles with [infected?])
+    plot-friends
+    plot-age
+  ]
 end
 
 to set-initial-variables
   set average-isolation-tendency 80
   set compliance-adjustment ifelse-value app-compliance = "High" [0.9][0.7]
   ;; Number of people we meet at random every day: 1 per 1000 people. Elderly goes out 1/2 less than other
-  let nmMeet 10 ; 0.001 * N-people
+  let nmMeet 0.001 * N-people ; or 10
   let propelderly  0.5 * count turtles with [age > 67]/ N-people
   set howmanyelder round(nmMeet * propelderly)
   set howmanyrnd nmMeet - howmanyelder
@@ -233,7 +234,7 @@ end
 
 to read-agents
   let row 0
-  foreach csv:from-file "lizzanello.csv" [ag ->
+  foreach csv:from-file "vo.csv" [ag ->
     let i 1
     if row > 0 [
       while [i < length ag][
@@ -1011,7 +1012,7 @@ SWITCH
 163
 use-existing-nw?
 use-existing-nw?
-1
+0
 1
 -1000
 
@@ -1066,7 +1067,7 @@ SWITCH
 328
 schools-open?
 schools-open?
-1
+0
 1
 -1000
 
@@ -1185,23 +1186,6 @@ app-compliance
 app-compliance
 "High" "Low"
 0
-
-BUTTON
-160
-260
-237
-293
-go once
-go
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
 
 SLIDER
 180
@@ -1839,6 +1823,49 @@ NetLogo 6.1.1
     </enumeratedValueSet>
     <enumeratedValueSet variable="schools-open?">
       <value value="true"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="create-net" repetitions="1" sequentialRunOrder="false" runMetricsEveryStep="false">
+    <setup>setup
+export-network</setup>
+    <enumeratedValueSet variable="show-layout">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-cured">
+      <value value="5.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-existing-nw?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infection-chance">
+      <value value="6.7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tests-per-100-people">
+      <value value="3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="lockdown-at-first-death">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-links-per-age-group">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="app-compliance">
+      <value value="&quot;High&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="pct-with-tracing-app">
+      <value value="40"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="incubation-days">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-seed?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-infected">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="schools-open?">
+      <value value="false"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>

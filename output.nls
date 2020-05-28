@@ -133,3 +133,9 @@ to plot-age
   set-plot-pen-interval 5
   histogram [age] of turtles
 end
+
+to export-agents
+  file-open "lecce_agents.csv"
+  ask turtles [file-print (word who "," age "," sex "," status)]
+  file-close
+end

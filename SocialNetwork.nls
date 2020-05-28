@@ -1,5 +1,5 @@
 to export-network
-  file-open "lizzanello_net.csv"
+  file-open "vo_net.csv"
   ask households [
     ask both-ends [;
       file-type (word who ",")
@@ -23,8 +23,7 @@ to import-network
     set relatives []
     set hh []
   ]
-  
-  foreach csv:from-file "lizzanello_net.csv" [lnk ->
+  foreach csv:from-file "network.csv" [lnk ->
     let orig item 0 lnk
     let dest item 1 lnk
     let attr item 2 lnk
@@ -53,7 +52,7 @@ end
 
 
 ;; ==========================================================
-;;                     SOCIAL NETWORK GENERATION
+;;               SOCIAL NETWORK GENERATION
 ;; ==========================================================
 
 to create-hh
@@ -62,24 +61,6 @@ to create-hh
   attach-children
   if show-layout [repeat 50 [layout]]
 end
-
-;to create-schools
-;  foreach [6 7 8 9 10 11 12 13 14 15 16 17][a ->
-;    let thesekids turtles with [age = a]
-;    ifelse count thesekids > 30 [
-;      let howManyClasses ceiling (count thesekids / 30)
-;      let kidsperclass (count thesekids / howManyClasses)
-;      let c 1
-;      while [c <= howManyClasses] [
-;        let thisclass up-to-n-of kidsperclass thesekids with [count my-classes = 0]
-;        ask thisclass [create-classes-with other thisclass [set name (word a "-" c)]]
-;        set c c + 1
-;      ]
-;    ]
-;    [ask turtles with [age = a and count my-classes = 0] [create-classes-with other turtles with [age = a and count my-classes = 0][set name (word a "-" 0)]]]
-;  ]
-;end
-
 
 to attach-children
   ask turtles with [
@@ -117,7 +98,6 @@ to create-marriages
       fd 8
     ]
   ]
-  
   ask turtles with [
     age >= 28 and
     status = 0 and
