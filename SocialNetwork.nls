@@ -62,56 +62,49 @@ to create-hh
   if show-layout [repeat 50 [layout]]
 end
 
-to attach-children
+to attach-children 
+  let mamme turtles with [status != 0 and sex = "F"]
   ask turtles with [
     age < 28 and
-    status = 0 and
-    not any? my-households with [ltype = 0]
-  ][
+    status = 0
+  ]
+  [
     let age-interval-min age + 22
     let age-interval-max age + 37
     let thekid self
-    ask min-one-of turtles with [
-      status != 0 and
-      sex = "F" and
-      age <= age-interval-max and age >= age-interval-min and count my-households <= 4
-    ][count my-households]
+    
+    let m mamme with [age <= age-interval-max and age >= age-interval-min]
+    
+    ask min-one-of m [count my-households]
     [
-      if any? my-households [ask household-neighbors [create-household-with thekid [set ltype 1]]]
+      ask household-neighbors [create-household-with thekid [set ltype 1]]
       create-household-with thekid [set ltype 1]
+      if count my-households = 5 [set mamme other mamme]
     ]
   ]
-  if show-layout [layout]
+  ;show "Done attaching children"
 end
 
 to create-marriages
-  ask turtles with [sex = "M" and status = 1][
-    let pretendenti turtles with [
-      sex = "F" and
-      status = 1 and
-      count my-households with [ltype = 0] = 0
-    ]
-    let marito min-one-of pretendenti [abs (age - [age] of myself)]
-    create-household-with marito [set ltype 0]
-    if show-layout [
-      move-to marito
-      fd 8
-    ]
+  let m turtles with [sex = "M" and status = 1]
+  let f turtles with [sex = "F" and status = 1]
+  ask m [
+    let wife min-one-of f [abs (age - [age] of myself)]
+    create-household-with wife [set ltype 0]
+    ask wife [set f other f]
   ]
-  ask turtles with [
-    age >= 28 and
-    status = 0 and
-    sex = "M"
+  ;show "Done creating marriages"
+end
+  
+to create-cohabiting
+  let m turtles with [age >= 28 and status = 0 and sex = "M"]
+  let f turtles with [age >= 28 and status = 0 and sex = "F"]
+  ask m [
+    let wife min-one-of f [abs (age - [age] of myself)]
+    create-household-with wife [set ltype 0]
+    ask wife [set f other f]
   ]
-  [
-    let pretendenti turtles with [
-      sex = "F" and
-      status = 0 and
-      not any? my-households ;with [ltype = 0]
-    ]
-    let marito min-one-of pretendenti [abs (age - [age] of myself)]
-    create-household-with marito [set ltype 0]
-  ]
+  ;show "Done creating cohabitations"
 end
 
 to create-relations
@@ -120,8 +113,11 @@ to create-relations
     let age-interval-max age - 20
     let age-interval-min age - 37
     let howmanyrels round random-normal 2 0.8
+    let candidates turtles with [
+      age <= age-interval-max and age >= age-interval-min and count my-relations <= 2 and not household-neighbor? granpa
+    ]
     repeat howmanyrels [
-      let candidate one-of turtles with [age <= age-interval-max and age >= age-interval-min and count my-relations <= 2 and not household-neighbor? granpa]
+      let candidate one-of candidates
       if candidate != nobody [
         ask candidate [
           create-relation-with granpa
@@ -151,7 +147,7 @@ to create-schools
       ]
     ]
     [
-      let orphans turtles with [age = a and myclass = 0]
+      let orphans thesekids with [myclass = 0]
       ask orphans [set myclass (word a "-" 0)]
       table:put school (word a "-" 0) orphans
     ]
@@ -174,7 +170,19 @@ to make-initial-links
 end
 
 to create-friendships
-  ask turtles with [age >= 14][repeat 5 + random 10 [create-friendship-with find-partner]]
+  ;; Under 14s don't have friends.
+  ask turtles with [age >= 14][
+    let allinks friendships with [not member? myself both-ends]
+    let goodlinks allinks with [abs ([age] of myself - mean-age) <= 12]   
+    if age < 25 [set goodlinks goodlinks with [abs ([age] of myself - mean-age) <= 5]]
+    repeat 5 + random 10 [
+      let initialset goodlinks
+      ;; 15% chance of having a friend of a very different age
+      if age >= 25 and random 100 < 15 [set initialset allinks]
+      create-friendship-with (find-partner initialset) [set mean-age mean [age] of both-ends] 
+    ]
+  ]
+  ;print "DONE CREATING FRIENDSHIPS!!!!!"
   if show-layout [layout]
 end
 
@@ -183,29 +191,6 @@ end
 ;; We skew the mechanism a bit to allow for friendships being built 
 ;; within age classes as much as possible.
 
-to-report find-partner
-  let partner nobody
-  let connection nobody
-  
-  let allinks friendships with [not member? myself both-ends]
-  
-  let goodlinks allinks with [abs ([age] of myself - mean-age) <= 12]   
-  ifelse any? goodlinks
-    [set connection one-of goodlinks]
-    [set connection one-of allinks]
-  
-  ifelse age >= 25 [   
-    ;; 15% chance of having a friend of a very different age
-    if random 100 < 15 [set connection one-of allinks]
-  ][
-    ifelse age >= 15
-    [
-      set goodlinks allinks with [abs ([age] of myself - mean-age) <= 8]
-      if any? goodlinks [set connection one-of goodlinks]
-    ]
-    [if age >= 12 [set connection one-of allinks with [mean-age - [age] of myself <= 5]]]
-  ]
-  ask connection [set partner one-of both-ends]
-  report partner 
+to-report find-partner [initialnet]
+  report [one-of both-ends] of one-of initialnet
 end
-

@@ -1001,7 +1001,7 @@ SWITCH
 243
 use-seed?
 use-seed?
-0
+1
 1
 -1000
 
@@ -1012,7 +1012,7 @@ SWITCH
 163
 use-existing-nw?
 use-existing-nw?
-0
+1
 1
 -1000
 
