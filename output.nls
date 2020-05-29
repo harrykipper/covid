@@ -31,10 +31,10 @@ to calculate-r0
 end
 
 to current-rt
-  let fresh turtles with [cured-since >= (ticks - 7)]
-  set rtime ifelse-value count fresh > 0 
-  [mean ([spreading-to] of fresh)]
+  set rtime ifelse-value length table:keys infections > 0
+  [mean table:values infections]
   [0]
+  
 end
 
 ;; =================== SUMMARY ==================
@@ -53,11 +53,13 @@ end
 to print-final-summary
   let totalinf count turtles with [ cured? ] + count turtles with [ infected? ]
   let totalinfpct precision ((totalinf / N-people) * 100) 3
-  let deaths count turtles with [dead?]
+  let deaths table:get populations "dead" ; count turtles with [dead?]
   output-print " ================================ "
   output-print (word "End of epidemic: day " ticks)
   output-print (word "Total infected: " totalinfpct "% of population" )
-  output-print (word "Total deaths: " deaths ". " count turtles with [dead? and sex = "M"] " men, " count turtles with [dead? and sex = "F"] " women. Median age: " median [age] of turtles with [dead?]" - Mortality rate: " precision ((deaths / totalinf) * 100) 2 "%")
+  output-print (word "Total deaths: " deaths ". - Mortality rate: " precision ((deaths / totalinf) * 100) 2 "%")
+    ; count turtles with [dead? and sex = "M"] " men, " count turtles with [dead? and sex = "F"] " women. Median age: " median [age] of turtles with [dead?]" 
+    
   output-print (word "Tests performed: " tests-performed)
   ;output-print (word "R0: " precision r0 2)
   let tot sum table:values counters
@@ -74,13 +76,13 @@ to save-output
   [file-open "covid19.csv"]
   [
     file-open "covid19.csv"
-    file-print "run,pctApp,pctTest,lockdown,schools,compliance,deaths,propInfected,R0,mortality,days,tests,household,relations,friends,school,random"
+    file-print "run,pctApp,pctTest,lockdown,schools,compliance,deaths,propInfected,mortality,days,tests,household,relations,friends,school,random"
   ]
   let tot sum table:values counters
   file-type (
     word behaviorspace-run-number "," pct-with-tracing-app "," tests-per-100-people "," lockdown-at-first-death "," schools-open? "," app-compliance "," deaths
     "," ((totalinf / N-people) * 100)
-    "," r0 "," (precision ((deaths / totalinf) * 100) 2) "," ticks "," tests-performed)
+    "," (precision ((deaths / totalinf) * 100) 2) "," ticks "," tests-performed)
   ifelse tot > 0 
   [foreach table:values counters [c -> file-type (word "," (precision (c / tot) 2))]]
   [file-type ",0,0,0,0,0"]

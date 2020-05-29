@@ -3,37 +3,42 @@ __includes ["DiseaseConfig.nls" "output.nls" "SocialNetwork.nls" "layout.nls"]
 extensions [csv table]
 
 undirected-link-breed [households household]
-undirected-link-breed [relations relation]   ;; Relatives who don't live in the same household
+undirected-link-breed [relations relation]      ;; Relatives who don't live in the same household
 undirected-link-breed [friendships friendship]
-
-undirected-link-breed [tracings tracing]     ;; The contact tracing app
+undirected-link-breed [tracings tracing]        ;; The contact tracing app
 
 globals
 [
   rnd                  ;; Random seed
+
+  ;; Behaviour
   average-isolation-tendency
   compliance-adjustment
+  high-prob-isolating
+  low-prob-isolating
 
+  ;; Counters
   N-people
-  tests-remaining      ;; Counters for tests
+  tests-remaining
   tests-per-day
   tests-performed
-
-  nb-infected          ;; Number of secondary infections caused by an infected person at the end of the tick
-  nb-infected-previous ;; Number of infected people at the previous tick
-  nb-recovered         ;; Number of recovered people at the end of the tick
-
   in-hospital          ;; Number of people currently in hospital
   hospital-beds        ;; Number of places in the hospital (currently unused)
   counters             ;; Table containing various information
-  populations
+  populations          ;;
+  infections           ;; table containing the average number of infections of people recovered or dead in the past week
 
+  ;; Reproduction rate
   beta-n               ;; The average number of new secondary infections per infected this tick
   gamma                ;; The average number of new recoveries per infected this tick
   s0                   ;; Initial number of susceptibles
   r0                   ;; The number of secondary infections that arise due to a single infective introduced in a wholly susceptible population
   rtime
+  nb-infected          ;; Number of secondary infections caused by an infected person at the end of the tick
+  nb-infected-previous ;; Number of infected people at the previous tick
+  nb-recovered         ;; Number of recovered people at the end of the tick
 
+  ;; Interventions
   lockdown?            ;; If true we are in a state of lockdown
   contact-tracing      ;; If true a contact tracing app exists
   app-initalize?       ;; If the app was distributed to agents
@@ -41,10 +46,7 @@ globals
   howmanyrnd           ;; Number of random people we meet
   howmanyelder         ;; Number of random people (> 67 y.o.) we meet
 
-  high-prob-isolating
-  low-prob-isolating
-
-  school
+  school               ;; Table with all classes and the respective pupils
 ]
 
 turtles-own
@@ -59,8 +61,6 @@ turtles-own
   symptomatic?         ;; If true, the person is showing symptoms of infection
   severe-symptoms?     ;; If true, the person is showing severe symptoms
   cured?               ;; If true, the person has lived through an infection. They cannot be re-infected.
-  dead?                ;; If true, the person is... you know..
-  cured-since          ;; Day the person was out of the illness (either because cured or dead)
 
   isolated?            ;; If true, the person is isolated at home, unable to infect friends and passer-bys.
   days-isolated        ;; Number of days the agent has spent in self-isolation
@@ -75,25 +75,30 @@ turtles-own
   worsening-time       ;; Time (in days) it takes before a symptomatic agent's disease may become severe and require hospitalization
   infectivity-time     ;; Time (in days) it takes before an infected person becomes infectious
   chance-of-infecting  ;; Probability that the person (if infective) will infect someone he comes close with
+  probability-of-worsening
+  probability-of-dying
 
   prob-symptoms        ;; Probability that the person is symptomatic
   isolation-tendency   ;; Chance the person will self-quarantine when symptomatic.
   testing-urgency      ;; When the person will seek to get tested after the onset of symptoms
 
   susceptible?         ;; Tracks whether the person was initially susceptible
+
+  ;; Agentsets
   friends
   relatives
-  hh
+  hh                   ;; household
+
+  myclass              ;; name of the pupil's class
 
   has-app?             ;; If true the agent carries the contact-tracing app
   tested-today?
   aware?
-
-  myclass
 ]
 
-links-own [mean-age removed?]
+friendships-own [mean-age]
 households-own [ltype]  ; ltype 0 is a spouse; ltype 1 is offspring/sibling
+
 tracings-own [day]
 
 ;; ===========================================================================
@@ -106,7 +111,7 @@ to setup
 
   set rnd ifelse-value use-seed? [-1114321144][new-seed]
   random-seed rnd
-  show rnd ;if behaviorspace-run-number = 0 [output-print (word  "Random seed: " rnd)]
+  ;show rnd ;if behaviorspace-run-number = 0 [output-print (word  "Random seed: " rnd)]
 
   clear-all
 
@@ -157,6 +162,7 @@ to setup
     output-print (word "Infected agents: " [who] of turtles with [infected?])
     plot-friends
     plot-age
+    set infections table:make
   ]
 end
 
@@ -225,16 +231,15 @@ to reset-variables
   set susceptible? true
   set symptomatic? false
   set severe-symptoms? false
-  set dead? false
+  ; set dead? false
   set aware? false
-  set cured-since 0
   set spreading-to 0
   set infected-by nobody
 end
 
 to read-agents
   let row 0
-  foreach csv:from-file "vo.csv" [ag ->
+  foreach csv:from-file "lizzanello.csv" [ag ->
     let i 1
     if row > 0 [
       while [i < length ag][
@@ -274,7 +279,6 @@ to go
     ;  if deaths > 2 and deaths / (deaths + count turtles with [cured?]) < 5 [ save-output ]
     ;]
     show timer
-
 
     stop
   ]
@@ -331,10 +335,13 @@ to go
   ]
 
   if show-layout [ask turtles [assign-color]]
-  calculate-r0
-  current-rt
-  if behaviorspace-run-number != 0 [ save-individual ]
-
+  ifelse behaviorspace-run-number != 0 [ save-individual ]
+  [
+    table:remove infections (ticks - 8)
+    table:put infections ticks mean table:get-or-default infections ticks (list 0)
+    calculate-r0
+    current-rt
+  ]
   tick
 end
 
@@ -361,7 +368,7 @@ end
 
 ;; If the person worsens, after another 7 days he will either die or heal.
 to maybe-worsen
-  if probability-of-worsening * gender-discount > random 100 [
+  if probability-of-worsening > random 100 [
     set severe-symptoms? true
     set recovery-time round (infection-length + random-normal 7 2 )
   ]
@@ -377,7 +384,11 @@ to recover
   set infected? false
   set symptomatic? false
   set cured? true
-  set cured-since ticks
+
+  ifelse table:has-key? infections ticks
+  [table:put infections ticks (lput spreading-to table:get infections ticks)]
+  [table:put infections ticks (list spreading-to)]
+
   table:put populations "infected" (table:get populations "infected" - 1)
   table:put populations "recovered" (table:get populations "recovered" + 1)
   if isolated? [unisolate]
@@ -390,20 +401,22 @@ to recover
 end
 
 to kill-agent
-  set dead? true
-  set infected? false
   table:put populations "infected" (table:get populations "infected" - 1)
   table:put populations "dead" (table:get populations "dead" + 1)
+
   if hospitalized? [
-    set hospitalized? false
     set in-hospital in-hospital - 1
-    set isolated? false   ;; If he was in hospital we unisolate him here, so it will be false in the check below and we don't risk counting twice
-  ]
-  if isolated? [
     set isolated? false
-    table:put populations "isolated" (table:get populations "isolated" - 1)
   ]
-  set cured-since ticks
+
+  if isolated? [table:put populations "isolated" (table:get populations "isolated" - 1)]
+
+  ifelse table:has-key? infections ticks
+  [table:put infections ticks lput spreading-to table:get infections ticks ]
+  [table:put infections ticks (list spreading-to)]
+
+  die
+
   if table:get populations "dead" = 1 [
     if lockdown-at-first-death [lockdown]
     if behaviorspace-run-number = 0 [
@@ -666,7 +679,6 @@ to get-tested
       ]
     ]
   ]
-
 end
 
 ;; =======================================================
