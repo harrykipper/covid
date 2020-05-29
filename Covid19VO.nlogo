@@ -69,12 +69,18 @@ turtles-own
   infected-by          ;; Agent who infected me
   spreading-to         ;; Number of agents infected by me
 
-  infection-length     ;; How long the person has been infected.
-  recovery-time        ;; Time (in days) it takes before the person has a chance to recover from the infection
-  symptom-time         ;; Time (in days) it takes before the person shows symptoms
-  worsening-time       ;; Time (in days) it takes before a symptomatic agent's disease may become severe and require hospitalization
-  infectivity-time     ;; Time (in days) it takes before an infected person becomes infectious
-  chance-of-infecting  ;; Probability that the person (if infective) will infect someone he comes close with
+
+  chance-of-infecting  ;; Probability that the person (when infective) will infect someone he comes close with
+
+  my-state             ;;describe the disease state of the agent: "incubation" "asymptomatic" "symptomatic" "severe" "in-hospital" "recovered" "dead"
+  state-counter        ;;how long in this disease state
+  t-incubation         ;;length of incubatiom
+  t-asymptomatic       ;;length of asymtomatic
+  t-symtomatic         ;;length of symptomatic
+  t-severe             ;;duration untill severe is addmited to hospital
+  t-hospital           ;;duration in hospital untill death or recovery
+  t-infectious         ;; time in which agent become infectiuos
+  t-stopinfecting      ;;time when agent stop infecting
 
   prob-symptoms        ;; Probability that the person is symptomatic
   isolation-tendency   ;; Chance the person will self-quarantine when symptomatic.
@@ -140,7 +146,7 @@ to setup
   ]
 
   ask turtles [
-    assign-tendency
+    assign-disease-par
     reset-variables
   ]
 
@@ -175,7 +181,7 @@ to set-initial-variables
   set low-prob-isolating ["app-contact-of-symptomatic" "app-contact-of-positive"]
 
   set counters table:from-list (list ["household" 0]["relations" 0]["friends" 0]["school" 0]["random" 0])
-  set populations table:from-list (list ["susceptible" 0]["infected" 0]["recovered" 0]["isolated" 0]["dead" 0])
+  set populations table:from-list (list ["susceptible" 0]["infected" 0]["recovered" 0]["isolated" 0]["dead" 0]["symptomatic" 0]["asymptomatic" 0]["severe" 0])
   table:put populations "susceptible" N-people
 
   ;; initally there will be no tests------------------------------
@@ -194,6 +200,7 @@ end
 ;; In this variant we test the situation of several countries with 5% cured and 0.5% infected
 to infect-initial-agents
   ask n-of (round (N-people / 100) * initially-infected) turtles [
+    set my-state "incubation"
     set infected? true
     set susceptible? false
     table:put populations "susceptible" (table:get populations "susceptible" - 1)
@@ -201,6 +208,7 @@ to infect-initial-agents
   ]
 
   ask n-of (round (N-people / 100) * initially-cured) turtles with [infected? = false] [
+    set my-state "recovered"
     set cured? true
     set susceptible? false
     table:put populations "susceptible" (table:get populations "susceptible" - 1)
@@ -216,6 +224,8 @@ to initial-app
 end
 
 to reset-variables
+  set state-counter 0
+  set my-state "suceptible"
   set has-app? false
   set cured? false
   set isolated? false
@@ -283,46 +293,25 @@ to go
   ]
 
   set tests-remaining tests-remaining + tests-per-day
-
   ask turtles [set tested-today? false]
-
   ; The contact tracing app retains contacts for 10 days
   if contact-tracing [ask tracings with [day < (ticks - 10)][die]]
-
   ask turtles with [isolated?] [
     set days-isolated days-isolated + 1
-    if (symptomatic? = false and days-isolated = 10) [unisolate]
+    if ((symptomatic? = false) and (days-isolated = 10)) [unisolate]
   ]
-
   ask turtles with [infected?] [
-    set infection-length infection-length + 1
-    ;;this marks presymtomatic infection starts
-    if infection-length = infectivity-time [set chance-of-infecting infection-chance]
-
-    ; if we're not symptomatic after 8 days our ability to infect starts declining
-    if (not symptomatic?) and (infection-length - infectivity-time > 3)  [set chance-of-infecting chance-of-infecting * 0.9]   ;; changed here that it starts declinning by 10% daily after 3 days from being infectious
-
     if not hospitalized? [
-      ;; If you're in hospital you don't infect anyone.
-      ;; If you're isolated you can still infect members of your household
       infect
-      if severe-symptoms?  [ hospitalize ]
     ]
 
-    if symptomatic? and (should-test?) and (infection-length = testing-urgency) [
+    if ( member? my-state ["symptomatic" "severe"]) and (should-test?) and (state-counter = testing-urgency) [
       ifelse tests-remaining > 0
-      [get-tested]
-      [if not isolated? [maybe-isolate "symptomatic-individual"]]
+        [get-tested]
+        [if not isolated? [maybe-isolate "symptomatic-individual"]]
+     ]
     ]
-
-    ;; Progression of the infection
-    if (not symptomatic?) and (infection-length = symptom-time) [maybe-show-symptoms]
-    if symptomatic? and (not severe-symptoms?) and infection-length = worsening-time [maybe-worsen]
-    if severe-symptoms? and infection-length = recovery-time [maybe-die]
-
-    ;; If we get to this stage we are safe.
-    if infection-length > recovery-time [recover]
-  ]
+  progression-disease
 
   if show-layout [ask turtles [assign-color]]
   calculate-r0
@@ -342,32 +331,51 @@ end
 ;;                    PROGRESSION OF THE INFECTION
 ;; =========================================================================
 
-;; After the incubation period the person may be showing symptoms.
-;; If they do the infection length counter is reset and the infection will progress to the next stage.
-;; If they don't the infection will finish its course and the person will be healed, eventually.
-to maybe-show-symptoms
-  if prob-symptoms > random 100 [
+;; After the incubation period the person may become asymptomatic or mild symptomatic or severe symptomatic. Severe are hospitlized within few days
+to progression-disease
+ask turtles[
+    set state-counter state-counter + 1
+    if (my-state = "incubation") and (state-counter = t-infectious) [set chance-of-infecting infection-chance ]
+    if (my-state = "incubation") and (state-counter = t-incubation) [determine-progress ]
+    if (my-state = "asymptomatic") and (state-counter = t-asymptomatic) [recover]
+    if (my-state = "asymptomatic") and (t-incubation - t-infectious + state-counter > 3) [set chance-of-infecting chance-of-infecting * 0.9  ] ;; we assume asymptomatic infectiousness declines at 3rd day
+    if (my-state = "symptomatic") and (state-counter = t-symtomatic) [recover]
+    if (my-state = "severe") and (state-counter = t-severe) [hospitalize]      ;;severe cases are hospitlized within several days
+    if (my-state = "in-hospital") and (state-counter = t-hospital) [ifelse probability-of-dying > random 100  [kill-agent] [recover]]  ;patient either dies in hospital or recover
+    if (member? my-state ["symptomatic" "asymptomatic"]) and (state-counter = t-stopinfecting) [ set chance-of-infecting 0]  ;;stop being infectious after 7-11 days
+  ]
+
+;; agents states: "incubation" "asymptomatic" "symptomatic" "severe" "in-hospital" "recovered" "dead"
+end
+
+
+to determine-progress
+  ifelse prob-symptoms > random 100 [
     ;show "DEBUG: I have the symptoms!"
-    set symptomatic? true
-    set infection-length 0
-  ]
-end
+    ifelse probability-of-worsening * gender-discount > random 100
+      [set my-state "severe"
+       set severe-symptoms? true
+       set symptomatic? true
+       set state-counter 0
+       table:put populations "severe" (table:get populations "severe" + 1)
+      ]
 
-;; If the person worsens, after another 7 days he will either die or heal.
-to maybe-worsen
-  if probability-of-worsening * gender-discount > random 100 [
-    set severe-symptoms? true
-    set recovery-time round (infection-length + random-normal 7 2 )
+      [set my-state "symptomatic"
+       set symptomatic? true
+       set state-counter 0
+       table:put populations "symptomatic" (table:get populations "symptomatic" + 1)
+      ]
+    ]
+    [set my-state "asymptomatic"
+     set state-counter 0
+     table:put populations "asymptomatic" (table:get populations "asymptomatic" + 1)
   ]
-end
 
-to maybe-die
-  ifelse hospitalized?
-  [if probability-of-dying > random 100 [kill-agent]]
-  [if (probability-of-dying) * 1.5 > random 100 [kill-agent]]  ; no hospital bed means a dire fate
 end
 
 to recover
+  set state-counter 0
+  set my-state "recovered"
   set infected? false
   set symptomatic? false
   set cured? true
@@ -384,6 +392,8 @@ to recover
 end
 
 to kill-agent
+  set state-counter 0
+  set my-state "dead"
   set dead? true
   set infected? false
   table:put populations "infected" (table:get populations "infected" - 1)
@@ -402,7 +412,7 @@ to kill-agent
     if lockdown-at-first-death [lockdown]
     if behaviorspace-run-number = 0 [
       output-print (word "Epidemic day " ticks ": death number 1. Age: " age "; gender: " sex)
-      output-print (word "Duration of agent's infection: " symptom-time " days incubation + " infection-length " days of illness")
+      output-print (word "Duration of agent's infection: " t-incubation " days incubation + " (t-severe + t-hospital)  " days of illness")
       print-current-summary
     ]
   ]
@@ -464,8 +474,15 @@ to unisolate  ;; turtle procedure
   set days-isolated 0
 end
 
+
+
+
+
+
 ;; To hospitalize, remove all links.
 to hospitalize ;; turtle procedure
+  set state-counter 0
+  set my-state "in-hospital"
   set hospitalized? true
   set aware? true
   set in-hospital in-hospital + 1
@@ -584,6 +601,8 @@ end
 
 to newinfection [spreader origin]
   set infected? true
+  set state-counter 0
+  set my-state "incubation"
   set symptomatic? false
   set severe-symptoms? false
   set aware? false
@@ -779,7 +798,7 @@ infection-chance
 infection-chance
 0
 50
-6.7
+6.3
 0.1
 1
 %
@@ -891,25 +910,10 @@ TEXTBOX
 0.0
 1
 
-SLIDER
-10
-65
-175
-98
-incubation-days
-incubation-days
-0
-10
-5.0
-1
-1
-NIL
-HORIZONTAL
-
 OUTPUT
 405
 10
-1140
+1240
 255
 16
 
@@ -1000,7 +1004,7 @@ SWITCH
 243
 use-seed?
 use-seed?
-0
+1
 1
 -1000
 
@@ -1011,7 +1015,7 @@ SWITCH
 163
 use-existing-nw?
 use-existing-nw?
-1
+0
 1
 -1000
 
@@ -1287,6 +1291,26 @@ false
 "" ""
 PENS
 "default" 1.0 1 -16777216 true "" ""
+
+PLOT
+1180
+340
+1435
+535
+Type of infection
+NIL
+NIL
+0.0
+10.0
+0.0
+10.0
+true
+true
+"" ""
+PENS
+"Symptomatic" 1.0 0 -955883 true "" "plot table:get populations \"symptomatic\""
+"Asymptomatic" 1.0 0 -13840069 true "" "plot table:get populations \"asymptomatic\""
+"Severe" 1.0 0 -2674135 true "" "plot table:get populations \"severe\""
 
 @#$#@#$#@
 # covid19 in small communities

@@ -55,21 +55,21 @@ to-report probability-of-dying
   )
 end
 
-to assign-tendency 
+ to assign-disease-par
   set isolation-tendency random-normal average-isolation-tendency (average-isolation-tendency / 4)
   if isolation-tendency > 100 [ set isolation-tendency 100 ]
   if isolation-tendency < 0 [ set isolation-tendency 0 ]
-  set recovery-time round (random-normal (average-recovery-time age) 1)
+  
   set prob-symptoms probability-of-showing-symptoms
-  set symptom-time round random-gamma incubation-days 0.95   ;5.8 0.95
-  if recovery-time < symptom-time [set recovery-time symptom-time + 1]
-  
-  ;; The moment someone deteriorates: minimum bw (7 to 12) and recovery time.
-  set worsening-time min (list (7 + random 5) recovery-time)
-
-  set infectivity-time max (list 1 (symptom-time - random 3))  ;; Apparently people are infectious up to 3 (wasn't it one?) days before showing symptoms
-  
-  set testing-urgency 1 + random 3 
-
+  set t-asymptomatic round (random-normal (average-recovery-time age) 1)
  
+  set testing-urgency 1 + random 3 ;;time of deciding to get tested
+  set t-incubation max ( list 2 round (random-gamma 5.1 1)) ;;incubation duration
+  set t-symtomatic round (random-normal (average-recovery-time age) 1) ;;duration symptomatic
+  set t-severe max ( list 2 round (random-gamma 6.5 0.9)) ;;duration to hospitalization of severe 6.5 0.9
+  if  t-severe > 14 [set t-severe 14] 
+  set t-hospital  round (random-normal (average-recovery-time age) 1) ;;time spent in the hospital
+  set t-infectious max (list 1 (t-incubation - random 3)) ;;time of becoming infectious 
+  set t-stopinfecting 7 + random 4
+  set testing-urgency 1 + random 3 
 end
