@@ -1,5 +1,5 @@
 to export-network
-  file-open "vo_net.csv"
+  file-open "lizzanello_net.csv"
   ask households [
     ask both-ends [;
       file-type (word who ",")
@@ -23,10 +23,11 @@ to import-network
     set relatives []
     set hh []
   ]
-  foreach csv:from-file "network.csv" [lnk ->
+  
+  foreach csv:from-file "lizzanello_net.csv" [lnk ->
     let orig item 0 lnk
     let dest item 1 lnk
-    let attr item 2 lnk
+    ;let attr item 2 lnk
     ifelse item 3 lnk = "friendship" [
       ask turtle orig [set friends lput (turtle dest) friends]
       ask turtle dest [set friends lput (turtle orig) friends]
@@ -57,9 +58,8 @@ end
 
 to create-hh
   create-marriages
-  if show-layout [repeat 50 [layout]]
+  create-cohabiting
   attach-children
-  if show-layout [repeat 50 [layout]]
 end
 
 to attach-children 
@@ -82,29 +82,29 @@ to attach-children
       if count my-households = 5 [set mamme other mamme]
     ]
   ]
-  ;show "Done attaching children"
+  output-print "Done attaching children"
 end
 
 to create-marriages
   let m turtles with [sex = "M" and status = 1]
   let f turtles with [sex = "F" and status = 1]
   ask m [
-    let wife min-one-of f [abs (age - [age] of myself)]
-    create-household-with wife [set ltype 0]
-    ask wife [set f other f]
+    let partner min-one-of f [abs (age - [age] of myself)]
+    create-household-with partner [set ltype 0]
+    ask partner [set f other f]
   ]
-  ;show "Done creating marriages"
+  output-print "Done creating marriages"
 end
   
 to create-cohabiting
   let m turtles with [age >= 28 and status = 0 and sex = "M"]
   let f turtles with [age >= 28 and status = 0 and sex = "F"]
-  ask m [
-    let wife min-one-of f [abs (age - [age] of myself)]
-    create-household-with wife [set ltype 0]
-    ask wife [set f other f]
+  ask f [
+    let partner min-one-of m [abs (age - [age] of myself)]
+    create-household-with partner [set ltype 0]
+    ask partner [set m other m]
   ]
-  ;show "Done creating cohabitations"
+  output-print "Done creating cohabitations"
 end
 
 to create-relations
@@ -131,34 +131,29 @@ to create-relations
 end
 
 to create-schools
-  set school table:make
-  foreach [6 7 8 9 10 11 12 13 14 15 16 17][a ->
-    let thesekids turtles with [age = a]
+  let schoolkids turtles with [age >= 6 and age < 18]
+  foreach remove-duplicates [age] of schoolkids [a ->
+    let thesekids schoolkids with [age = a]
     ask thesekids [set myclass 0]
     ifelse count thesekids > 30 [
       let howManyClasses ceiling (count thesekids / 30)
-      let kidsperclass (count thesekids / howManyClasses)
+      let kidsperclass ceiling (count thesekids / howManyClasses)
       let c 1
       while [c <= howManyClasses] [
         let thisclass up-to-n-of kidsperclass thesekids with [myclass = 0]
         ask thisclass [set myclass (word a "-" c)]
-        table:put school (word a "-" c) thisclass
         set c c + 1
       ]
     ]
-    [
-      let orphans thesekids with [myclass = 0]
-      ask orphans [set myclass (word a "-" 0)]
-      table:put school (word a "-" 0) orphans
-    ]
+    [ask thesekids [set myclass (word a "-" 0)]]
   ]
+  set school table:group-agents schoolkids [myclass]
 end
 
-;; make the initial network of initial-links-per-age-group edges per age group
 to make-initial-links
   foreach (list [6 10][11 14][15 19][20 25][26 36][37 49][50 65][66 80][81 103]) [a-g ->
+    let theseguys turtles with [age >= item 0 a-g and age <= item 1 a-g]
     repeat initial-links-per-age-group [
-      let theseguys turtles with [age >= item 0 a-g and age <= item 1 a-g]
       ask one-of theseguys [
         create-friendship-with one-of other theseguys [
           if show-layout [set color green]
@@ -182,8 +177,7 @@ to create-friendships
       create-friendship-with (find-partner initialset) [set mean-age mean [age] of both-ends] 
     ]
   ]
-  ;print "DONE CREATING FRIENDSHIPS!!!!!"
-  if show-layout [layout]
+  output-print "DONE CREATING FRIENDSHIPS!!!!!"
 end
 
 ;; This code is the heart of the "preferential attachment" mechanism. 
