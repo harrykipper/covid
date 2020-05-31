@@ -68,7 +68,7 @@ end
  
   set testing-urgency 1 + random 3 ;;time of deciding to get tested
   set t-incubation max ( list 2 round (random-gamma 5.1 1)) ;;incubation duration
-  set t-symtomatic round (random-normal (average-recovery-time age) 1) ;;duration symptomatic
+  set t-symptomatic round (random-normal (average-recovery-time age) 1) ;;duration symptomatic
   set t-severe max ( list 2 round (random-gamma 6.5 0.9)) ;;duration to hospitalization of severe 6.5 0.9
   if  t-severe > 14 [set t-severe 14] 
   set t-hospital  round (random-normal (average-recovery-time age) 1) ;;time spent in the hospital

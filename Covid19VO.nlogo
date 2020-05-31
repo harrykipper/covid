@@ -22,7 +22,6 @@ globals
   tests-remaining
   tests-per-day
   tests-performed
-  in-hospital          ;; Number of people currently in hospital
   hospital-beds        ;; Number of places in the hospital (currently unused)
   counters             ;; Table containing various information
   populations          ;;
@@ -46,7 +45,7 @@ globals
   howmanyrnd           ;; Number of random people we meet
   howmanyelder         ;; Number of random people (> 67 y.o.) we meet
 
-  school               ;; Table with all classes and the respective pupils
+  school               ;; Table of classes and pupils
 ]
 
 turtles-own
@@ -75,7 +74,7 @@ turtles-own
   state-counter        ;;how long in this disease state
   t-incubation         ;;length of incubatiom
   t-asymptomatic       ;;length of asymtomatic
-  t-symtomatic         ;;length of symptomatic
+  t-symptomatic         ;;length of symptomatic
   t-severe             ;;duration untill severe is addmited to hospital
   t-hospital           ;;duration in hospital untill death or recovery
   t-infectious         ;; time in which agent become infectiuos
@@ -175,7 +174,7 @@ to set-initial-variables
   set average-isolation-tendency 80
   set compliance-adjustment ifelse-value app-compliance = "High" [0.9][0.7]
   ;; Number of people we meet at random every day: 1 per 1000 people. Elderly goes out 1/2 less than other
-  let nmMeet 0.001 * N-people ; or 10
+  let nmMeet 10; 0.001 * N-people
   let propelderly  0.5 * count turtles with [age > 67]/ N-people
   set howmanyelder round(nmMeet * propelderly)
   set howmanyrnd nmMeet - howmanyelder
@@ -187,7 +186,7 @@ to set-initial-variables
   set low-prob-isolating ["app-contact-of-symptomatic" "app-contact-of-positive"]
 
   set counters table:from-list (list ["household" 0]["relations" 0]["friends" 0]["school" 0]["random" 0])
-  set populations table:from-list (list ["susceptible" 0]["infected" 0]["recovered" 0]["isolated" 0]["dead" 0]["symptomatic" 0]["asymptomatic" 0]["severe" 0])
+  set populations table:from-list (list ["susceptible" 0]["infected" 0]["recovered" 0]["isolated" 0]["dead" 0]["in-hospital" 0]["incubation" 0]["symptomatic" 0]["asymptomatic" 0]["severe" 0])
   table:put populations "susceptible" N-people
 
   ;; initally there will be no tests------------------------------
@@ -205,20 +204,18 @@ end
 
 ;; In this variant we test the situation of several countries with 5% cured and 0.5% infected
 to infect-initial-agents
+
   ask n-of (round (N-people / 100) * initially-infected) turtles [
-    set my-state "incubation"
+    change-state "incubation"
+    table:put populations "infected" (table:get populations "infected" + 1)
     set infected? true
     set susceptible? false
-    table:put populations "susceptible" (table:get populations "susceptible" - 1)
-    table:put populations "infected" (table:get populations "infected" + 1)
   ]
 
   ask n-of (round (N-people / 100) * initially-cured) turtles with [infected? = false] [
-    set my-state "recovered"
+    change-state "recovered"
     set cured? true
     set susceptible? false
-    table:put populations "susceptible" (table:get populations "susceptible" - 1)
-    table:put populations "recovered" (table:get populations "recovered" + 1)
   ]
 end
 
@@ -278,17 +275,8 @@ to go
   ;if behaviorspace-run-number != 0 and ticks = 0 [if impossible-run [stop]]
 
   if table:get populations "infected" = 0 [
-    ifelse behaviorspace-run-number = 0
-    [
-      print-final-summary
-      plot-spreaders
-    ]
-    [save-output]
-    ;[ let deaths count turtles with [dead?]
-    ;  if deaths > 2 and deaths / (deaths + count turtles with [cured?]) < 5 [ save-output ]
-    ;]
-    show timer
-
+    print-final-summary
+    ; show timer
     stop
   ]
 
@@ -319,9 +307,7 @@ to go
         [get-tested]
         [if not isolated? [maybe-isolate "symptomatic-individual"]]
      ]
-
       progression-disease
-
   ]
 
   if show-layout [ask turtles [assign-color]]
@@ -342,6 +328,11 @@ to clear-count
   set nb-recovered 0
 end
 
+to change-state [new-state]
+  table:put populations my-state (table:get populations my-state - 1)
+  set my-state new-state
+  table:put populations my-state (table:get populations my-state + 1)
+end
 
 ;; =========================================================================
 ;;                    PROGRESSION OF THE INFECTION
@@ -351,16 +342,22 @@ end
 to progression-disease
 
   set state-counter state-counter + 1
-  if (my-state = "incubation") and (state-counter = t-infectious) [set chance-of-infecting infection-chance ]
-  if (my-state = "incubation") and (state-counter = t-incubation) [determine-progress ]
-  if (my-state = "asymptomatic") and (state-counter = t-asymptomatic) [recover]
-  if (my-state = "asymptomatic") and (t-incubation - t-infectious + state-counter > 3) [set chance-of-infecting chance-of-infecting * 0.9  ] ;; we assume asymptomatic infectiousness declines at 3rd day
-  if (my-state = "symptomatic") and (state-counter = t-symtomatic) [recover]
-  if (my-state = "severe") and (state-counter = t-severe) [hospitalize]      ;;severe cases are hospitlized within several days
-  if (my-state = "in-hospital") and (state-counter = t-hospital) [ifelse probability-of-dying > random 100  [kill-agent] [recover]]  ;patient either dies in hospital or recover
+
+  ifelse (my-state = "incubation") [
+    if (state-counter = t-infectious) [set chance-of-infecting infection-chance ]
+    if (state-counter = t-incubation) [determine-progress ]
+  ][
+    ifelse (my-state = "asymptomatic") [
+      if (state-counter = t-asymptomatic) [recover]
+      if (t-incubation - t-infectious + state-counter > 3) [set chance-of-infecting chance-of-infecting * 0.9] ;; we assume asymptomatic infectiousness declines at 3rd day
+      ][ifelse (my-state = "symptomatic") and (state-counter = t-symptomatic) [recover][
+        ifelse (my-state = "severe") and (state-counter = t-severe) [hospitalize][      ;;severe cases are hospitlized within several days
+          if (my-state = "in-hospital") and (state-counter = t-hospital) [ifelse probability-of-dying > random 100  [kill-agent] [recover]]  ;patient either dies in hospital or recover
+        ]
+      ]
+    ]
+  ]
   if (member? my-state ["symptomatic" "asymptomatic"]) and (state-counter = t-stopinfecting) [ set chance-of-infecting 0]  ;;stop being infectious after 7-11 days
-
-
 ;; agents states: "incubation" "asymptomatic" "symptomatic" "severe" "in-hospital" "recovered" "dead"
 end
 
@@ -368,29 +365,26 @@ to determine-progress
   ifelse prob-symptoms > random 100 [
     ;show "DEBUG: I have the symptoms!"
     ifelse probability-of-worsening > random 100
-      [set my-state "severe"
-       set severe-symptoms? true
-       set symptomatic? true
-       set state-counter 0
-       table:put populations "severe" (table:get populations "severe" + 1)
-      ]
-
-      [set my-state "symptomatic"
-       set symptomatic? true
-       set state-counter 0
-       table:put populations "symptomatic" (table:get populations "symptomatic" + 1)
-      ]
+      [change-state "severe"
+        set severe-symptoms? true
+        set symptomatic? true
+        set state-counter 0
     ]
-    [set my-state "asymptomatic"
-     set state-counter 0
-     table:put populations "asymptomatic" (table:get populations "asymptomatic" + 1)
-  ]
 
+    [change-state "symptomatic"
+      set symptomatic? true
+      set state-counter 0
+    ]
+  ]
+  [ change-state "asymptomatic"
+    set state-counter 0
+  ]
 end
 
 to recover
   set state-counter 0
-  set my-state "recovered"
+  change-state "recovered"
+  table:put populations "infected" (table:get populations "infected" - 1)
   set infected? false
   set symptomatic? false
   set cured? true
@@ -399,26 +393,20 @@ to recover
   [table:put infections ticks (lput spreading-to table:get infections ticks)]
   [table:put infections ticks (list spreading-to)]
 
-  table:put populations "infected" (table:get populations "infected" - 1)
-  table:put populations "recovered" (table:get populations "recovered" + 1)
   if isolated? [unisolate]
   set nb-recovered (nb-recovered + 1)
   if hospitalized? [
     set hospitalized? false
     set isolated? false
-    set in-hospital (in-hospital - 1)
   ]
 end
 
 to kill-agent
+  table:put populations my-state (table:get populations my-state - 1)
   table:put populations "infected" (table:get populations "infected" - 1)
   table:put populations "dead" (table:get populations "dead" + 1)
 
-  if hospitalized? [
-    set in-hospital in-hospital - 1
-    set isolated? false
-  ]
-
+  if hospitalized? [set isolated? false]
   if isolated? [table:put populations "isolated" (table:get populations "isolated" - 1)]
 
   ifelse table:has-key? infections ticks
@@ -501,10 +489,9 @@ end
 ;; To hospitalize, remove all links.
 to hospitalize ;; turtle procedure
   set state-counter 0
-  set my-state "in-hospital"
+  change-state "in-hospital"
   set hospitalized? true
   set aware? true
-  set in-hospital in-hospital + 1
 
   ;; We assume that hospitals always have tests. If I end up in hospital, the app will tell people.
   ask tracing-neighbors with [should-test?] [
@@ -579,7 +566,7 @@ to infect  ;; turtle procedure
     ]
 
     ;; Every week we visit granpa twice and risk infecting him
-    if (2 / 7) > random-float 1 and count relatives > 0 [
+    if count relatives > 0  and (2 / 7) > random-float 1 [
       ask one-of relatives [
         if can-be-infected? and (not isolated?) [
           if (not cured?) and random 100 < (chance * age-discount) [newinfection spreader "relations"]
@@ -622,13 +609,12 @@ end
 to newinfection [spreader origin]
   set infected? true
   set state-counter 0
-  set my-state "incubation"
+  change-state "incubation"
+  table:put populations "infected" (table:get populations "infected" + 1)
   set symptomatic? false
   set severe-symptoms? false
   set aware? false
   set nb-infected (nb-infected + 1)
-  table:put populations "infected" (table:get populations "infected" + 1)
-  table:put populations "susceptible" (table:get populations "susceptible" - 1)
   set chance-of-infecting 0
   set infected-by spreader
   ask spreader [set spreading-to spreading-to + 1]
@@ -786,7 +772,7 @@ true
 PENS
 "Infected" 1.0 0 -2674135 true "" "plot table:get populations \"infected\""
 "Dead" 1.0 0 -16777216 true "" "plot table:get populations \"dead\""
-"Hospitalized" 1.0 0 -955883 true "" "plot in-hospital"
+"Hospitalized" 1.0 0 -955883 true "" "plot table:get populations \"in-hospital\""
 "Self-Isolating" 1.0 0 -13791810 true "" "plot table:get populations \"isolated\""
 
 PLOT
@@ -1328,6 +1314,7 @@ PENS
 "Symptomatic" 1.0 0 -955883 true "" "plot table:get populations \"symptomatic\""
 "Asymptomatic" 1.0 0 -13840069 true "" "plot table:get populations \"asymptomatic\""
 "Severe" 1.0 0 -2674135 true "" "plot table:get populations \"severe\""
+"Pre-symptomatic" 1.0 0 -7500403 true "" "plot table:get populations \"incubation\""
 
 @#$#@#$#@
 # covid19 in small communities
