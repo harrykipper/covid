@@ -1,3 +1,4 @@
+
 ;; ============================================
 ;;                 OUTPUT
 ;; ============================================
@@ -48,6 +49,15 @@ to print-current-summary
   output-print (word "Currently infected: " infected " (" precision (propinf * 100) 1 "% of population)" )
   output-print (word "Currently recovered: " recovered " (" precision (proprec * 100) 1 "% of population - " precision (proprec2 * 100) 1 "% of all infected)" )
   output-print (word "Current average R0: " precision rtime 2)
+end
+
+to print-double-time
+  output-print (word "On day " ticks " cases doubled within: "  (ticks - double-t) " days"  )     
+end
+
+to-report inc-rate  
+ let current table:get populations "infected" / cum-infected
+ report current
 end
 
 to print-final-summary

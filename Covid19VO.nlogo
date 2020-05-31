@@ -46,6 +46,10 @@ globals
   howmanyelder         ;; Number of random people (> 67 y.o.) we meet
 
   school               ;; Table of classes and pupils
+
+  double-t
+  cum-infected
+
 ]
 
 turtles-own
@@ -282,6 +286,7 @@ to go
 
   clear-count     ; this is to compute R0 the epiDEM's way
   ;;to initial the app onece 5% of the population are cured
+
   if app-initalize? = false [
     if table:get populations "recovered" / N-people > 0.05 [
       initial-app
@@ -307,16 +312,28 @@ to go
         [get-tested]
         [if not isolated? [maybe-isolate "symptomatic-individual"]]
      ]
-      progression-disease
-  ]
 
-  if show-layout [ask turtles [assign-color]]
+    ;;after the infection between contactas took place during the day, at the "end of the day" agents change states
+    progression-disease
+
+  ]
 
   table:remove infections (ticks - 8)
   table:put infections ticks mean table:get-or-default infections ticks (list 0)
 
   ifelse behaviorspace-run-number != 0 [ save-individual ]
   [
+    if ticks = 7
+    [set double-t 3
+      set cum-infected table:get populations "infected"
+    ]
+    if (ticks > 7)  and (inc-rate >= 2) [
+      print-double-time
+      set double-t ticks
+      set cum-infected table:get populations "infected"
+    ]
+
+    if show-layout [ask turtles [assign-color]]
     calculate-r0
     current-rt
   ]
@@ -345,7 +362,7 @@ to progression-disease
 
   ifelse (my-state = "incubation") [
     if (state-counter = t-infectious) [set chance-of-infecting infection-chance ]
-    if (state-counter = t-incubation) [determine-progress ]
+    if (state-counter = t-incubation) [determine-progress]
   ][
     ifelse (my-state = "asymptomatic") [
       if (state-counter = t-asymptomatic) [recover]
@@ -803,7 +820,7 @@ infection-chance
 infection-chance
 0
 50
-6.7
+6.5
 0.1
 1
 %
@@ -915,21 +932,6 @@ TEXTBOX
 0.0
 1
 
-SLIDER
-10
-65
-175
-98
-incubation-days
-incubation-days
-0
-10
-5.0
-1
-1
-NIL
-HORIZONTAL
-
 OUTPUT
 405
 10
@@ -979,7 +981,7 @@ pct-with-tracing-app
 pct-with-tracing-app
 0
 100
-25.0
+40.0
 1
 1
 %
@@ -994,7 +996,7 @@ tests-per-100-people
 tests-per-100-people
 0
 20
-5.8
+3.0
 0.01
 1
 NIL
