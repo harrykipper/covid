@@ -147,4 +147,3 @@ to export-agents
   ask turtles [file-print (word who "," age "," sex "," status)]
   file-close
 end
-=======

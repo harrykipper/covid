@@ -56,6 +56,9 @@ to-report probabilityofdying
 end
 
  to assign-disease-par
+  set probability-of-dying probabilityofdying
+  set probability-of-worsening probabilityofworsening * gender-discount
+  
   set isolation-tendency random-normal average-isolation-tendency (average-isolation-tendency / 4)
   if isolation-tendency > 100 [ set isolation-tendency 100 ]
   if isolation-tendency < 0 [ set isolation-tendency 0 ]

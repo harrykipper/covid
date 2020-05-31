@@ -84,6 +84,8 @@ turtles-own
   prob-symptoms        ;; Probability that the person is symptomatic
   isolation-tendency   ;; Chance the person will self-quarantine when symptomatic.
   testing-urgency      ;; When the person will seek to get tested after the onset of symptoms
+  probability-of-dying
+  probability-of-worsening
 
   susceptible?         ;; Tracks whether the person was initially susceptible
 
@@ -229,7 +231,7 @@ end
 
 to reset-variables
   set state-counter 0
-  set my-state "suceptible"
+  set my-state "susceptible"
   set has-app? false
   set cured? false
   set isolated? false
@@ -317,14 +319,18 @@ to go
         [get-tested]
         [if not isolated? [maybe-isolate "symptomatic-individual"]]
      ]
-    ]
-  progression-disease
+
+      progression-disease
+
+  ]
 
   if show-layout [ask turtles [assign-color]]
+
+  table:remove infections (ticks - 8)
+  table:put infections ticks mean table:get-or-default infections ticks (list 0)
+
   ifelse behaviorspace-run-number != 0 [ save-individual ]
   [
-    table:remove infections (ticks - 8)
-    table:put infections ticks mean table:get-or-default infections ticks (list 0)
     calculate-r0
     current-rt
   ]
@@ -343,17 +349,17 @@ end
 
 ;; After the incubation period the person may become asymptomatic or mild symptomatic or severe symptomatic. Severe are hospitlized within few days
 to progression-disease
-ask turtles[
-    set state-counter state-counter + 1
-    if (my-state = "incubation") and (state-counter = t-infectious) [set chance-of-infecting infection-chance ]
-    if (my-state = "incubation") and (state-counter = t-incubation) [determine-progress ]
-    if (my-state = "asymptomatic") and (state-counter = t-asymptomatic) [recover]
-    if (my-state = "asymptomatic") and (t-incubation - t-infectious + state-counter > 3) [set chance-of-infecting chance-of-infecting * 0.9  ] ;; we assume asymptomatic infectiousness declines at 3rd day
-    if (my-state = "symptomatic") and (state-counter = t-symtomatic) [recover]
-    if (my-state = "severe") and (state-counter = t-severe) [hospitalize]      ;;severe cases are hospitlized within several days
-    if (my-state = "in-hospital") and (state-counter = t-hospital) [ifelse probability-of-dying > random 100  [kill-agent] [recover]]  ;patient either dies in hospital or recover
-    if (member? my-state ["symptomatic" "asymptomatic"]) and (state-counter = t-stopinfecting) [ set chance-of-infecting 0]  ;;stop being infectious after 7-11 days
-  ]
+
+  set state-counter state-counter + 1
+  if (my-state = "incubation") and (state-counter = t-infectious) [set chance-of-infecting infection-chance ]
+  if (my-state = "incubation") and (state-counter = t-incubation) [determine-progress ]
+  if (my-state = "asymptomatic") and (state-counter = t-asymptomatic) [recover]
+  if (my-state = "asymptomatic") and (t-incubation - t-infectious + state-counter > 3) [set chance-of-infecting chance-of-infecting * 0.9  ] ;; we assume asymptomatic infectiousness declines at 3rd day
+  if (my-state = "symptomatic") and (state-counter = t-symtomatic) [recover]
+  if (my-state = "severe") and (state-counter = t-severe) [hospitalize]      ;;severe cases are hospitlized within several days
+  if (my-state = "in-hospital") and (state-counter = t-hospital) [ifelse probability-of-dying > random 100  [kill-agent] [recover]]  ;patient either dies in hospital or recover
+  if (member? my-state ["symptomatic" "asymptomatic"]) and (state-counter = t-stopinfecting) [ set chance-of-infecting 0]  ;;stop being infectious after 7-11 days
+
 
 ;; agents states: "incubation" "asymptomatic" "symptomatic" "severe" "in-hospital" "recovered" "dead"
 end
@@ -361,7 +367,7 @@ end
 to determine-progress
   ifelse prob-symptoms > random 100 [
     ;show "DEBUG: I have the symptoms!"
-    ifelse probability-of-worsening * gender-discount > random 100
+    ifelse probability-of-worsening > random 100
       [set my-state "severe"
        set severe-symptoms? true
        set symptomatic? true
@@ -811,7 +817,7 @@ infection-chance
 infection-chance
 0
 50
-6.3
+6.7
 0.1
 1
 %
@@ -923,11 +929,25 @@ TEXTBOX
 0.0
 1
 
+SLIDER
+10
+65
+175
+98
+incubation-days
+incubation-days
+0
+10
+5.0
+1
+1
+NIL
+HORIZONTAL
+
 OUTPUT
 405
 10
-
-1240
+1165
 255
 16
 
