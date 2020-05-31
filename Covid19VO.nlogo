@@ -46,7 +46,10 @@ globals
   howmanyrnd           ;; Number of random people we meet
   howmanyelder         ;; Number of random people (> 67 y.o.) we meet
 
-  school               ;; Table with all classes and the respective pupils
+  school               ;; Table with all classes and the respective pupill
+
+  double-t
+  cum-infected
 ]
 
 turtles-own
@@ -320,9 +323,19 @@ to go
         [if not isolated? [maybe-isolate "symptomatic-individual"]]
      ]
 
-      progression-disease
+
 
   ]
+  ;;after the infection between contactas took place during the day, at the "end of the day" agents change states
+  ask turtles[progression-disease]
+  if ticks = 7
+    [set double-t 3
+     set cum-infected table:get populations "asymptomatic" + table:get populations "symptomatic" + table:get populations "severe" ]
+  if (ticks > 7)  and (inc-rate >= 2) [
+    print-double-time
+    set double-t ticks
+    set cum-infected table:get populations "asymptomatic" + table:get populations "symptomatic" + table:get populations "severe"  ]
+
 
   if show-layout [ask turtles [assign-color]]
 
@@ -817,7 +830,7 @@ infection-chance
 infection-chance
 0
 50
-6.7
+5.0
 0.1
 1
 %
@@ -929,21 +942,6 @@ TEXTBOX
 0.0
 1
 
-SLIDER
-10
-65
-175
-98
-incubation-days
-incubation-days
-0
-10
-5.0
-1
-1
-NIL
-HORIZONTAL
-
 OUTPUT
 405
 10
@@ -993,7 +991,7 @@ pct-with-tracing-app
 pct-with-tracing-app
 0
 100
-25.0
+40.0
 1
 1
 %
@@ -1008,7 +1006,7 @@ tests-per-100-people
 tests-per-100-people
 0
 20
-5.8
+3.0
 0.01
 1
 NIL
@@ -1104,7 +1102,7 @@ SWITCH
 328
 schools-open?
 schools-open?
-0
+1
 1
 -1000
 
