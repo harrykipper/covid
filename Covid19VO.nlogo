@@ -592,6 +592,7 @@ to infect  ;; turtle procedure
     ]
 
     ;; Infected agents will also infect someone at random. The probability is 1/10 of the normal infection-chance
+    ;; If we're not using the network this is the sole mode of contact.
     ;; Here, again, if both parties have the app a link is created to keep track of the meeting
 
     let random-passersby nobody
