@@ -23,8 +23,9 @@ globals
   tests-per-day
   tests-performed
   hospital-beds        ;; Number of places in the hospital (currently unused)
-  counters             ;; Table containing various information
+  counters             ;; Table containing information on source of infection e.g household, friends...
   populations          ;;
+  cummulatives           ;; table of cummulative disease states
   infections           ;; table containing the average number of infections of people recovered or dead in the past week
 
   ;; Reproduction rate
@@ -191,6 +192,7 @@ to set-initial-variables
 
   set counters table:from-list (list ["household" 0]["relations" 0]["friends" 0]["school" 0]["random" 0])
   set populations table:from-list (list ["susceptible" 0]["infected" 0]["recovered" 0]["isolated" 0]["dead" 0]["in-hospital" 0]["incubation" 0]["symptomatic" 0]["asymptomatic" 0]["severe" 0])
+  set cummulatives table:from-list (list ["incubation" 0] ["asymptomatic" 0] ["symptomatic" 0] ["severe" 0 ] ["in-hospital" 0]["recovered" 0 ]["dead" 0])
   table:put populations "susceptible" N-people
 
   ;; initally there will be no tests------------------------------
@@ -324,13 +326,13 @@ to go
   ifelse behaviorspace-run-number != 0 [ save-individual ]
   [
     if ticks = 7
-    [set double-t 3
-      set cum-infected table:get populations "infected"
-    ]
+      [set double-t 7
+      set cum-infected table:get cummulatives "asymptomatic" + table:get cummulatives "symptomatic" + table:get cummulatives "severe"
+     ]
     if (ticks > 7)  and (inc-rate >= 2) [
       print-double-time
       set double-t ticks
-      set cum-infected table:get populations "infected"
+      set cum-infected table:get cummulatives "asymptomatic" + table:get cummulatives "symptomatic" + table:get cummulatives "severe"
     ]
 
     if show-layout [ask turtles [assign-color]]
@@ -349,6 +351,12 @@ to change-state [new-state]
   table:put populations my-state (table:get populations my-state - 1)
   set my-state new-state
   table:put populations my-state (table:get populations my-state + 1)
+  table:put cummulatives my-state (table:get cummulatives my-state + 1)
+end
+
+to-report inc-rate
+ let current (table:get cummulatives "asymptomatic" + table:get cummulatives "symptomatic" + table:get cummulatives "severe" ) / cum-infected
+ report current
 end
 
 ;; =========================================================================
@@ -422,7 +430,7 @@ to kill-agent
   table:put populations my-state (table:get populations my-state - 1)
   table:put populations "infected" (table:get populations "infected" - 1)
   table:put populations "dead" (table:get populations "dead" + 1)
-
+  table:put cummulatives "dead" (table:get cummulatives "dead" + 1)
   if hospitalized? [set isolated? false]
   if isolated? [table:put populations "isolated" (table:get populations "isolated" - 1)]
 
@@ -592,7 +600,6 @@ to infect  ;; turtle procedure
     ]
 
     ;; Infected agents will also infect someone at random. The probability is 1/10 of the normal infection-chance
-    ;; If we're not using the network this is the sole mode of contact.
     ;; Here, again, if both parties have the app a link is created to keep track of the meeting
 
     let random-passersby nobody
@@ -607,7 +614,7 @@ to infect  ;; turtle procedure
     ;; Here we determine who are the unknown people we encounter. This is the 'random' group.
     ;; If we are isolated or there is a lockdown, this is assumed to be zero.
     ;; Elderly people are assumed to go out half as much as everyone else
-    ;;currently an individual meets on average howmany/2 because it is randomly between 0 to howmany- I changed it to a draw from poisson distribution with average howmanyrnd or howmanyelder
+    ;;currently an individual meets  a draw from poisson distribution with average howmanyrnd or howmanyelder
     if random-passersby != nobody [
       ask random-passersby [
         if can-be-infected? and (not isolated?) [
@@ -1313,10 +1320,9 @@ true
 true
 "" ""
 PENS
-"Symptomatic" 1.0 0 -955883 true "" "plot table:get populations \"symptomatic\""
-"Asymptomatic" 1.0 0 -13840069 true "" "plot table:get populations \"asymptomatic\""
-"Severe" 1.0 0 -2674135 true "" "plot table:get populations \"severe\""
-"Pre-symptomatic" 1.0 0 -7500403 true "" "plot table:get populations \"incubation\""
+"Symptomatic" 1.0 0 -955883 true "" "plot table:get cummulatives \"symptomatic\""
+"Asymptomatic" 1.0 0 -13840069 true "" "plot table:get cummulatives \"asymptomatic\""
+"Severe" 1.0 0 -2674135 true "" "plot table:get cummulatives \"severe\""
 
 @#$#@#$#@
 # covid19 in small communities
