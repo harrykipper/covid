@@ -422,12 +422,13 @@ to recover
     [table:put infections ticks (list spreading-to)]
   ]
 
-  if isolated? [unisolate]
-  set nb-recovered (nb-recovered + 1)
   if hospitalized? [
     set hospitalized? false
     set isolated? false
   ]
+
+  if isolated? [unisolate]
+  set nb-recovered (nb-recovered + 1)
 end
 
 to kill-agent
@@ -525,7 +526,9 @@ to hospitalize ;; turtle procedure
     [get-tested]
     [if not isolated? [maybe-isolate "app-contact-of-positive"]]
   ]
-  if not isolated? [set isolated? true]                 ;; The agent is isolated, so people won't encounter him around, but we don't count him
+  ifelse not isolated? [set isolated? true]                 ;; The agent is isolated, so people won't encounter him around, but we don't count him
+  [table:put populations "isolated" table:get populations "isolated" - 1]
+
   set pcolor black
 
   if show-layout [
