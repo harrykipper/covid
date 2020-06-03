@@ -289,7 +289,6 @@ to go
 
   if table:get populations "infected" = 0 [
     print-final-summary
-    ; show timer
     stop
   ]
 
@@ -315,20 +314,18 @@ to go
     if ((symptomatic? = false) and (days-isolated = 10)) [unisolate]
   ]
 
-  ask turtles with [infected?] [
-
+  ask turtles with [infected? and (not hospitalized?)] [
     ; Infected agents (except those in hospital) infect others
-    if not hospitalized? [infect]
-
+    infect
     if ( member? my-state ["symptomatic" "severe"]) and (should-test?) and (state-counter = testing-urgency) [
       ifelse tests-remaining > 0
         [get-tested]
         [if not isolated? [maybe-isolate "symptomatic-individual"]]
      ]
-
-    ;;after the infection between contactas took place during the day, at the "end of the day" agents change states
-    progression-disease
   ]
+
+  ;;after the infection between contactas took place during the day, at the "end of the day" agents change states
+  ask turtles with [infected?][progression-disease]
 
   ifelse behaviorspace-run-number != 0
   [ save-individual ]
@@ -388,7 +385,7 @@ to progression-disease
       ]
     ]
   ]
-  if (member? my-state ["symptomatic" "asymptomatic"]) and (state-counter = t-stopinfecting) [ set chance-of-infecting 0]  ;;stop being infectious after 7-11 days
+  if (member? my-state ["symptomatic" "asymptomatic"]) and (state-counter = t-stopinfecting) [set chance-of-infecting 0]  ;;stop being infectious after 7-11 days
 ;; agents states: "incubation" "asymptomatic" "symptomatic" "severe" "in-hospital" "recovered" "dead"
 end
 
@@ -990,7 +987,7 @@ pct-with-tracing-app
 pct-with-tracing-app
 0
 100
-0.0
+35.0
 1
 1
 %
@@ -1005,7 +1002,7 @@ tests-per-100-people
 tests-per-100-people
 0
 20
-0.0
+3.0
 0.01
 1
 NIL
