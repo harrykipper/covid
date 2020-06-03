@@ -23,8 +23,9 @@ globals
   tests-per-day
   tests-performed
   hospital-beds        ;; Number of places in the hospital (currently unused)
-  counters             ;; Table containing various information
+  counters             ;; Table containing information on source of infection e.g household, friends...
   populations          ;;
+  cumulatives           ;; table of cumulative disease states
   infections           ;; table containing the average number of infections of people recovered or dead in the past week
 
   ;; Reproduction rate
@@ -45,6 +46,10 @@ globals
   howmanyrnd           ;; Number of random people we meet
   howmanyelder         ;; Number of random people (> 67 y.o.) we meet
 
+  seniors
+  schoolkids
+  adults
+  workers
   school               ;; Table of classes and pupils
 
   double-t
@@ -135,6 +140,10 @@ to setup
   set app-initalize? false
   read-agents
   set N-people count turtles
+  set seniors turtles with [age >= 67]
+  set schoolkids turtles with [age > 5 and age < 18]
+  set workers  turtles with [age > 22 and age < 67]
+  set adults  turtles with [age > 14]
 
   set-initial-variables
 
@@ -145,7 +154,7 @@ to setup
   ]
   [
     create-hh
-    ask turtles with [age >= 65] [create-relations]
+    ask seniors [create-relations]
     make-initial-links
     create-friendships
     if schools-open? [create-schools]
@@ -175,11 +184,11 @@ to setup
 end
 
 to set-initial-variables
-  set average-isolation-tendency 80
-  set compliance-adjustment ifelse-value app-compliance = "High" [0.9][0.7]
+  set average-isolation-tendency 70
+  set compliance-adjustment ifelse-value app-compliance = "High" [0.85][0.65]
   ;; Number of people we meet at random every day: 1 per 1000 people. Elderly goes out 1/2 less than other
-  let nmMeet 10; 0.001 * N-people
-  let propelderly  0.5 * count turtles with [age > 67]/ N-people
+  let nmMeet 5; 0.001 * N-people
+  let propelderly  0.5 * count seniors / count adults
   set howmanyelder round(nmMeet * propelderly)
   set howmanyrnd nmMeet - howmanyelder
 
@@ -191,6 +200,7 @@ to set-initial-variables
 
   set counters table:from-list (list ["household" 0]["relations" 0]["friends" 0]["school" 0]["random" 0])
   set populations table:from-list (list ["susceptible" 0]["infected" 0]["recovered" 0]["isolated" 0]["dead" 0]["in-hospital" 0]["incubation" 0]["symptomatic" 0]["asymptomatic" 0]["severe" 0])
+  set cumulatives table:from-list (list ["incubation" 0] ["asymptomatic" 0] ["symptomatic" 0] ["severe" 0 ] ["in-hospital" 0]["recovered" 0 ]["dead" 0])
   table:put populations "susceptible" N-people
 
   ;; initally there will be no tests------------------------------
@@ -226,7 +236,6 @@ end
 to initial-app
   set contact-tracing ifelse-value pct-with-tracing-app > 0 [true][false]
   set tests-per-day round ((tests-per-100-people / 100) * N-People / 7)
-  let adults turtles with [age > 14]
   ask n-of (round count adults * (pct-with-tracing-app / 100)) adults [set has-app? true]
 end
 
@@ -294,18 +303,22 @@ to go
     ]
   ]
 
+  ; New tests are available every day
   set tests-remaining tests-remaining + tests-per-day
   ask turtles [set tested-today? false]
-  ; The contact tracing app retains contacts for 10 days
+
+  ; The contact tracing app removes contacts older than 10 days
   if contact-tracing [ask tracings with [day < (ticks - 10)][die]]
+
   ask turtles with [isolated?] [
     set days-isolated days-isolated + 1
     if ((symptomatic? = false) and (days-isolated = 10)) [unisolate]
   ]
+
   ask turtles with [infected?] [
-    if not hospitalized? [
-      infect
-    ]
+
+    ; Infected agents (except those in hospital) infect others
+    if not hospitalized? [infect]
 
     if ( member? my-state ["symptomatic" "severe"]) and (should-test?) and (state-counter = testing-urgency) [
       ifelse tests-remaining > 0
@@ -315,22 +328,21 @@ to go
 
     ;;after the infection between contactas took place during the day, at the "end of the day" agents change states
     progression-disease
-
   ]
 
-  table:remove infections (ticks - 8)
-  table:put infections ticks mean table:get-or-default infections ticks (list 0)
-
-  ifelse behaviorspace-run-number != 0 [ save-individual ]
+  ifelse behaviorspace-run-number != 0
+  [ save-individual ]
   [
+    table:remove infections (ticks - 8)
+    table:put infections ticks mean table:get-or-default infections ticks (list 0)
     if ticks = 7
-    [set double-t 3
-      set cum-infected table:get populations "infected"
-    ]
+      [set double-t 7
+      set cum-infected table:get cumulatives "asymptomatic" + table:get cumulatives "symptomatic" + table:get cumulatives "severe"
+     ]
     if (ticks > 7)  and (inc-rate >= 2) [
       print-double-time
       set double-t ticks
-      set cum-infected table:get populations "infected"
+      set cum-infected table:get cumulatives "asymptomatic" + table:get cumulatives "symptomatic" + table:get cumulatives "severe"
     ]
 
     if show-layout [ask turtles [assign-color]]
@@ -349,7 +361,9 @@ to change-state [new-state]
   table:put populations my-state (table:get populations my-state - 1)
   set my-state new-state
   table:put populations my-state (table:get populations my-state + 1)
+  table:put cumulatives my-state (table:get cumulatives my-state + 1)
 end
+
 
 ;; =========================================================================
 ;;                    PROGRESSION OF THE INFECTION
@@ -381,13 +395,12 @@ end
 to determine-progress
   ifelse prob-symptoms > random 100 [
     ;show "DEBUG: I have the symptoms!"
-    ifelse probability-of-worsening > random 100
-      [change-state "severe"
-        set severe-symptoms? true
-        set symptomatic? true
-        set state-counter 0
+    ifelse probability-of-worsening > random 100 [
+      change-state "severe"
+      set severe-symptoms? true
+      set symptomatic? true
+      set state-counter 0
     ]
-
     [change-state "symptomatic"
       set symptomatic? true
       set state-counter 0
@@ -406,9 +419,11 @@ to recover
   set symptomatic? false
   set cured? true
 
-  ifelse table:has-key? infections ticks
-  [table:put infections ticks (lput spreading-to table:get infections ticks)]
-  [table:put infections ticks (list spreading-to)]
+  if behaviorspace-run-number = 0 [
+    ifelse table:has-key? infections ticks
+    [table:put infections ticks (lput spreading-to table:get infections ticks)]
+    [table:put infections ticks (list spreading-to)]
+  ]
 
   if isolated? [unisolate]
   set nb-recovered (nb-recovered + 1)
@@ -422,13 +437,15 @@ to kill-agent
   table:put populations my-state (table:get populations my-state - 1)
   table:put populations "infected" (table:get populations "infected" - 1)
   table:put populations "dead" (table:get populations "dead" + 1)
-
+  table:put cumulatives "dead" (table:get cumulatives "dead" + 1)
   if hospitalized? [set isolated? false]
   if isolated? [table:put populations "isolated" (table:get populations "isolated" - 1)]
 
-  ifelse table:has-key? infections ticks
-  [table:put infections ticks lput spreading-to table:get infections ticks ]
-  [table:put infections ticks (list spreading-to)]
+  if behaviorspace-run-number = 0 [
+    ifelse table:has-key? infections ticks
+    [table:put infections ticks lput spreading-to table:get infections ticks ]
+    [table:put infections ticks (list spreading-to)]
+  ]
 
   die
 
@@ -498,11 +515,6 @@ to unisolate  ;; turtle procedure
   set days-isolated 0
 end
 
-
-
-
-
-
 ;; To hospitalize, remove all links.
 to hospitalize ;; turtle procedure
   set state-counter 0
@@ -536,18 +548,15 @@ to infect  ;; turtle procedure
   let spreader self
   let chance chance-of-infecting
 
-
   ;; Every day an infected person risks infecting all other household members. Even if the agent is isolating
-  if (not hospitalized?) and count hh > 0  [
+  if count hh > 0  [
     let hh-infection-chance chance
 
     ;; if the person is isolating the people in the household will try to stay away...
-    if isolated? [set hh-infection-chance infection-chance * 0.7]
+    if isolated? [set hh-infection-chance hh-infection-chance * 0.7]
 
-    ask hh [
-      if can-be-infected? and (not cured?) and random 100 < (hh-infection-chance * age-discount) [
-        newinfection spreader "household"
-      ]
+    ask hh with [(not cured?) and can-be-infected?] [
+      if random 100 < (hh-infection-chance * age-discount) [newinfection spreader "household"]
     ]
   ]
 
@@ -556,28 +565,29 @@ to infect  ;; turtle procedure
     if (age <= 67 or 0.5 > random-float 1) [    ;; Old people only meet friends on even days (= go out half of the times younger people do).
 
       let proportion 10
-      if schools-open? and myclass != 0 [set proportion 20]  ;; Children who go to school will meet less friends
+      if schools-open? and member? self schoolkids [
+
+        set proportion 20      ;; Children who go to school will meet less friends
+        if (5 / 7) > random-float 1 [      ;; Schoolchildren meet their schoolmates every SCHOOLDAY, and can infect them.
+          let classmates table:get school myclass
+          ask n-of (count classmates / 2) other classmates [
+            if can-be-infected? and (not isolated?) [
+              if has-app? and [has-app?] of spreader [add-contact spreader]
+              if (not cured?) and random 100 < (chance * age-discount) [newinfection spreader "school"]
+            ]
+          ]
+        ]
+      ]
 
       ;;; Every day the agent meets a certain fraction of her friends.
       ;;; If the agent has the contact tracing app, a link is created between she and the friends who also have the app.
       ;;; If the agent is infective, with probability infection-chance, he infects the susceptible friends who he's is meeting.
       if count friends > 0 [
-        let howmany min( list (1 + random round (count friends / proportion)) 50)
+        let howmany min (list (1 + random round (count friends / proportion)) 50)
         ask n-of howmany friends [
           if not isolated? and can-be-infected? [
             if has-app? and [has-app?] of spreader [add-contact spreader]
             if (not cured?) and random 100 < (chance * age-discount) [newinfection spreader "friends"]]
-        ]
-      ]
-    ]
-
-    ;; Schoolchildren meet their schoolmates every SCHOOLDAY, and can infect them.
-    if schools-open? and myclass != 0 and (ticks mod 7 != 0) and (ticks mod 6 != 0) [
-      let classmates table:get school myclass
-      ask n-of (count classmates / 2) other classmates [
-        if can-be-infected? and (not isolated?) [
-          if has-app? and [has-app?] of spreader [add-contact spreader]
-          if (not cured?) and random 100 < (chance * age-discount) [newinfection spreader "school"]
         ]
       ]
     ]
@@ -592,22 +602,21 @@ to infect  ;; turtle procedure
     ]
 
     ;; Infected agents will also infect someone at random. The probability is 1/10 of the normal infection-chance
-    ;; If we're not using the network this is the sole mode of contact.
     ;; Here, again, if both parties have the app a link is created to keep track of the meeting
 
     let random-passersby nobody
     if (age <= 67 or 0.5 > random-float 1) [
 
       set random-passersby (turtle-set
-        n-of random-poisson howmanyrnd other turtles with [age <= 67]
-        n-of random-poisson howmanyelder other turtles with [age > 67]
+        n-of random-poisson howmanyrnd other adults
+        n-of random-poisson howmanyelder other seniors
       )
     ]
 
     ;; Here we determine who are the unknown people we encounter. This is the 'random' group.
     ;; If we are isolated or there is a lockdown, this is assumed to be zero.
     ;; Elderly people are assumed to go out half as much as everyone else
-    ;;currently an individual meets on average howmany/2 because it is randomly between 0 to howmany- I changed it to a draw from poisson distribution with average howmanyrnd or howmanyelder
+    ;;currently an individual meets  a draw from poisson distribution with average howmanyrnd or howmanyelder
     if random-passersby != nobody [
       ask random-passersby [
         if can-be-infected? and (not isolated?) [
@@ -866,7 +875,7 @@ initial-links-per-age-group
 initial-links-per-age-group
 0
 100
-30.0
+25.0
 1
 1
 NIL
@@ -981,7 +990,7 @@ pct-with-tracing-app
 pct-with-tracing-app
 0
 100
-40.0
+0.0
 1
 1
 %
@@ -996,7 +1005,7 @@ tests-per-100-people
 tests-per-100-people
 0
 20
-3.0
+0.0
 0.01
 1
 NIL
@@ -1313,10 +1322,9 @@ true
 true
 "" ""
 PENS
-"Symptomatic" 1.0 0 -955883 true "" "plot table:get populations \"symptomatic\""
-"Asymptomatic" 1.0 0 -13840069 true "" "plot table:get populations \"asymptomatic\""
-"Severe" 1.0 0 -2674135 true "" "plot table:get populations \"severe\""
-"Pre-symptomatic" 1.0 0 -7500403 true "" "plot table:get populations \"incubation\""
+"Symptomatic" 1.0 0 -955883 true "" "plot table:get cumulatives \"symptomatic\""
+"Asymptomatic" 1.0 0 -13840069 true "" "plot table:get cumulatives \"asymptomatic\""
+"Severe" 1.0 0 -2674135 true "" "plot table:get cumulatives \"severe\""
 
 @#$#@#$#@
 # covid19 in small communities
@@ -1780,17 +1788,11 @@ NetLogo 6.1.1
   <experiment name="phase2" repetitions="10" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
-    <enumeratedValueSet variable="show-layout">
-      <value value="false"/>
-    </enumeratedValueSet>
     <enumeratedValueSet variable="use-existing-nw?">
       <value value="true"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="infection-chance">
       <value value="6.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="incubation-days">
-      <value value="5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="tests-per-100-people">
       <value value="0"/>

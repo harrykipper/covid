@@ -42,8 +42,7 @@ to import-network
         ask turtle dest [set hh lput turtle orig hh]
       ]
     ]
-  ]
-  
+  ] 
   ask turtles [
     set friends turtle-set friends
     set relatives turtle-set relatives
@@ -131,7 +130,6 @@ to create-relations
 end
 
 to create-schools
-  let schoolkids turtles with [age >= 6 and age < 18]
   foreach remove-duplicates [age] of schoolkids [a ->
     let thesekids schoolkids with [age = a]
     ask thesekids [set myclass 0]
@@ -177,6 +175,7 @@ to create-friendships
       create-friendship-with (find-partner initialset) [set mean-age mean [age] of both-ends] 
     ]
   ]
+  ask turtles with [count my-friendships > 300] [ask n-of (count my-friendships - 300) my-friendships [die]]
   output-print "DONE CREATING FRIENDSHIPS!!!!!"
 end
 
@@ -186,5 +185,5 @@ end
 ;; within age classes as much as possible.
 
 to-report find-partner [initialnet]
-  report [one-of both-ends] of one-of initialnet
+  report [min-one-of both-ends [count my-friendships]] of one-of initialnet 
 end

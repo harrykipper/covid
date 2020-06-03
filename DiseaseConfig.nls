@@ -26,10 +26,10 @@ to-report probability-of-showing-symptoms
   report (ifelse-value
     age < 10 [2]
     age < 20 [26]     ;; Children rarely show any symptoms
-    age <= 40 [51]     ;; Agents between 30 and 40
-    age <= 50 [61]    ;; agents between 40 and 50
-    age <= 70 [71]     ;; agents between 50 and 60
-    [81]              ;; agents above 60
+    age <= 40 [52]     ;; Agents between 30 and 40
+    age <= 50 [62]    ;; agents between 40 and 50
+    age <= 70 [72]     ;; agents between 50 and 60
+    [82]              ;; agents above 60
   )
 end
 
@@ -55,7 +55,7 @@ to-report probabilityofdying
   )
 end
 
- to assign-disease-par
+to assign-disease-par
   set probability-of-dying probabilityofdying
   set probability-of-worsening probabilityofworsening * gender-discount
   
