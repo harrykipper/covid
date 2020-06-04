@@ -1,4 +1,4 @@
-__includes ["DiseaseConfig.nls" "output.nls" "SocialNetwork.nls" "layout.nls"]
+__includes ["DiseaseConfig.nls" "output.nls" "SocialNetwork.nls" "layout.nls" "work_distribution.nls"  ]
 
 extensions [csv table]
 
@@ -55,6 +55,8 @@ globals
   double-t
   cum-infected
 
+  work-place         ;list of work place size
+
 ]
 
 turtles-own
@@ -101,9 +103,11 @@ turtles-own
   friends
   relatives
   hh                   ;; household
-
+  wide-colleagues
+  close-colleagues
   myclass              ;; name of the pupil's class
-
+  my-work              ;;identifier of work site, where  0- is not working
+  my-work-sub          ;;identifier of sub work group
   has-app?             ;; If true the agent carries the contact-tracing app
   tested-today?
   aware?
@@ -173,13 +177,17 @@ to setup
   reset-ticks
 
   infect-initial-agents
-
+  work-distribution
+  assign-work-to-agents
+  assign-colleagues
   set s0 table:get populations "susceptible"
   if behaviorspace-run-number = 0 [
     output-print (word "Infected agents: " [who] of turtles with [infected?])
     plot-friends
     plot-age
     set infections table:make
+
+
   ]
 end
 
@@ -718,6 +726,16 @@ to-report impossible-run
   if tests-per-100-people = 0 and pct-with-tracing-app = 0 and app-compliance = "High" [report true]
   report false
 end
+
+;;===================== work distribution ==================================
+
+
+
+
+
+
+
+
 @#$#@#$#@
 GRAPHICS-WINDOW
 416
@@ -1035,7 +1053,7 @@ SWITCH
 243
 use-seed?
 use-seed?
-1
+0
 1
 -1000
 
@@ -1325,6 +1343,24 @@ PENS
 "Symptomatic" 1.0 0 -955883 true "" "plot table:get cumulatives \"symptomatic\""
 "Asymptomatic" 1.0 0 -13840069 true "" "plot table:get cumulatives \"asymptomatic\""
 "Severe" 1.0 0 -2674135 true "" "plot table:get cumulatives \"severe\""
+
+PLOT
+1190
+560
+1460
+770
+work-sites
+# of workers on site
+# of work  sites
+0.0
+10.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -14070903 true "" ""
 
 @#$#@#$#@
 # covid19 in small communities
