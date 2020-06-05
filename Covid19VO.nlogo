@@ -1,4 +1,4 @@
-__includes ["DiseaseConfig.nls" "output.nls" "SocialNetwork.nls" "layout.nls"]
+__includes ["DiseaseConfig.nls" "output.nls" "SocialNetwork.nls" "layout.nls" "scotland.nls"]
 
 extensions [csv table]
 
@@ -25,7 +25,7 @@ globals
   hospital-beds        ;; Number of places in the hospital (currently unused)
   counters             ;; Table containing information on source of infection e.g household, friends...
   populations          ;;
-  cumulatives           ;; table of cumulative disease states
+  cumulatives          ;; table of cumulative disease states
   infections           ;; table containing the average number of infections of people recovered or dead in the past week
 
   ;; Reproduction rate
@@ -34,8 +34,9 @@ globals
   s0                   ;; Initial number of susceptibles
   r0                   ;; The number of secondary infections that arise due to a single infective introduced in a wholly susceptible population
   rtime
+
   nb-infected          ;; Number of secondary infections caused by an infected person at the end of the tick
-  nb-infected-previous ;; Number of infected people at the previous tick
+  nb-infected-previous
   nb-recovered         ;; Number of recovered people at the end of the tick
 
   ;; Interventions
@@ -51,6 +52,7 @@ globals
   adults
   workers
   school               ;; Table of classes and pupils
+  place
 
   double-t
   cum-infected
@@ -107,6 +109,9 @@ turtles-own
   has-app?             ;; If true the agent carries the contact-tracing app
   tested-today?
   aware?
+
+  neigh
+  hhtype
 ]
 
 friendships-own [mean-age]
@@ -138,27 +143,26 @@ to setup
   ;set b ifelse-value many-asymptomatics? [1][1.4]
 
   set app-initalize? false
-  read-agents
+  read-agents-sco
+
   set N-people count turtles
   set seniors turtles with [age >= 67]
   set schoolkids turtles with [age > 5 and age < 18]
-  set workers  turtles with [age > 22 and age < 67]
-  set adults  turtles with [age > 14]
+  set workers turtles with [age > 22 and age < 67]
+  set adults turtles with [age > 14]
 
   set-initial-variables
 
   ifelse use-existing-nw? = true
-  [
-    import-network
-    if schools-open? [create-schools]
-  ]
+  [import-network]
   [
     create-hh
     ask seniors [create-relations]
     make-initial-links
     create-friendships
-    if schools-open? [create-schools]
   ]
+
+  if schools-open? [create-schools]
 
   ask turtles [
     assign-disease-par
@@ -187,7 +191,7 @@ to set-initial-variables
   set average-isolation-tendency 70
   set compliance-adjustment ifelse-value app-compliance = "High" [0.85][0.65]
   ;; Number of people we meet at random every day: 1 per 1000 people. Elderly goes out 1/2 less than other
-  let nmMeet 5; 0.001 * N-people
+  let nmMeet 7; 0.001 * N-people
   let propelderly  0.5 * count seniors / count adults
   set howmanyelder round(nmMeet * propelderly)
   set howmanyrnd nmMeet - howmanyelder
@@ -289,6 +293,7 @@ to go
 
   if table:get populations "infected" = 0 [
     print-final-summary
+    show timer
     stop
   ]
 
@@ -314,14 +319,14 @@ to go
     if ((symptomatic? = false) and (days-isolated = 10)) [unisolate]
   ]
 
-  ask turtles with [infected? and (not hospitalized?)] [
+  ask turtles with [infected? and (not hospitalized?)] [   ;; we could exclude those still in the incubation phase here. We don't, so that we produce a few false positives in the app
     ; Infected agents (except those in hospital) infect others
     infect
     if ( member? my-state ["symptomatic" "severe"]) and (should-test?) and (state-counter = testing-urgency) [
       ifelse tests-remaining > 0
         [get-tested]
         [if not isolated? [maybe-isolate "symptomatic-individual"]]
-     ]
+    ]
   ]
 
   ;;after the infection between contactas took place during the day, at the "end of the day" agents change states
@@ -990,7 +995,7 @@ pct-with-tracing-app
 pct-with-tracing-app
 0
 100
-35.0
+0.0
 1
 1
 %
@@ -1005,7 +1010,7 @@ tests-per-100-people
 tests-per-100-people
 0
 20
-3.0
+0.0
 0.01
 1
 NIL

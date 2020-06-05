@@ -149,7 +149,7 @@ to create-schools
 end
 
 to make-initial-links
-  foreach (list [6 10][11 14][15 19][20 25][26 36][37 49][50 65][66 80][81 103]) [a-g ->
+  foreach (list [15 19][20 25][26 36][37 49][50 65][66 80][81 103]) [a-g ->
     let theseguys turtles with [age >= item 0 a-g and age <= item 1 a-g]
     repeat initial-links-per-age-group [
       ask one-of theseguys [
@@ -164,7 +164,7 @@ end
 
 to create-friendships
   ;; Under 14s don't have friends.
-  ask turtles with [age >= 14][
+  ask turtles with [age > 14][
     let allinks friendships with [not member? myself both-ends]
     let goodlinks allinks with [abs ([age] of myself - mean-age) <= 12]   
     if age < 25 [set goodlinks goodlinks with [abs ([age] of myself - mean-age) <= 5]]

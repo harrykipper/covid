@@ -33,9 +33,7 @@ end
 
 to current-rt
   set rtime ifelse-value length table:keys infections > 0
-  [mean table:values infections]
-  [0]
-  
+  [mean table:values infections][0]
 end
 
 ;; =================== SUMMARY ==================
