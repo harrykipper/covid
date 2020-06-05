@@ -72,11 +72,19 @@ to print-final-summary
     output-print (word "Total deaths: " deaths ". - Mortality rate: " precision ((deaths / totalinf) * 100) 2 "%")
     output-print (word "Tests performed: " tests-performed)
     ;output-print (word "R0: " precision r0 2)
-    let tot sum table:values counters
-    output-print "Infections from household, relations, friends, school, random: "
-    foreach table:values counters [c -> 
-      output-type (word (precision (c / tot) 2) " ")
-    ]
+   let asy table:get cumulatives   "asymptomatic"
+   let sym table:get cumulatives   "symptomatic"
+   let sev table:get cumulatives   "severe"
+   let all_cases sev + sym + asy  
+   output-print (word "Ratio: hospital reported/community non-reported: " precision (( asy + sym) / sev ) 1 ) 
+   output-print (word "Severe: " precision (100 * sev / all_cases) 1 "% " " Symptomatic: "  precision (100 * sym / all_cases) 1 "% " " Asymptomatic: " precision (100 * asy / all_cases) 1 "% ") 
+   let tot sum table:values counters
+   let names( list "household: " " relations: " " friends: " " school: " " random: ")
+   let i 0
+   output-print (word "Infection sources: ")
+   foreach table:values counters [c -> 
+     output-type (word item i names (precision (100 * c / tot) 1) "%"  )
+     set i i + 1]
   ]
   [
     ifelse file-exists? "covid19.csv"
