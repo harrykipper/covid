@@ -49,7 +49,8 @@ globals
   seniors
   schoolkids
   adults
-  workers
+  workers              ;;people working in "offices"
+  crowd-workers        ;; people working with crowd
   school               ;; Table of classes and pupils
 
   double-t
@@ -108,6 +109,7 @@ turtles-own
   myclass              ;; name of the pupil's class
   my-work              ;;identifier of work site, where  0- is not working
   my-work-sub          ;;identifier of sub work group
+  crowd-worker?        ;;if the worker works with crowd
   has-app?             ;; If true the agent carries the contact-tracing app
   tested-today?
   aware?
@@ -146,7 +148,6 @@ to setup
   set N-people count turtles
   set seniors turtles with [age >= 67]
   set schoolkids turtles with [age > 5 and age < 18]
-  set workers  turtles with [age > 22 and age < 67]
   set adults  turtles with [age > 14]
 
   set-initial-variables
@@ -262,6 +263,7 @@ to reset-variables
   set aware? false
   set spreading-to 0
   set infected-by nobody
+  set crowd-worker? false
 end
 
 to read-agents
@@ -728,7 +730,6 @@ to-report impossible-run
 end
 
 ;;===================== work distribution ==================================
-
 
 
 
