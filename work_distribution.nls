@@ -52,9 +52,9 @@ to assign-colleagues
     let group-size ceiling (count group / 4)
     ask group[set my-work-sub random (group-size)] ;;agents are randomly given a group number
     ask group [set close-colleagues other group with [my-work-sub = [my-work-sub] of myself ]]
-    if count group > 2
-      [ask group with [count close-colleagues < 2][ 
-        set close-colleagues (turtle-set close-colleagues one-of other wide-colleagues with [my-work-sub != [my-work-sub] of myself]) ] 
+    if count group > 2[
+      ask group with [count close-colleagues < 2] [ 
+         set close-colleagues (turtle-set close-colleagues one-of other wide-colleagues with [my-work-sub != [my-work-sub] of myself]) ] 
        ]
     set i i + 1 
   ]  
