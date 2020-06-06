@@ -1,5 +1,5 @@
 to export-network
-  file-open "lizzanello_net.csv"
+  file-open "glasgow_net.csv"
   ask households [
     ask both-ends [;
       file-type (word who ",")
@@ -24,7 +24,7 @@ to import-network
     set hh []
   ]
   
-  foreach csv:from-file "lizzanello_net.csv" [lnk ->
+  foreach csv:from-file "glasgow_net.csv" [lnk ->
     let orig item 0 lnk
     let dest item 1 lnk
     ;let attr item 2 lnk
@@ -176,7 +176,7 @@ to create-friendships
     ]
   ]
   ask turtles with [count my-friendships > 300] [ask n-of (count my-friendships - 300) my-friendships [die]]
-  output-print "DONE CREATING FRIENDSHIPS!!!!!"
+  output-print (word timer "DONE CREATING FRIENDSHIPS!!!!!")
 end
 
 ;; This code is the heart of the "preferential attachment" mechanism. 
