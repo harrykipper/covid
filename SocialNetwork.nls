@@ -163,8 +163,9 @@ to make-initial-links
 end
 
 to create-friendships
+  make-initial-links
   ;; Under 14s don't have friends.
-  ask turtles with [age > 14][
+  ask adults [
     let allinks friendships with [not member? myself both-ends]
     let goodlinks allinks with [abs ([age] of myself - mean-age) <= 12]   
     if age < 25 [set goodlinks goodlinks with [abs ([age] of myself - mean-age) <= 5]]
@@ -175,9 +176,28 @@ to create-friendships
       create-friendship-with (find-partner initialset) [set mean-age mean [age] of both-ends] 
     ]
   ]
-  ask turtles with [count my-friendships > 300] [ask n-of (count my-friendships - 300) my-friendships [die]]
+  
   output-print (word timer "DONE CREATING FRIENDSHIPS!!!!!")
 end
+
+to remove-excess
+  ask turtles with [count my-friendships > 350][
+    ask n-of (count my-friendships - 350) my-friendships [die]
+  ]
+end
+
+;to remove-excess
+;  ask turtles with [count friends > 350] [
+;    let too-popular who
+;    let to-remove []
+;    let excess n-of (count friends - 350) friends
+;    ask excess [
+;      set friends friends with [who != too-popular]
+;      set to-remove lput who to-remove
+;    ]
+;    set friends friends with [not member? who to-remove]
+;  ]
+;end
 
 ;; This code is the heart of the "preferential attachment" mechanism. 
 ;; We exploit the asyncronous nature of NetLogo and link agents to other agents who already have links
@@ -185,5 +205,6 @@ end
 ;; within age classes as much as possible.
 
 to-report find-partner [initialnet]
-  report [min-one-of both-ends [count my-friendships]] of one-of initialnet 
+  ;report [min-one-of both-ends [count my-friendships]] of one-of initialnet 
+  report one-of [both-ends] of one-of initialnet
 end

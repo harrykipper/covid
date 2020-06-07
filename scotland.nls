@@ -18,9 +18,12 @@ to read-agents-sco
       set i i + 1
     ]
   ]
+  ask turtles with [member? hhtype [13 15 16]][die]
   set place table:group-agents turtles [neigh]
+  set seniors turtles with [age >= 67]
   set schoolkids turtles with [age > 5 and age < 18]
-  set seniors turtles with [age >= 65]
+  set working-age-agents turtles with [age > 22 and age < 67]
+  set adults turtles with [age > 14]
 end
 
 ; household types from 2011 census
@@ -56,12 +59,10 @@ end
 ; 13, 15 and 16 I don't want to think about. 15 maybe care homes??
 
 to create-hh-sco
-  ask turtles with [member? hhtype [13 15 16]][die]
   foreach table:keys place [ngh ->
     create-marriages-sco ngh
     attach-children-sco ngh
     create-student-hh ngh
-    create-schools-sco ngh
   ]
   output-print "Done creating marriages, households and attaching children"
   ask seniors [create-relations-sco]
@@ -190,7 +191,7 @@ to create-schools-sco [ngh]
       let c 1
       while [c <= howManyClasses] [
         let thisclass up-to-n-of kidsperclass thesekids with [myclass = 0]
-        ask thisclass [set myclass (word a "-" c)]
+        ask thisclass [set myclass (word ngh "-" a "-" c)]
         set c c + 1
       ]
     ]

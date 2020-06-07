@@ -51,10 +51,12 @@ globals
   seniors
   schoolkids
   adults
+  working-age-agents
   workers              ;;people working in "offices"
   crowd-workers        ;; people working with crowd
   school               ;; Table of classes and pupils
   place
+  workplaces
 
   double-t
   cum-infected
@@ -112,6 +114,9 @@ turtles-own
   myclass              ;; name of the pupil's class
   my-work              ;;identifier of work site, where  0- is not working
   my-work-sub          ;;identifier of sub work group
+  out-grp              ;; instrumental variable to produce workgroups quickly
+
+
   crowd-worker?        ;;if the worker works with crowd
   has-app?             ;; If true the agent carries the contact-tracing app
   tested-today?
@@ -153,23 +158,27 @@ to setup
   read-agents-sco
 
   set N-people count turtles
-  set seniors turtles with [age >= 67]
-  set schoolkids turtles with [age > 5 and age < 18]
+;  set seniors turtles with [age >= 67]
+;  set schoolkids turtles with [age > 5 and age < 18]
+;  set working-age-agents turtles with [age > 22 and age < 67]
 
-  set adults  turtles with [age > 14]
+  ; set adults  turtles with [age > 14]
 
   set-initial-variables
 
-  ifelse use-existing-nw? = true
-  [import-network]
-  [
-    create-hh
-    ask seniors [create-relations]
-    make-initial-links
+  if use-existing-nw? = false
+   [
+    create-hh-sco
+    ;ask seniors [create-relations]
     create-friendships
+    remove-excess
+    export-network
   ]
 
-  if schools-open? [create-schools]
+  import-network
+
+  ;create-schools
+  if schools-open? [foreach table:keys place [ngh -> create-schools-sco ngh]]
 
   ask turtles [
     assign-disease-par
@@ -189,13 +198,13 @@ to setup
   assign-colleagues
   set s0 table:get populations "susceptible"
   if behaviorspace-run-number = 0 [
+
     output-print (word "Infected agents: " [who] of turtles with [infected?])
     plot-friends
     plot-age
     set infections table:make
-
-
   ]
+  show timer
 end
 
 to set-initial-variables
@@ -297,6 +306,10 @@ to read-agents
     ]
     set row row + 1
   ]
+  set seniors turtles with [age >= 67]
+  set schoolkids turtles with [age > 5 and age < 18]
+  set working-age-agents turtles with [age > 22 and age < 67]
+  set adults  turtles with [age > 14]
 end
 ;=====================================================================================
 
@@ -739,10 +752,6 @@ end
 ;;===================== work distribution ==================================
 
 
-
-
-
-
 @#$#@#$#@
 GRAPHICS-WINDOW
 416
@@ -900,7 +909,7 @@ initial-links-per-age-group
 initial-links-per-age-group
 0
 100
-25.0
+100.0
 1
 1
 NIL
@@ -1060,7 +1069,7 @@ SWITCH
 243
 use-seed?
 use-seed?
-0
+1
 1
 -1000
 
