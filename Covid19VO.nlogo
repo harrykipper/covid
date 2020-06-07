@@ -7,6 +7,7 @@ undirected-link-breed [households household]
 undirected-link-breed [relations relation]      ;; Relatives who don't live in the same household
 undirected-link-breed [friendships friendship]
 undirected-link-breed [tracings tracing]        ;; The contact tracing app
+undirected-link-breed [wps wp]        ;; workplaces
 
 globals
 [
@@ -55,8 +56,7 @@ globals
   workers              ;;people working in "offices"
   crowd-workers        ;; people working with crowd
   school               ;; Table of classes and pupils
-  place
-  workplaces
+  place                ;; Table of neighbourhoods and their residents
 
   double-t
   cum-infected
@@ -128,6 +128,7 @@ turtles-own
 
 friendships-own [mean-age]
 households-own [ltype]  ; ltype 0 is a spouse; ltype 1 is offspring/sibling
+wps-own [wp-id wtype]
 
 tracings-own [day]
 
@@ -166,16 +167,16 @@ to setup
 
   set-initial-variables
 
-  if use-existing-nw? = false
-   [
-    create-hh-sco
-    ;ask seniors [create-relations]
-    create-friendships
-    remove-excess
-    export-network
+  ifelse use-existing-nw? = false
+    [
+      create-hh-sco
+      ;ask seniors [create-relations]
+      create-friendships
+      remove-excess
+  ][
+      import-network
+     ; import-workplaces
   ]
-
-  import-network
 
   ;create-schools
   if schools-open? [foreach table:keys place [ngh -> create-schools-sco ngh]]
@@ -193,9 +194,8 @@ to setup
   reset-ticks
 
   infect-initial-agents
-  work-distribution
-  assign-work-to-agents
-  assign-colleagues
+  create-workplaces
+
   set s0 table:get populations "susceptible"
   if behaviorspace-run-number = 0 [
 
@@ -584,7 +584,6 @@ to infect  ;; turtle procedure
 
     ;; if the person is isolating the people in the household will try to stay away...
     if isolated? [set hh-infection-chance hh-infection-chance * 0.7]
-
     ask hh with [(not cured?) and can-be-infected?] [
       if random 100 < (hh-infection-chance * age-discount) [newinfection spreader "household"]
     ]

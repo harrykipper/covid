@@ -1,13 +1,19 @@
+to create-workplaces
+  work-distribution
+  assign-work-to-agents
+  assign-colleagues
+end
+
 
 to work-distribution
- let with-crowd round (0.13 * count turtles with [age > 22 and age < 67])     ;;13% percent of the workforce are working with crowd
- set crowd-workers n-of with-crowd turtles with [age > 22 and age < 67]
+ let with-crowd round (0.13 * count working-age-agents)     ;;13% percent of the workforce are working with crowd
+ set crowd-workers n-of with-crowd working-age-agents
  ask crowd-workers [set crowd-worker? true ] 
- set workers  turtles with [(age > 22) and (age < 67) and (crowd-worker? = false)]
+ set workers working-age-agents with [crowd-worker? = false]
   
  let work-size-band (list [1 4][5 9][10 14][15 49][50 60])   ;;work  size bands, based on Glasgow statistics: https://www.gov.scot/publications/businesses-in-scotland-2019/  Businesses in Scotland: 2019 XLS table 8
  let per-work-size  (list 0.63 0.16 0.07 0.11 0.04)           ;;per of sites within the size band   
- let nm-sites  400 * count turtles with [age > 16 ]  / 10000  ;number of work sites, based on 400 work sites per 10,000 population over 16- based on Glasgow statistics
+ let nm-sites 400 * count turtles with [age > 16 ]  / 10000  ;number of work sites, based on 400 work sites per 10,000 population over 16- based on Glasgow statistics
  let i 0
  set work-place (list )
   foreach (work-size-band) [band ->
@@ -21,8 +27,8 @@ to work-distribution
   let working-age count workers     ;;number of workers  
   set work-place map [k -> round (working-age * k / total)] work-place     ;;determning the number of employees in each site based on proportional size of the site
   let y sum work-place - working-age
-  if y > 0 [set work-place replace-item 0 work-place (item 0 work-place - y) ]
-  output-print  (word "The city has " count turtles " residence, "  length (work-place) " work sites and " (with-crowd + count workers) " employees ")
+  if y > 0 [set work-place replace-item 0 work-place (item 0 work-place - y) ]    
+    output-print  (word "The city has " count turtles " residents, "  length (work-place) " work sites and " (count crowd-workers + count workers) " employees ")
   
   set-current-plot "work-sites"
   plot-pen-reset  ;; erase what we plotted before
@@ -30,7 +36,6 @@ to work-distribution
   set-plot-x-range 1 (maxsize + 1)  ;; + 1 to make room for the width of the last bar
   set-plot-pen-interval 5
   histogram work-place
-    
 end
 
 to assign-work-to-agents
@@ -38,39 +43,107 @@ to assign-work-to-agents
   let i 1 
   foreach work-place [mysize ->
     let my-workers n-of mysize tmp-workers
-    ask my-workers [set my-work i]
-    set tmp-workers tmp-workers with [my-work != i] 
+    ask my-workers [
+      set my-work i
+      set tmp-workers other tmp-workers 
+    ]
     set i i + 1  
   ]
 end
 
-to assign-colleagues
-  ask turtles with [my-work != 0][
-    set wide-colleagues other turtles with [my-work = [my-work] of myself ]     
-  ]
+;to assign-colleagues
+;  ask turtles with [my-work != 0][
+;    set wide-colleagues other turtles with [my-work = [my-work] of myself ]     
+;  ]
  
- let i 1
- let z max [my-work] of turtles 
- repeat z [
-    let worker one-of turtles with [my-work = i]
-    let group  (turtle-set [wide-colleagues] of worker worker)   
-    let group-size ceiling (count group / 4)
-    ask group[set my-work-sub random (group-size)] ;;agents are randomly given a group number
-    ask group [set close-colleagues other group with [my-work-sub = [my-work-sub] of myself ]]   ;;creating my close-group
-    ask group[
-      let other-group (turtle-set close-colleagues one-of other group with [my-work-sub != [my-work-sub] of myself ])  ;;adding contacts with one of the other groups
-      if other-group != nobody[
-        set close-colleagues (turtle-set close-colleagues other-group)
-        ask other-group[
-          if (member? myself close-colleagues) = false   [
-            set close-colleagues (turtle-set close-colleagues myself)]
-          ] 
-        ]
-      ]
-    set i i + 1 
-  ]  
+; let i 1
+; let z max [my-work] of turtles 
+; repeat z [
+;    let worker one-of turtles with [my-work = i]
+;    let group  (turtle-set [wide-colleagues] of worker worker)   
+;    let group-size ceiling (count group / 4)
+;    ask group[set my-work-sub random (group-size)] ;;agents are randomly given a group number
+;    ask group [set close-colleagues other group with [my-work-sub = [my-work-sub] of myself ]]   ;;creating my close-group
+;    ask group[
+;      let other-group (turtle-set close-colleagues one-of other group with [my-work-sub != [my-work-sub] of myself ])  ;;adding contacts with one of the other groups
+;      if other-group != nobody[
+;        set close-colleagues (turtle-set close-colleagues other-group)
+;        ask other-group[
+;          if (member? myself close-colleagues) = false   [
+;            set close-colleagues (turtle-set close-colleagues myself)]
+;          ] 
+;        ]
+;      ]
+;    set i i + 1 
+;  ]  
 
+; end
+
+to assign-colleagues
+  ; first we create the wide group
+  let workplaces table:group-agents workers with [my-work != 0][my-work]
+  ask turtle-set table:values workplaces [
+    set out-grp nobody
+    set wide-colleagues other table:get workplaces my-work
+    let id my-work
+    create-wps-with wide-colleagues [
+      set wp-id id
+      set wtype "wide"
+    ]
+    set my-work-sub (word my-work "-" random (count wide-colleagues / 4))
+  ]
+  
+  ; then the restricted group
+  let subgroups table:group-agents workers with [my-work-sub != 0][my-work-sub]
+  ask turtle-set table:values subgroups [
+    let caller self
+    let id my-work
+    if out-grp = nobody [ 
+      set out-grp one-of (turtle-set other table:get workplaces my-work) with [out-grp = nobody]
+      if out-grp != nobody [ask out-grp [set out-grp myself]]
+    ]
+    set close-colleagues (turtle-set out-grp other table:get subgroups my-work-sub)
+    ask close-colleagues [ask wp-with caller [set wtype "close"]]
+  ]
 end
 
-;;wide-colleagues
-;; close-colleagues
+to export-workplaces
+  file-open "workplaces.csv"
+  ask wps [
+    ask both-ends [file-type (word who ",")]
+    file-print (word wp-id "," wtype)
+  ]
+  file-close
+end
+
+to import-workplaces
+  ask workers [
+    set wide-colleagues []
+    set close-colleagues []
+  ]
+  
+  foreach csv:from-file "workplaces.csv" [lnk ->
+    let orig turtle item 0 lnk
+    let dest turtle item 1 lnk
+    let id item 2 lnk
+    let tp item 3 lnk
+    ifelse tp = "wide" [
+      ask orig [
+        if my-work = 0 [set my-work id]
+        set wide-colleagues lput dest wide-colleagues
+      ]
+      ask dest [
+        if my-work = 0 [set my-work id]
+        set wide-colleagues lput orig wide-colleagues
+      ]
+    ]
+    [
+      ask orig [set close-colleagues lput dest close-colleagues]
+      ask dest [set close-colleagues lput orig close-colleagues]
+    ]
+  ]
+  ask working-age-agents [
+    set wide-colleagues turtle-set wide-colleagues
+    set close-colleagues turtle-set close-colleagues
+  ]
+end
