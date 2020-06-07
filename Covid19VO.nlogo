@@ -181,8 +181,8 @@ to setup
   if schools-open? [foreach table:keys place [ngh -> create-schools-sco ngh]]
 
   ask turtles [
-    assign-disease-par
     reset-variables
+    assign-disease-par
   ]
 
   if show-layout [
@@ -279,6 +279,8 @@ to reset-variables
   set spreading-to 0
   set infected-by nobody
   set crowd-worker? false
+  ifelse age <= 15 [set age-discount 0.5][set age-discount 1]
+  ifelse sex = "F" [set gender-discount 0.8] [set gender-discount 1]
 end
 
 to read-agents
@@ -290,9 +292,7 @@ to read-agents
         crt item i ag [
           set myclass 0
           set age item 0 ag + 1 ;; ISTAT data are from 2019, everyone is one year older now..
-          set age-discount agediscount
           ifelse i < 5 [set sex "M"][set sex "F"]
-          set gender-discount genderdiscount
           ifelse i = 1 or i = 5 [set status 0][
             ifelse i = 2 or i = 6 [set status 1][
               ifelse i = 3 or i = 7 [set status 2][set status 3
@@ -489,15 +489,8 @@ end
 
 ;; ===============================================================================
 
-to-report genderdiscount
-  if sex = "F" [report 0.8]
-  report 1
-end
 
-to-report agediscount
-  if age <= 15 [report 0.5]
-  report 1
-end
+
 
 to-report should-test?
   if not tested-today? and not aware? [report true]
@@ -750,7 +743,6 @@ to-report impossible-run
 end
 
 ;;===================== work distribution ==================================
-
 
 @#$#@#$#@
 GRAPHICS-WINDOW
@@ -1039,7 +1031,7 @@ tests-per-100-people
 tests-per-100-people
 0
 20
-0.0
+0.02
 0.01
 1
 NIL
