@@ -13,6 +13,8 @@ to read-agents-sco
           set sex item 1 zn
           set age item 0 ag + (random (1 + item 1 ag - item 0 ag))
           set hhtype i - 3
+          set age-discount agediscount
+          set gender-discount genderdiscount
         ]
       ]
       set i i + 1
@@ -147,7 +149,7 @@ to attach-children-sco [ngh]
       let age-interval-max age + 39
       let thekid self
       let m mamme with [age <= age-interval-max and age >= age-interval-min]
-      if tp > 10 [set m (turtle-set m papa with [age <= age-interval-max and age >= age-interval-min])]  ;; type 10 and 11 are single parents with children, so m can be either dad or mom
+      if tp > 10 [set m (turtle-set m papa with [age <= age-interval-max and age >= age-interval-min])]  ;; type 11 and 12 are single parents with children, so m can be either dad or mom
       if any? m [
         ask min-one-of m [count my-households]
           [
@@ -168,7 +170,7 @@ to create-student-hh [ngh]
   let studs (turtle-set table:get place ngh) with [hhtype = 14]
   
   ; we assume households of up to 5 students
-  if count studs > 5 [
+  if count studs >= 5 [
     let howManyHH ceiling (count studs / 5)
     let studsPerHH ceiling (count studs / howManyHH)
     repeat howManyHH [
