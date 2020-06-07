@@ -742,7 +742,6 @@ to-report impossible-run
 end
 
 ;;===================== work distribution ==================================
-
 @#$#@#$#@
 GRAPHICS-WINDOW
 416
