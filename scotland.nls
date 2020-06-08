@@ -13,7 +13,6 @@ to read-agents-sco
           set sex item 1 zn
           set age item 0 ag + (random (1 + item 1 ag - item 0 ag))
           set hhtype i - 3
-          
         ]
       ]
       set i i + 1

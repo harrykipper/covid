@@ -4,7 +4,6 @@ to create-workplaces
   assign-colleagues
 end
 
-
 to work-distribution
  let with-crowd round (0.13 * count working-age-agents)     ;;13% percent of the workforce are working with crowd
  set crowd-workers n-of with-crowd working-age-agents
@@ -28,14 +27,7 @@ to work-distribution
   set work-place map [k -> round (working-age * k / total)] work-place     ;;determning the number of employees in each site based on proportional size of the site
   let y sum work-place - working-age
   if y > 0 [set work-place replace-item 0 work-place (item 0 work-place - y) ]    
-    output-print  (word "The city has " count turtles " residents, "  length (work-place) " work sites and " (count crowd-workers + count workers) " employees ")
   
-  set-current-plot "work-sites"
-  plot-pen-reset  ;; erase what we plotted before
-  let maxsize max work-place
-  set-plot-x-range 1 (maxsize + 1)  ;; + 1 to make room for the width of the last bar
-  set-plot-pen-interval 5
-  histogram work-place
 end
 
 to assign-work-to-agents
@@ -107,6 +99,17 @@ to assign-colleagues
   ]
 end
 
+to plot-worksites
+  ;output-print  (word "The city has " count turtles " residents, "  length (work-place) " work sites and " (count crowd-workers + count workers) " employees ")
+  
+  ;set-current-plot "work-sites"
+  ;plot-pen-reset  ;; erase what we plotted before
+  ;let maxsize max work-place
+  ;set-plot-x-range 1 (maxsize + 1)  ;; + 1 to make room for the width of the last bar
+  ;set-plot-pen-interval 5
+  ;histogram work-place
+end
+
 to export-workplaces
   file-open "workplaces.csv"
   ask wps [
@@ -117,7 +120,7 @@ to export-workplaces
 end
 
 to import-workplaces
-  ask workers [
+  ask turtles [
     set wide-colleagues []
     set close-colleagues []
   ]
@@ -142,8 +145,12 @@ to import-workplaces
       ask dest [set close-colleagues lput orig close-colleagues]
     ]
   ]
-  ask working-age-agents [
+  set workers turtles with [my-work != 0]
+  ask workers [
+    set office-worker? true
     set wide-colleagues turtle-set wide-colleagues
     set close-colleagues turtle-set close-colleagues
   ]
+  set crowd-workers working-age-agents with [not member? self workers]
+  ask crowd-workers [set crowd-worker? true]
 end

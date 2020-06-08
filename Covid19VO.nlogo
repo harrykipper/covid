@@ -116,8 +116,8 @@ turtles-own
   my-work-sub          ;;identifier of sub work group
   out-grp              ;; instrumental variable to produce workgroups quickly
 
-
-  crowd-worker?        ;;if the worker works with crowd
+  office-worker?
+  crowd-worker?        ;; if the worker works with crowd
   has-app?             ;; If true the agent carries the contact-tracing app
   tested-today?
   aware?
@@ -173,10 +173,7 @@ to setup
       ;ask seniors [create-relations]
       create-friendships
       remove-excess
-  ][
-      import-network
-     ; import-workplaces
-  ]
+  ][import-network]
 
   ;create-schools
   if schools-open? [foreach table:keys place [ngh -> create-schools-sco ngh]]
@@ -194,7 +191,9 @@ to setup
   reset-ticks
 
   infect-initial-agents
-  create-workplaces
+  ifelse use-existing-nw?
+  [import-workplaces]
+  [create-workplaces]
 
   set s0 table:get populations "susceptible"
   if behaviorspace-run-number = 0 [
@@ -202,6 +201,7 @@ to setup
     output-print (word "Infected agents: " [who] of turtles with [infected?])
     plot-friends
     plot-age
+    plot-worksites
     set infections table:make
   ]
   show timer
@@ -222,7 +222,7 @@ to set-initial-variables
   set high-prob-isolating ["symptomatic-individual" "household-of-symptomatic" "household-of-positive" "relation-of-symptomatic" "relation-of-positive" ]
   set low-prob-isolating ["app-contact-of-symptomatic" "app-contact-of-positive"]
 
-  set counters table:from-list (list ["household" 0]["relations" 0]["friends" 0]["school" 0]["random" 0])
+  set counters table:from-list (list ["household" 0]["relations" 0]["friends" 0]["school" 0]["random" 0]["work" 0])
   set populations table:from-list (list ["susceptible" 0]["infected" 0]["recovered" 0]["isolated" 0]["dead" 0]["in-hospital" 0]["incubation" 0]["symptomatic" 0]["asymptomatic" 0]["severe" 0])
   set cumulatives table:from-list (list ["incubation" 0] ["asymptomatic" 0] ["symptomatic" 0] ["severe" 0 ] ["in-hospital" 0]["recovered" 0 ]["dead" 0])
   table:put populations "susceptible" N-people
@@ -278,6 +278,7 @@ to reset-variables
   set aware? false
   set spreading-to 0
   set infected-by nobody
+  set office-worker? false
   set crowd-worker? false
   ifelse age <= 15 [set age-discount 0.5][set age-discount 1]
   ifelse sex = "F" [set gender-discount 0.8] [set gender-discount 1]
@@ -353,6 +354,8 @@ to go
         [if not isolated? [maybe-isolate "symptomatic-individual"]]
     ]
   ]
+
+  ;ask crowd-workers with [(infected? and not isolated?) or (not cured?)][meet-people]
 
   ;;after the infection between contactas took place during the day, at the "end of the day" agents change states
   ask turtles with [infected?][progression-disease]
@@ -489,9 +492,6 @@ end
 
 ;; ===============================================================================
 
-
-
-
 to-report should-test?
   if not tested-today? and not aware? [report true]
   report false
@@ -529,14 +529,12 @@ to isolate
   table:put populations "isolated" (table:get populations "isolated" + 1)
 end
 
-;; After unisolating, links return in place
 to unisolate  ;; turtle procedure
   set isolated? false
   table:put populations "isolated" (table:get populations "isolated" - 1)
   set days-isolated 0
 end
 
-;; To hospitalize, remove all links.
 to hospitalize ;; turtle procedure
   set state-counter 0
   change-state "in-hospital"
@@ -562,6 +560,36 @@ end
 
 ;=====================================================================================
 
+to meet-people
+  let spreader self
+  let chance chance-of-infecting
+  let victim self
+  let crowd n-of random-poisson howmanyrnd other table:get place neigh
+
+  ifelse infected? [
+    ;; Here the worker is infecting others
+    ask crowd [
+      if (can-be-infected? and (not isolated?)) [
+        if has-app? and [has-app?] of spreader [add-contact spreader]
+        if (not cured?) and random 100 < (chance * age-discount * 0.1) [newinfection spreader "random"]  ; If the worker infects someone, it counts as random
+      ]
+    ]
+  ]
+  [
+    ask crowd [
+      ;; here the worker is being infected by others
+      if infected? and not isolated? [
+        set spreader self
+        set chance chance-of-infecting
+        ask victim [
+          if has-app? and [has-app?] of spreader [add-contact spreader]
+          if (not cured?) and random 100 < (chance * age-discount * 0.1) [newinfection spreader "work"] ; If the worker is infected by someone, it's work.
+        ]
+      ]
+    ]
+  ]
+end
+
 ;; Infected individuals who are not isolated or hospitalized have a chance of transmitting
 ;; their disease to their susceptible friends and family.
 ;; We allow people to meet others even before they are infective so that the app will record these
@@ -571,7 +599,7 @@ to infect  ;; turtle procedure
   let spreader self
   let chance chance-of-infecting
 
-  ;; Every day an infected person risks infecting all other household members. Even if the agent is isolating
+  ;; Every day an infected person risks infecting all other household members. Even if the agent is isolating or there's a lockdown.
   if count hh > 0  [
     let hh-infection-chance chance
 
@@ -582,15 +610,28 @@ to infect  ;; turtle procedure
     ]
   ]
 
+  ;; When there's no lockdown, and we are not isolated, we go out and infect other people.
   if (not isolated?) and (not lockdown?) [
-    ;; First, we go for our friends
-    if (age <= 67 or 0.5 > random-float 1) [    ;; Old people only meet friends on even days (= go out half of the times younger people do).
 
-      let proportion 10
-      if schools-open? and member? self schoolkids [
+    ;; Infected agents will infect someone at random. The probability is 1/10 of the normal infection-chance
+    ;; Here, again, if both parties have the app a link is created to keep track of the meeting
+    let random-passersby nobody
+    if (age <= 67 or 0.5 > random-float 1) [
+      let locals table:get place neigh
+      set random-passersby (turtle-set
+        up-to-n-of random-poisson howmanyrnd other locals with [age < 65]
+        up-to-n-of random-poisson howmanyelder other locals with [age > 65]
+      )
+    ]
 
-        set proportion 20      ;; Children who go to school will meet less friends
-        if (5 / 7) > random-float 1 [      ;; Schoolchildren meet their schoolmates every SCHOOLDAY, and can infect them.
+    let proportion 10
+
+    if (5 / 7) > random-float 1 [   ; 5/7 times kids go to school and adults go to work
+
+      ifelse member? self schoolkids [
+        if schools-open?  [
+          set proportion 20      ;; Children who go to school will meet less friends
+                                 ;; Schoolchildren meet their schoolmates every SCHOOLDAY, and can infect them.
           let classmates table:get school myclass
           ask n-of (count classmates / 2) other classmates [
             if can-be-infected? and (not isolated?) [
@@ -600,10 +641,23 @@ to infect  ;; turtle procedure
           ]
         ]
       ]
+      [
+        if office-worker? [
+          let todaysvictims (turtle-set close-colleagues one-of wide-colleagues)
+          ask todaysvictims [if can-be-infected? and (not isolated?) [
+            if has-app? and [has-app?] of spreader [add-contact spreader]
+            if (not cured?) and random 100 < (chance * 0.5) [newinfection spreader "work"]
+            ]
+          ]
+        ]
+      ]
+    ]
 
-      ;;; Every day the agent meets a certain fraction of her friends.
-      ;;; If the agent has the contact tracing app, a link is created between she and the friends who also have the app.
-      ;;; If the agent is infective, with probability infection-chance, he infects the susceptible friends who he's is meeting.
+      ;; First, we go for our friends
+    if (age <= 67 or 0.5 > random-float 1) [    ;;; Old people only meet friends on even days (= go out half of the times younger people do).
+                                                ;;; Every day the agent meets a certain fraction of her friends.
+                                                ;;; If the agent has the contact tracing app, a link is created between she and the friends who also have the app.
+                                                ;;; If the agent is infective, with probability infection-chance, he infects the susceptible friends who he's is meeting.
       if count friends > 0 [
         let howmany min (list (1 + random round (count friends / proportion)) 50)
         ask n-of howmany friends [
@@ -621,18 +675,6 @@ to infect  ;; turtle procedure
           if (not cured?) and random 100 < (chance * age-discount) [newinfection spreader "relations"]
         ]
       ]
-    ]
-
-    ;; Infected agents will also infect someone at random. The probability is 1/10 of the normal infection-chance
-    ;; Here, again, if both parties have the app a link is created to keep track of the meeting
-
-    let random-passersby nobody
-    if (age <= 67 or 0.5 > random-float 1) [
-
-      set random-passersby (turtle-set
-        n-of random-poisson howmanyrnd other adults
-        n-of random-poisson howmanyelder other seniors
-      )
     ]
 
     ;; Here we determine who are the unknown people we encounter. This is the 'random' group.
@@ -1029,7 +1071,7 @@ tests-per-100-people
 tests-per-100-people
 0
 20
-0.02
+0.0
 0.01
 1
 NIL
@@ -1117,6 +1159,7 @@ PENS
 "School" 1.0 0 -2674135 true "" "plot table:get counters \"school\""
 "Strangers" 1.0 0 -955883 true "" "plot table:get counters \"random\""
 "Relations" 1.0 0 -7500403 true "" "plot table:get counters \"relations\""
+"Work" 1.0 0 -13840069 true "" "plot table:get counters \"work\""
 
 SWITCH
 780
