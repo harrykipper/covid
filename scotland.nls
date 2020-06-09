@@ -4,16 +4,15 @@ to read-agents-sco
     let ag list item 2 zn item 3 zn 
     let i 4
     ;print (word zn " - age " ag)
-    while [i < length zn] [ 
+    while [i < 20] [ 
       let howmany round (item i zn / scale)
      ; show (word howmany " ppl type " i)
       if howmany > 0 [
         crt howmany [
           set neigh item 0 zn
           set sex item 1 zn
-          set age item 0 ag + (random (1 + item 1 ag - item 0 ag))
+          set age my-age zn 
           set hhtype i - 3
-          
         ]
       ]
       set i i + 1
@@ -26,6 +25,39 @@ to read-agents-sco
   set working-age-agents turtles with [age > 22 and age < 67]
   set adults turtles with [age > 14]
 end
+
+to-report my-age [agelist]
+  let col 0
+  let col_start 0
+  let col_end 0
+  let age_group item 2 agelist
+  ifelse item 1 agelist = "M" [set col  20] [set col  100]
+   (ifelse
+    age_group = 0  [set col_start col set col_end (col_start + 14) ]
+    age_group = 16 [set col_start (col + 15) set col_end (col_start + 8)] 
+    age_group = 25 [set col_start (col + 24) set col_end (col_start + 24)]
+    age_group = 50 [set col_start (col + 49) set col_end (col_start + 14)] 
+    age_group = 65 [set col_start (col + 64) set col_end (col_start + 15)])
+        
+      
+    
+  
+  let sumage sublist agelist col_start (col_end + 1) 
+  let myrnd random (sum sumage + 1)
+  let select-age age_group 
+  if select-age = 0 [set select-age 1]
+  let cum_age item col_start agelist
+  
+  while [cum_age < myrnd]
+    [set select-age select-age + 1
+     set col_start col_start + 1 
+     set cum_age cum_age + item col_start agelist 
+    ]
+      
+ report select-age
+end
+
+
 
 ; household types from 2011 census
 ; 1 One person household: Aged [65 90],
