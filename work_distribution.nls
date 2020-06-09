@@ -2,6 +2,7 @@ to create-workplaces
   work-distribution
   assign-work-to-agents
   assign-colleagues
+  output-print  (word "The city has " count turtles " residents, "  length (work-place) " work sites and " (count crowd-workers + count workers) " employees ")
 end
 
 to work-distribution
@@ -153,4 +154,5 @@ to import-workplaces
   ]
   set crowd-workers working-age-agents with [not member? self workers]
   ask crowd-workers [set crowd-worker? true]
+  output-print  (word "The city has " count turtles " residents, "  max [my-work] of turtles  " work sites and " (count crowd-workers + count workers) " employees ")
 end
