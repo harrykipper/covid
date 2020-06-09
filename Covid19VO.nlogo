@@ -139,7 +139,6 @@ tracings-own [day]
 ;; ==========================================================================
 
 to setup
-
   set rnd ifelse-value use-seed? [-1114321144][new-seed]
   random-seed rnd
   ;show rnd ;if behaviorspace-run-number = 0 [output-print (word  "Random seed: " rnd)]
@@ -204,7 +203,6 @@ to setup
     plot-worksites
     set infections table:make
   ]
-  show timer
 end
 
 to set-initial-variables
@@ -319,7 +317,6 @@ to go
 
   if table:get populations "infected" = 0 [
     print-final-summary
-    show timer
     stop
   ]
 
