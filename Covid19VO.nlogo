@@ -29,7 +29,7 @@ globals
   populations          ;;
   cumulatives          ;; table of cumulative disease states
   infections           ;; table containing the average number of infections of people recovered or dead in the past week
-
+  placecnt             ;;table of size of neigh and prop of young
   ;; Reproduction rate
   beta-n               ;; The average number of new secondary infections per infected this tick
   gamma                ;; The average number of new recoveries per infected this tick
@@ -208,12 +208,6 @@ end
 to set-initial-variables
   set average-isolation-tendency 70
   set compliance-adjustment ifelse-value app-compliance = "High" [0.85][0.65]
-  ;; Number of people we meet at random every day: 1 per 1000 people. Elderly goes out 1/2 less than other
-  let nmMeet 7; 0.001 * N-people
-  let propelderly  0.5 * count seniors / count adults
-  set howmanyelder round(nmMeet * propelderly)
-  set howmanyrnd nmMeet - howmanyelder
-
   ;;initially we start the expirement with no app-----------------------
   ;;ifelse pct-with-tracing-app > 0 [set contact-tracing true][]
   set contact-tracing false
@@ -558,25 +552,30 @@ end
 ;=====================================================================================
 
 to meet-people
+  let nmMeet 0.015 * item 0 table:get placecnt neigh ;;gives 1% of the people in the neigh
+  let propelderly  0.5 * (1 - item 1 table:get placecnt neigh) ;;gives 50% of the proportion of the elderly in the neigh
+  set howmanyelder round(nmMeet * propelderly)
+  set howmanyrnd nmMeet - howmanyelder
+
   let spreader self
   let chance chance-of-infecting
   let victim self
   let crowd other table:get place neigh
   set crowd (turtle-set
-            up-to-n-of  random-poisson (howmanyrnd * 5) other crowd with [isolated? = false and age < 67]
-            up-to-n-of  random-poisson (howmanyelder * 5) other crowd with [isolated? = false and age > 67])
+            up-to-n-of  random-poisson (howmanyrnd ) other crowd with [ age < 67]
+            up-to-n-of  random-poisson (howmanyelder) other crowd with [age > 67])
 
   ifelse infected? [
     ;; Here the worker is infecting others
     ask crowd [
-      if can-be-infected? [
+      if (can-be-infected?) and (not isolated?) [
         if has-app? and [has-app?] of spreader [add-contact spreader]
         if (not cured?) and random 100 < (chance * age-discount * 0.1) [newinfection spreader "random"]  ; If the worker infects someone, it counts as random
       ]
     ]
   ]
   [
-    ask crowd with [infected?] [
+    ask crowd with [(infected?) and (not isolated?)] [
       ;; here the worker is being infected by others
         set spreader self
         set chance chance-of-infecting
@@ -597,6 +596,11 @@ end
 ;; interactions and produce a few false positives
 
 to infect  ;; turtle procedure
+  ;; Number of people we meet at random every day: 1 per 1000 people. Elderly goes out 1/2 less than other
+  let nmMeet 0.005 * item 0 table:get placecnt neigh ;;gives 0.5% of the people in the neigh
+  let propelderly  0.5 * (1 - item 1 table:get placecnt neigh) ;;gives 50% of the proportion of the elderly in the neigh
+  set howmanyelder round(nmMeet * propelderly)
+  set howmanyrnd nmMeet - howmanyelder
   let spreader self
   let chance chance-of-infecting
 
@@ -620,8 +624,8 @@ to infect  ;; turtle procedure
     if (age <= 67 or 0.5 > random-float 1) [
       let locals table:get place neigh
       set random-passersby (turtle-set
-        up-to-n-of random-poisson howmanyrnd other locals with [(age < 65) and (isolated? = false)]
-        up-to-n-of random-poisson howmanyelder other locals with [age > 65 and (isolated? = false)]
+        up-to-n-of random-poisson howmanyrnd other locals with [age < 65 ]
+        up-to-n-of random-poisson howmanyelder other locals with [age > 65 ]
       )
     ]
 
@@ -685,7 +689,7 @@ to infect  ;; turtle procedure
     ;;currently an individual meets  a draw from poisson distribution with average howmanyrnd or howmanyelder
     if random-passersby != nobody [
       ask random-passersby [
-        if can-be-infected?  [
+        if (can-be-infected?) and (not isolated?)  [
           if has-app? and [has-app?] of spreader [add-contact spreader]
           if (not cured?) and random 100 < ((chance * age-discount) * 0.1) [newinfection spreader "random"]
         ]
