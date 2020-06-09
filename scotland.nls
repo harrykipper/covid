@@ -20,6 +20,11 @@ to read-agents-sco
   ]
   ask turtles with [member? hhtype [13 15 16]][die]
   set place table:group-agents turtles [neigh]
+  
+  set placecnt table:from-list map [area ->  
+    (list (item 0 area) (count turtle-set item 1 area) (count (turtle-set item 1 area) with [age < 67] / count (turtle-set item 1 area)))
+  ] table:to-list place
+    
   set seniors turtles with [age >= 67]
   set schoolkids turtles with [age > 5 and age < 18]
   set working-age-agents turtles with [age > 22 and age < 67]
