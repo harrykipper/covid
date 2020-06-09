@@ -149,7 +149,7 @@ to create-schools
 end
 
 to make-initial-links
-  foreach (list [15 19][20 25][26 36][37 49][50 65][66 80][81 103]) [a-g ->
+  foreach (list [15 19][20 25][26 36][37 49][50 65][66 79][80 103]) [a-g ->
     let theseguys turtles with [age >= item 0 a-g and age <= item 1 a-g]
     repeat initial-links-per-age-group [
       ask one-of theseguys [
@@ -162,13 +162,31 @@ to make-initial-links
   ]
 end
 
+to create-friendships2
+  let linked adults with [count my-friendships > 0]
+  ask adults [
+    let goodfriends ifelse-value age < 25 
+      [other linked with [abs (age - [age] of myself) <= 5]]
+    [other linked with [abs (age - [age] of myself) <= 12]]
+    repeat 5 + random 10 [
+      ifelse (age >= 25 and random 100 < 15) 
+      [create-friendship-with one-of linked]
+      [create-friendship-with one-of goodfriends]
+    ]
+    set linked (turtle-set linked self)
+  ]
+  output-print (word timer "DONE CREATING FRIENDSHIPS!!!!!")
+end
+
+
 to create-friendships
   make-initial-links
   ;; Under 14s don't have friends.
   ask adults [
     let allinks friendships with [not member? myself both-ends]
-    let goodlinks allinks with [abs ([age] of myself - mean-age) <= 12]   
-    if age < 25 [set goodlinks goodlinks with [abs ([age] of myself - mean-age) <= 5]]
+    let goodlinks ifelse-value age < 25 
+    [allinks with [abs ([age] of myself - mean-age) <= 5]]
+    [allinks with [abs ([age] of myself - mean-age) <= 12]]   
     repeat 5 + random 10 [
       let initialset goodlinks
       ;; 15% chance of having a friend of a very different age
@@ -176,7 +194,6 @@ to create-friendships
       create-friendship-with (find-partner initialset) [set mean-age mean [age] of both-ends] 
     ]
   ]
-  
   output-print (word timer "DONE CREATING FRIENDSHIPS!!!!!")
 end
 

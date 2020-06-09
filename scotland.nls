@@ -37,10 +37,8 @@ to-report my-age [agelist]
     age_group = 16 [set col_start (col + 15) set col_end (col_start + 8)] 
     age_group = 25 [set col_start (col + 24) set col_end (col_start + 24)]
     age_group = 50 [set col_start (col + 49) set col_end (col_start + 14)] 
-    age_group = 65 [set col_start (col + 64) set col_end (col_start + 15)])
-        
-      
-    
+    age_group = 65 [set col_start (col + 64) set col_end (col_start + 15)]
+  )
   
   let sumage sublist agelist col_start (col_end + 1) 
   let myrnd random (sum sumage + 1)

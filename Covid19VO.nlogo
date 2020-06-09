@@ -170,7 +170,7 @@ to setup
     [
       create-hh-sco
       ;ask seniors [create-relations]
-      create-friendships
+      create-friendships2
       remove-excess
   ][import-network]
 
@@ -579,8 +579,10 @@ to meet-people
         set spreader self
         set chance chance-of-infecting
         ask victim [
-          if has-app? and [has-app?] of spreader [add-contact spreader]
-          if (not cured?) and random 100 < (chance * age-discount * 0.1) [newinfection spreader "work"] ; If the worker is infected by someone, it's work.
+          if can-be-infected? [
+            if has-app? and [has-app?] of spreader [add-contact spreader]
+            if (not cured?) and random 100 < (chance * age-discount * 0.1) [newinfection spreader "work"] ; If the worker is infected by someone, it's work.
+          ]
         ]
       ]
     ]
