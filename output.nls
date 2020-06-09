@@ -79,7 +79,7 @@ to print-final-summary
    output-print (word "Ratio: hospital reported/community non-reported: " precision (( asy + sym) / sev ) 1 ) 
    output-print (word "Severe: " precision (100 * sev / all_cases) 1 "% " " Symptomatic: "  precision (100 * sym / all_cases) 1 "% " " Asymptomatic: " precision (100 * asy / all_cases) 1 "% ") 
    let tot sum table:values counters
-   let names( list "household: " " relations: " " friends: " " school: " " random: ")
+   let names( list "household: " " relations: " " friends: " " school: " " random: " " work: ")
    let i 0
    output-print (word "Infection sources: ")
    foreach table:values counters [c -> 
