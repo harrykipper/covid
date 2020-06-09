@@ -351,8 +351,8 @@ to go
         [if not isolated? [maybe-isolate "symptomatic-individual"]]
     ]
   ]
-
-  ;ask crowd-workers with [(infected? and not isolated?) or (not cured?)][meet-people]
+  ;;crow workers work 5 days and may infect the crowd or be infected by the crowd
+  ask crowd-workers with [(not isolated?) or (not cured?)][if 5 / 7 > random-float 1 [meet-people]]
 
   ;;after the infection between contactas took place during the day, at the "end of the day" agents change states
   ask turtles with [infected?][progression-disease]
@@ -561,28 +561,30 @@ to meet-people
   let spreader self
   let chance chance-of-infecting
   let victim self
-  let crowd n-of random-poisson howmanyrnd other table:get place neigh
+  let crowd other table:get place neigh
+  set crowd (turtle-set
+            up-to-n-of  random-poisson (howmanyrnd * 5) other crowd with [isolated? = false and age < 67]
+            up-to-n-of  random-poisson (howmanyelder * 5) other crowd with [isolated? = false and age > 67])
 
   ifelse infected? [
     ;; Here the worker is infecting others
     ask crowd [
-      if (can-be-infected? and (not isolated?)) [
+      if can-be-infected? [
         if has-app? and [has-app?] of spreader [add-contact spreader]
         if (not cured?) and random 100 < (chance * age-discount * 0.1) [newinfection spreader "random"]  ; If the worker infects someone, it counts as random
       ]
     ]
   ]
   [
-    ask crowd [
+    ask crowd with [infected?] [
       ;; here the worker is being infected by others
-      if infected? and not isolated? [
         set spreader self
         set chance chance-of-infecting
-        ask victim [
+      ask victim [
           if has-app? and [has-app?] of spreader [add-contact spreader]
           if (not cured?) and random 100 < (chance * age-discount * 0.1) [newinfection spreader "work"] ; If the worker is infected by someone, it's work.
         ]
-      ]
+
     ]
   ]
 end
@@ -616,8 +618,8 @@ to infect  ;; turtle procedure
     if (age <= 67 or 0.5 > random-float 1) [
       let locals table:get place neigh
       set random-passersby (turtle-set
-        up-to-n-of random-poisson howmanyrnd other locals with [age < 65]
-        up-to-n-of random-poisson howmanyelder other locals with [age > 65]
+        up-to-n-of random-poisson howmanyrnd other locals with [(age < 65) and (isolated? = false)]
+        up-to-n-of random-poisson howmanyelder other locals with [age > 65 and (isolated? = false)]
       )
     ]
 
@@ -630,8 +632,9 @@ to infect  ;; turtle procedure
           set proportion 20      ;; Children who go to school will meet less friends
                                  ;; Schoolchildren meet their schoolmates every SCHOOLDAY, and can infect them.
           let classmates table:get school myclass
+          set classmates classmates  with [isolated? = false]
           ask n-of (count classmates / 2) other classmates [
-            if can-be-infected? and (not isolated?) [
+            if can-be-infected? [
               if has-app? and [has-app?] of spreader [add-contact spreader]
               if (not cured?) and random 100 < (chance * age-discount) [newinfection spreader "school"]
             ]
@@ -643,7 +646,7 @@ to infect  ;; turtle procedure
           let todaysvictims (turtle-set close-colleagues one-of wide-colleagues)
           ask todaysvictims [if can-be-infected? and (not isolated?) [
             if has-app? and [has-app?] of spreader [add-contact spreader]
-            if (not cured?) and random 100 < (chance * 0.5) [newinfection spreader "work"]
+            if (not cured?) and random 100 < (chance ) [newinfection spreader "work"]
             ]
           ]
         ]
@@ -680,7 +683,7 @@ to infect  ;; turtle procedure
     ;;currently an individual meets  a draw from poisson distribution with average howmanyrnd or howmanyelder
     if random-passersby != nobody [
       ask random-passersby [
-        if can-be-infected? and (not isolated?) [
+        if can-be-infected?  [
           if has-app? and [has-app?] of spreader [add-contact spreader]
           if (not cured?) and random 100 < ((chance * age-discount) * 0.1) [newinfection spreader "random"]
         ]
