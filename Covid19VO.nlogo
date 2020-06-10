@@ -183,9 +183,12 @@ to setup
   reset-ticks
 
   infect-initial-agents
-  ;ifelse use-existing-nw?
-  import-workplaces
-  ; create-workplaces
+
+ ifelse use-existing-nw?
+  [import-workplaces]
+  [create-workplaces]
+
+
 
   set s0 table:get populations "susceptible"
   if behaviorspace-run-number = 0 [
