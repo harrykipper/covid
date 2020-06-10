@@ -158,11 +158,18 @@ to setup
   read-agents-sco
 
   set N-people count turtles
+;  set seniors turtles with [age >= 67]
+;  set schoolkids turtles with [age > 5 and age < 18]
+;  set working-age-agents turtles with [age > 22 and age < 67]
+
+  ; set adults  turtles with [age > 14]
 
   set-initial-variables
 
-  ifelse use-existing-nw? = false [
+  ifelse use-existing-nw? = false
+    [
       create-hh-sco
+      ;ask seniors [create-relations]
       create-friendships2
       remove-excess
   ][import-network]
@@ -184,10 +191,10 @@ to setup
 
   infect-initial-agents
 
+
  ;ifelse use-existing-nw?
   import-workplaces
  ; create-workplaces
-
 
 
   set s0 table:get populations "susceptible"
@@ -262,6 +269,7 @@ to reset-variables
   set susceptible? true
   set symptomatic? false
   set severe-symptoms? false
+  ; set dead? false
   set aware? false
   set spreading-to 0
   set infected-by nobody
@@ -554,18 +562,17 @@ to meet-people
   let propelderly  0.5 * (1 - item 1 here) ;;gives 50% of the proportion of the elderly in the neigh
   set howmanyelder round (nmMeet * propelderly)
   set howmanyrnd nmMeet - howmanyelder
-  let locals other table:get place neigh
 
   let spreader self
   let chance chance-of-infecting
   let victim self
+  let crowd other table:get place neigh
+  set crowd (turtle-set
 
-  let crowd (turtle-set
-    up-to-n-of random-poisson howmanyrnd locals with [age < 67]
-    up-to-n-of random-poisson howmanyelder locals with [age > 67]
-  )
+    up-to-n-of  random-poisson (howmanyrnd ) crowd with [ age < 67]
+    up-to-n-of  random-poisson (howmanyelder) crowd with [age > 67])
 
-  ifelse infected? [
+  ifelse infected?  [
     ;; Here the worker is infecting others
     ask crowd [
       if (can-be-infected?) and (not isolated?) [
@@ -575,16 +582,17 @@ to meet-people
     ]
   ]
   [
-    ask crowd with [infected? and (not isolated?)] [
+    ask crowd with [(infected?) and (not isolated?)] [
       ;; here the worker is being infected by others
         set spreader self
         set chance chance-of-infecting
         ask victim [
           if can-be-infected? [
             if has-app? and [has-app?] of spreader [add-contact spreader]
-            if (not cured?) and random 100 < (chance * 0.1) [newinfection spreader "work"] ; If the worker is infected by someone, it's work.
+            if (not cured?) and random 100 < (chance * age-discount * 0.1) [newinfection spreader "work"] ; If the worker is infected by someone, it's work.
+          ]
         ]
-      ]
+
     ]
   ]
 end
@@ -602,7 +610,6 @@ to infect  ;; turtle procedure
   let propelderly  0.5 * (1 - item 1 here) ;;gives 50% of the proportion of the elderly in the neigh
   set howmanyelder round(nmMeet * propelderly)
   set howmanyrnd nmMeet - howmanyelder
-
   let spreader self
   let chance chance-of-infecting
 
@@ -624,10 +631,10 @@ to infect  ;; turtle procedure
     ;; Here, again, if both parties have the app a link is created to keep track of the meeting
     let random-passersby nobody
     if (age <= 67 or 0.5 > random-float 1) [
-      let locals other table:get place neigh
+      let locals table:get place neigh
       set random-passersby (turtle-set
-        up-to-n-of random-poisson howmanyrnd locals with [age < 65 ]
-        up-to-n-of random-poisson howmanyelder locals with [age > 65 ]
+        up-to-n-of random-poisson howmanyrnd other locals with [age < 65 ]
+        up-to-n-of random-poisson howmanyelder other locals with [age > 65 ]
       )
     ]
 
