@@ -190,7 +190,7 @@ to setup
   reset-ticks
 
   infect-initial-agents
-  ifelse use-existing-nw?
+ ifelse use-existing-nw?
   [import-workplaces]
   [create-workplaces]
 
