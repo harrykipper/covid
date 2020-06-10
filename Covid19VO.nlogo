@@ -184,9 +184,9 @@ to setup
 
   infect-initial-agents
 
- ifelse use-existing-nw?
-  [import-workplaces]
-  [create-workplaces]
+ ;ifelse use-existing-nw?
+  import-workplaces
+ ; create-workplaces
 
 
 
