@@ -91,7 +91,7 @@ to print-final-summary
     [file-open "covid19.csv"]
     [
       file-open "covid19.csv"
-      file-print "run,pctApp,pctTest,lockdown,schools,compliance,deaths,propInfected,mortality,days,tests,household,relations,friends,school,random"
+      file-print "run,pctApp,pctTest,lockdown,schools,compliance,deaths,propInfected,mortality,days,tests,household,relations,friends,school,random,work"
     ]
     let tot sum table:values counters
     file-type (
