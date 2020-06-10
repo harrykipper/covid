@@ -29,7 +29,7 @@ globals
   populations          ;;
   cumulatives          ;; table of cumulative disease states
   infections           ;; table containing the average number of infections of people recovered or dead in the past week
-
+  placecnt             ;;table of size of neigh and prop of young
   ;; Reproduction rate
   beta-n               ;; The average number of new secondary infections per infected this tick
   gamma                ;; The average number of new recoveries per infected this tick
@@ -56,8 +56,7 @@ globals
   workers              ;;people working in "offices"
   crowd-workers        ;; people working with crowd
   school               ;; Table of classes and pupils
-  place                ;; Table of neighbourhoods and their residents
-  placecnt             ;;
+  place                ;; Table of neighbourhoods and their residents             ;;
 
   double-t
   cum-infected
@@ -201,7 +200,7 @@ to setup
     output-print (word "Infected agents: " [who] of turtles with [infected?])
     plot-friends
     plot-age
-    plot-worksites
+    ;plot-worksites
     set infections table:make
   ]
 end
@@ -209,12 +208,6 @@ end
 to set-initial-variables
   set average-isolation-tendency 70
   set compliance-adjustment ifelse-value app-compliance = "High" [0.85][0.65]
-  ;; Number of people we meet at random every day: 1 per 1000 people. Elderly goes out 1/2 less than other
-  let nmMeet 7; 0.001 * N-people
-  let propelderly  0.5 * count seniors / count adults
-  set howmanyelder round(nmMeet * propelderly)
-  set howmanyrnd nmMeet - howmanyelder
-
   ;;initially we start the expirement with no app-----------------------
   ;;ifelse pct-with-tracing-app > 0 [set contact-tracing true][]
   set contact-tracing false
@@ -344,6 +337,7 @@ to go
   ]
 
   ask turtles with [infected? and (not hospitalized?)] [   ;; we could exclude those still in the incubation phase here. We don't, so that we produce a few false positives in the app
+
     ; Infected agents (except those in hospital) infect others
     infect
     if ( member? my-state ["symptomatic" "severe"]) and (should-test?) and (state-counter = testing-urgency) [
@@ -352,6 +346,7 @@ to go
         [if not isolated? [maybe-isolate "symptomatic-individual"]]
     ]
   ]
+
   ;;crow workers work 5 days and may infect the crowd or be infected by the crowd
   ask crowd-workers with [(not isolated?) or (not cured?)][if 5 / 7 > random-float 1 [meet-people]]
 
@@ -559,25 +554,32 @@ end
 ;=====================================================================================
 
 to meet-people
+  let here table:get placecnt neigh
+  let nmMeet 0.015 * item 0 here ;;gives 1% of the people in the neigh
+  let propelderly  0.5 * (1 - item 1 here) ;;gives 50% of the proportion of the elderly in the neigh
+  set howmanyelder round (nmMeet * propelderly)
+  set howmanyrnd nmMeet - howmanyelder
+
   let spreader self
   let chance chance-of-infecting
   let victim self
   let crowd other table:get place neigh
   set crowd (turtle-set
-            up-to-n-of  random-poisson (howmanyrnd * 5) other crowd with [age < 67]
-            up-to-n-of  random-poisson (howmanyelder * 5) other crowd with [age > 67])
 
-  ifelse infected? [
+    up-to-n-of  random-poisson (howmanyrnd ) crowd with [ age < 67]
+    up-to-n-of  random-poisson (howmanyelder) crowd with [age > 67])
+
+  ifelse infected?  [
     ;; Here the worker is infecting others
     ask crowd [
-      if can-be-infected? [
+      if (can-be-infected?) and (not isolated?) [
         if has-app? and [has-app?] of spreader [add-contact spreader]
         if (not cured?) and random 100 < (chance * age-discount * 0.1) [newinfection spreader "random"]  ; If the worker infects someone, it counts as random
       ]
     ]
   ]
   [
-    ask crowd with [infected?] [
+    ask crowd with [(infected?) and (not isolated?)] [
       ;; here the worker is being infected by others
         set spreader self
         set chance chance-of-infecting
@@ -598,6 +600,13 @@ end
 ;; interactions and produce a few false positives
 
 to infect  ;; turtle procedure
+  ;; Number of people we meet at random every day: 1 per 1000 people. Elderly goes out 1/2 less than other
+  let here table:get placecnt neigh
+
+  let nmMeet 0.005 * item 0 here ;;gives 0.5% of the people in the neigh
+  let propelderly  0.5 * (1 - item 1 here) ;;gives 50% of the proportion of the elderly in the neigh
+  set howmanyelder round(nmMeet * propelderly)
+  set howmanyrnd nmMeet - howmanyelder
   let spreader self
   let chance chance-of-infecting
 
@@ -621,8 +630,8 @@ to infect  ;; turtle procedure
     if (age <= 67 or 0.5 > random-float 1) [
       let locals table:get place neigh
       set random-passersby (turtle-set
-        up-to-n-of random-poisson howmanyrnd other locals with [(age < 65) and (isolated? = false)]
-        up-to-n-of random-poisson howmanyelder other locals with [age > 65 and (isolated? = false)]
+        up-to-n-of random-poisson howmanyrnd other locals with [age < 65 ]
+        up-to-n-of random-poisson howmanyelder other locals with [age > 65 ]
       )
     ]
 
@@ -649,7 +658,7 @@ to infect  ;; turtle procedure
           let todaysvictims (turtle-set close-colleagues one-of wide-colleagues)
           ask todaysvictims [if can-be-infected? and (not isolated?) [
             if has-app? and [has-app?] of spreader [add-contact spreader]
-            if (not cured?) and random 100 < (chance ) [newinfection spreader "work"]
+            if (not cured?) and random 100 < chance [newinfection spreader "work"]
             ]
           ]
         ]
@@ -686,7 +695,7 @@ to infect  ;; turtle procedure
     ;;currently an individual meets  a draw from poisson distribution with average howmanyrnd or howmanyelder
     if random-passersby != nobody [
       ask random-passersby [
-        if can-be-infected?  [
+        if (can-be-infected?) and (not isolated?)  [
           if has-app? and [has-app?] of spreader [add-contact spreader]
           if (not cured?) and random 100 < ((chance * age-discount) * 0.1) [newinfection spreader "random"]
         ]
