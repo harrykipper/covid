@@ -28,8 +28,14 @@ to read-agents-sco
     
   set seniors turtles with [age >= 67]
   set schoolkids turtles with [age > 5 and age < 18]
-  let working-age turtles with [age > 22 and age < 67]
-  set working-age-agents n-of (count working-age * 0.80) working-age
+  let F-workers-middle turtles with [(age > 22) and (age <= 49) and (sex = "F")] 
+  let F-workers-older turtles with [(age >= 50) and (age <= 64) and (sex = "F")] 
+  let F-workers (turtle-set n-of round (0.79 * count F-workers-middle) F-workers-middle  n-of round (0.67 * count F-workers-older) F-workers-older)
+   
+  let M-workers-middle turtles with [(age > 22) and (age <= 49) and (sex = "M")] 
+  let M-workers-older turtles with [(age >= 50) and (age <= 64) and (sex = "M")] 
+  let M-workers (turtle-set n-of round (0.87 * count M-workers-middle) M-workers-middle  n-of round (0.74 * count M-workers-older) M-workers-older)
+  set working-age-agents (turtle-set F-workers M-workers) 
   set adults turtles with [age > 14]
 end
 
