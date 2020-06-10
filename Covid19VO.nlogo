@@ -57,6 +57,7 @@ globals
   crowd-workers        ;; people working with crowd
   school               ;; Table of classes and pupils
   place                ;; Table of neighbourhoods and their residents
+  placecnt             ;;
 
   double-t
   cum-infected
@@ -563,8 +564,8 @@ to meet-people
   let victim self
   let crowd other table:get place neigh
   set crowd (turtle-set
-            up-to-n-of  random-poisson (howmanyrnd * 5) other crowd with [isolated? = false and age < 67]
-            up-to-n-of  random-poisson (howmanyelder * 5) other crowd with [isolated? = false and age > 67])
+            up-to-n-of  random-poisson (howmanyrnd * 5) other crowd with [age < 67]
+            up-to-n-of  random-poisson (howmanyelder * 5) other crowd with [age > 67])
 
   ifelse infected? [
     ;; Here the worker is infecting others
