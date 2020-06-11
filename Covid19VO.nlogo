@@ -145,12 +145,14 @@ to setup
   random-seed rnd
   ;show rnd ;if behaviorspace-run-number = 0 [output-print (word  "Random seed: " rnd)]
 
+  ; set infection-chance 7.5 + random-float 1
+
   clear-all
 
-  if impossible-run [
-    reset-ticks
-    stop
-  ]
+  ;if impossible-run [
+  ;  reset-ticks
+  ;  stop
+  ;]
 
   set-default-shape turtles "circle"
 
@@ -214,7 +216,7 @@ end
 
 to set-initial-variables
   set average-isolation-tendency 70
-  set compliance-adjustment ifelse-value app-compliance = "High" [0.85][0.65]
+  set compliance-adjustment ifelse-value app-compliance = "High" [0.9][0.65]
   ;;initially we start the expirement with no app-----------------------
   ;;ifelse pct-with-tracing-app > 0 [set contact-tracing true][]
   set contact-tracing false
@@ -314,7 +316,7 @@ end
 ;=====================================================================================
 
 to go
-  if ticks = 0 and impossible-run [stop]
+  ;if ticks = 0 and impossible-run [stop]
 
   if table:get populations "infected" = 0 [
     print-final-summary
@@ -917,7 +919,7 @@ infection-chance
 infection-chance
 0
 50
-6.5
+7.8
 0.1
 1
 %
@@ -2058,7 +2060,7 @@ export-network</setup>
       <value value="true"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="socialDist" repetitions="10" sequentialRunOrder="false" runMetricsEveryStep="true">
+  <experiment name="socialDist" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
     <enumeratedValueSet variable="show-layout">
@@ -2081,18 +2083,19 @@ export-network</setup>
     </enumeratedValueSet>
     <enumeratedValueSet variable="tests-per-100-people">
       <value value="0"/>
-      <value value="2"/>
+      <value value="1.5"/>
       <value value="3"/>
-      <value value="5"/>
+      <value value="6"/>
+      <value value="100"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="app-compliance">
-      <value value="&quot;Low&quot;"/>
+      <value value="&quot;High&quot;"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="pct-with-tracing-app">
       <value value="0"/>
-      <value value="30"/>
+      <value value="40"/>
       <value value="60"/>
-      <value value="90"/>
+      <value value="80"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="infection-chance">
       <value value="8"/>
