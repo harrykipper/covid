@@ -190,9 +190,10 @@ to setup
   reset-ticks
 
   infect-initial-agents
- ifelse use-existing-nw?
+   ifelse use-existing-nw?
   [import-workplaces]
   [create-workplaces]
+
 
   set s0 table:get populations "susceptible"
   if behaviorspace-run-number = 0 [
@@ -2010,46 +2011,6 @@ export-network</setup>
     </enumeratedValueSet>
     <enumeratedValueSet variable="schools-open?">
       <value value="false"/>
-    </enumeratedValueSet>
-  </experiment>
-  <experiment name="baseline" repetitions="96" sequentialRunOrder="false" runMetricsEveryStep="false">
-    <setup>setup</setup>
-    <go>go</go>
-    <enumeratedValueSet variable="show-layout">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initially-cured">
-      <value value="5.1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="use-existing-nw?">
-      <value value="true"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="infection-chance">
-      <value value="6.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="use-seed?">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="lockdown-at-first-death">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initial-links-per-age-group">
-      <value value="100"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="pct-with-tracing-app">
-      <value value="0"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initially-infected">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="app-compliance">
-      <value value="&quot;Low&quot;"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="tests-per-100-people">
-      <value value="0"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="schools-open?">
-      <value value="true"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>

@@ -1,3 +1,5 @@
+
+
 to read-agents-sco
   let scale 5
   foreach csv:from-file "glaHH.csv" [zn ->
@@ -36,6 +38,7 @@ to read-agents-sco
   let M-workers-older turtles with [(age >= 50) and (age <= 64) and (sex = "M")] 
   let M-workers (turtle-set n-of round (0.87 * count M-workers-middle) M-workers-middle  n-of round (0.74 * count M-workers-older) M-workers-older)
   set working-age-agents (turtle-set F-workers M-workers) 
+  
   set adults turtles with [age > 14]
 end
 
