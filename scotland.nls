@@ -1,4 +1,6 @@
+
 to create-agents-sco
+
   let scale 5
   foreach csv:from-file "glaHH.csv" [zn ->
     let ag list item 2 zn item 3 zn 
@@ -28,6 +30,7 @@ to create-agents-sco
     
   set seniors turtles with [age >= 67]
   set schoolkids turtles with [age > 5 and age < 18]
+
   set adults turtles with [age > 14]
 end
 
@@ -50,6 +53,7 @@ to read-agents-sco
   
   set seniors turtles with [age >= 67]
   set schoolkids turtles with [age > 5 and age < 18]
+
   set adults turtles with [age > 14]
 end
 
