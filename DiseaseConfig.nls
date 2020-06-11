@@ -26,7 +26,7 @@ to-report probability-of-showing-symptoms
   report (ifelse-value
     age < 10 [2]
     age < 20 [26]     ;; Children rarely show any symptoms
-    age <= 40 [52]     ;; Agents between 30 and 40
+    age <= 40 [55]     ;; Agents between 30 and 40
     age <= 50 [62]    ;; agents between 40 and 50
     age <= 70 [72]     ;; agents between 50 and 60
     [82]              ;; agents above 60
@@ -37,21 +37,23 @@ to-report probabilityofworsening
   ;; After 10 days with symptoms the agent has the following probability of
   ;; worsening and needing hospital care.
   report (ifelse-value
-    age < 15 [3]         ;; 
+    age < 15 [2]         ;; 
     age < 40 [6]         ;; agents below age 40 who display symptoms have a 2% chance of ending up in hospital
     age <= 50 [9]        ;; agents between 40 and 50 ....
     age < 60 [13]        ;; agents between 50 and 60
-    [17]                 ;; over 60
+    age < 70  [17]                 ;; over 60
+    [20]
   )
 end
 
 to-report probabilityofdying
   ;; After 10 days in the hospital the agent has the following probability of dying
   report (ifelse-value
-    age < 40 [5]
-    age < 50 [10]
-    age < 60 [18]
-    [25]
+    age < 40 [3]
+    age < 50 [8]
+    age < 60 [16]
+    age <= 70 [25]
+    [50]
   )
 end
 

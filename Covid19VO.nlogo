@@ -16,6 +16,8 @@ globals
   b
   c
   fq
+  use-existing-nw?
+  show-layout
 
   ;; Behaviour
   average-isolation-tendency
@@ -148,6 +150,9 @@ to setup
   ; set infection-chance 7.5 + random-float 1
 
   clear-all
+
+  set show-layout false
+  set use-existing-nw? true
 
   ;if impossible-run [
   ;  reset-ticks
@@ -810,10 +815,10 @@ end
 ;;===================== work distribution ==================================
 @#$#@#$#@
 GRAPHICS-WINDOW
-416
-810
-839
-1234
+410
+775
+833
+1199
 -1
 -1
 2.065
@@ -837,10 +842,10 @@ day
 30.0
 
 BUTTON
-245
-245
-325
-278
+175
+160
+255
+193
 setup
 setup
 NIL
@@ -854,10 +859,10 @@ NIL
 1
 
 BUTTON
-325
-245
-390
-278
+255
+160
+320
+193
 go
 go
 T
@@ -871,10 +876,10 @@ NIL
 0
 
 PLOT
-5
-535
-411
-727
+0
+725
+406
+917
 Populations
 days
 # people
@@ -892,10 +897,10 @@ PENS
 "Self-Isolating" 1.0 0 -13791810 true "" "plot table:get populations \"isolated\""
 
 PLOT
-3
-734
-412
-902
+-2
+924
+407
+1092
 Infection and Recovery Rates
 days
 rate
@@ -911,9 +916,9 @@ PENS
 "Recovery Rate" 1.0 0 -10899396 true "" "plot (gamma * nb-infected-previous)"
 
 SLIDER
-10
+5
 30
-175
+150
 63
 infection-chance
 infection-chance
@@ -926,10 +931,10 @@ infection-chance
 HORIZONTAL
 
 MONITOR
-15
-305
-85
-350
+5
+175
+75
+220
 R0
 r0
 2
@@ -937,10 +942,10 @@ r0
 11
 
 PLOT
-10
-355
-445
-530
+5
+545
+405
+720
 Prevelance of Susceptible/Infected/Recovered
 days
 % total pop.
@@ -952,26 +957,15 @@ true
 true
 "" ""
 PENS
-"% Currently infected" 1.0 0 -2674135 true "" "plot (table:get populations \"infected\" / N-people) * 100"
+"% Infected" 1.0 0 -2674135 true "" "plot (table:get populations \"infected\" / N-people) * 100"
 "% Recovered" 1.0 0 -9276814 true "" "plot (table:get populations \"recovered\" / N-people) * 100"
 "% Susceptible" 1.0 0 -10899396 true "" "plot (table:get populations \"susceptible\" / N-people) * 100"
 
-SWITCH
-15
-165
-147
-198
-show-layout
-show-layout
-1
-1
--1000
-
 BUTTON
-685
-260
-780
-293
+245
+270
+340
+303
 LOCKDOWN
 lockdown
 NIL
@@ -985,10 +979,10 @@ NIL
 0
 
 MONITOR
-185
-305
-253
-350
+5
+235
+73
+280
 Deaths
 table:get populations \"dead\"
 0
@@ -996,37 +990,27 @@ table:get populations \"dead\"
 11
 
 SWITCH
-920
-295
-1105
-328
+505
+310
+690
+343
 lockdown-at-first-death
 lockdown-at-first-death
 1
 1
 -1000
 
-TEXTBOX
-150
-170
-225
-205
-(Very slow Don't use)
-12
-0.0
-1
-
 OUTPUT
-405
-10
-1165
-255
+325
+15
+1085
+260
 16
 
 SLIDER
-180
+175
 30
-325
+320
 63
 initially-infected
 initially-infected
@@ -1039,10 +1023,10 @@ initially-infected
 HORIZONTAL
 
 PLOT
-455
-335
-795
-530
+5
+345
+345
+540
 Infections per agent
 # agents infected
 # agents
@@ -1057,10 +1041,10 @@ PENS
 "default" 1.0 1 -16777216 true "" ""
 
 SLIDER
-420
-295
-594
-328
+5
+310
+179
+343
 pct-with-tracing-app
 pct-with-tracing-app
 0
@@ -1072,10 +1056,10 @@ pct-with-tracing-app
 HORIZONTAL
 
 SLIDER
-600
-295
-775
-328
+185
+310
+360
+343
 tests-per-100-people
 tests-per-100-people
 0
@@ -1086,50 +1070,22 @@ tests-per-100-people
 NIL
 HORIZONTAL
 
-BUTTON
-15
-205
-137
-238
-Export network
-export-network
-NIL
-1
-T
-OBSERVER
-NIL
-NIL
-NIL
-NIL
-1
-
 SWITCH
-245
-210
-390
-243
+175
+125
+320
+158
 use-seed?
 use-seed?
 1
-1
--1000
-
-SWITCH
-15
-130
-160
-163
-use-existing-nw?
-use-existing-nw?
-0
 1
 -1000
 
 MONITOR
-270
-305
-340
-350
+90
+235
+160
+280
 Available
 tests-remaining
 0
@@ -1137,10 +1093,10 @@ tests-remaining
 11
 
 MONITOR
-90
-305
-167
-350
+80
+175
+157
+220
 current R0
 rtime
 4
@@ -1148,9 +1104,9 @@ rtime
 11
 
 PLOT
-815
-335
-1165
+345
+345
+695
 540
 Sources of infection
 NIL
@@ -1171,10 +1127,10 @@ PENS
 "Work" 1.0 0 -13840069 true "" "plot table:get counters \"work\""
 
 SWITCH
-780
-295
-915
-328
+365
+310
+500
+343
 schools-open?
 schools-open?
 0
@@ -1182,50 +1138,40 @@ schools-open?
 -1000
 
 TEXTBOX
+5
 10
-10
-385
+380
 30
 Disease Configuration (see also DiseaseConfig.nls)
-14
+12
 0.0
 1
 
 TEXTBOX
-15
-110
-185
-141
-Network configuration
-14
-0.0
-1
-
-TEXTBOX
-285
-190
-445
-221
+230
+105
+320
+123
 Runtime config
-14
+12
 0.0
 1
 
 TEXTBOX
-480
-265
-645
-291
+75
+285
+240
+311
 ==| MITIGATIONS |==
 14
 0.0
 1
 
 BUTTON
-785
-260
-910
-293
+345
+270
+470
+303
 REMOVE LOCKDOWN
 remove-lockdown
 NIL
@@ -1239,10 +1185,10 @@ NIL
 1
 
 MONITOR
-345
-305
-415
-350
+165
+235
+235
+280
 Performed
 tests-performed
 1
@@ -1250,20 +1196,20 @@ tests-performed
 11
 
 TEXTBOX
-295
-290
-395
-308
+115
+220
+215
+238
 Tests ======
 11
 0.0
 1
 
 PLOT
-420
+410
 545
-835
-805
+765
+760
 Age distribution
 NIL
 NIL
@@ -1278,29 +1224,29 @@ PENS
 "default" 1.0 1 -16777216 false "" ""
 
 TEXTBOX
-295
-110
-390
-128
+50
+70
+145
+88
 Behaviour config
 12
 0.0
 1
 
 CHOOSER
-250
-130
-388
-175
+10
+90
+148
+135
 app-compliance
 app-compliance
 "High" "Low"
 1
 
 SLIDER
-180
+175
 65
-325
+320
 98
 initially-cured
 initially-cured
@@ -1313,10 +1259,10 @@ initially-cured
 HORIZONTAL
 
 BUTTON
-915
-260
-1005
-293
+475
+270
+565
+303
 NIL
 close-schools
 NIL
@@ -1330,10 +1276,10 @@ NIL
 1
 
 BUTTON
-1005
-260
-1105
-293
+565
+270
+665
+303
 NIL
 reopen-schools
 NIL
@@ -1347,10 +1293,10 @@ NIL
 1
 
 PLOT
-845
-550
-1170
-780
+770
+545
+1095
+775
 Degree distribution (log-log)
 log(degree)
 log(# of nodes)
@@ -1383,10 +1329,10 @@ PENS
 "default" 1.0 1 -16777216 true "" ""
 
 PLOT
-1180
-340
-1435
-535
+695
+345
+950
+540
 Type of infection
 NIL
 NIL
@@ -1403,10 +1349,10 @@ PENS
 "Severe" 1.0 0 -2674135 true "" "plot table:get cumulatives \"severe\""
 
 PLOT
-1190
-560
-1460
-770
+955
+345
+1210
+540
 work-sites
 # of workers on site
 # of work  sites
@@ -1421,10 +1367,10 @@ PENS
 "default" 1.0 1 -14070903 true "" ""
 
 SWITCH
-1115
-300
-1282
-333
+690
+310
+857
+343
 social-distancing?
 social-distancing?
 0
@@ -2067,7 +2013,7 @@ export-network</setup>
       <value value="false"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initially-cured">
-      <value value="5.1"/>
+      <value value="7"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="use-existing-nw?">
       <value value="true"/>
@@ -2076,7 +2022,7 @@ export-network</setup>
       <value value="true"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initially-infected">
-      <value value="0.5"/>
+      <value value="0.3"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="lockdown-at-first-death">
       <value value="false"/>
