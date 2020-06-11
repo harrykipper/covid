@@ -13,6 +13,10 @@ globals
 [
   rnd                  ;; Random seed
 
+  b
+  c
+  fq
+
   ;; Behaviour
   average-isolation-tendency
   compliance-adjustment
@@ -30,13 +34,14 @@ globals
   cumulatives          ;; table of cumulative disease states
   infections           ;; table containing the average number of infections of people recovered or dead in the past week
   placecnt             ;;table of size of neigh and prop of young
+  cum-infected
+
   ;; Reproduction rate
   beta-n               ;; The average number of new secondary infections per infected this tick
   gamma                ;; The average number of new recoveries per infected this tick
   s0                   ;; Initial number of susceptibles
   r0                   ;; The number of secondary infections that arise due to a single infective introduced in a wholly susceptible population
   rtime
-
   nb-infected          ;; Number of secondary infections caused by an infected person at the end of the tick
   nb-infected-previous
   nb-recovered         ;; Number of recovered people at the end of the tick
@@ -49,6 +54,7 @@ globals
   howmanyrnd           ;; Number of random people we meet
   howmanyelder         ;; Number of random people (> 67 y.o.) we meet
 
+  ;; agent-sets
   seniors
   schoolkids
   adults
@@ -57,12 +63,8 @@ globals
   crowd-workers        ;; people working with crowd
   school               ;; Table of classes and pupils
   place                ;; Table of neighbourhoods and their residents             ;;
-
+  work-place           ;list of work place size
   double-t
-  cum-infected
-
-  work-place         ;list of work place size
-
 ]
 
 turtles-own
@@ -152,7 +154,15 @@ to setup
 
   set-default-shape turtles "circle"
 
-  ;set b ifelse-value many-asymptomatics? [1][1.4]
+  ifelse social-distancing? [
+    set b 0.7
+    set fq 2
+    set c 0.7
+  ][
+    set b 1
+    set fq 0
+    set c 1
+  ]
 
   set app-initalize? false
 
@@ -600,7 +610,7 @@ to infect  ;; turtle procedure
   ;; Number of people we meet at random every day: 1 per 1000 people. Elderly goes out 1/2 less than other
   let here table:get placecnt neigh
 
-  let nmMeet 0.005 * item 0 here ;;gives 0.5% of the people in the neigh
+  let nmMeet (0.005 * item 0 here) * c ;;gives 0.5% of the people in the neigh
   let propelderly  0.5 * (1 - item 1 here) ;;gives 50% of the proportion of the elderly in the neigh
   set howmanyelder round(nmMeet * propelderly)
   set howmanyrnd nmMeet - howmanyelder
@@ -634,7 +644,7 @@ to infect  ;; turtle procedure
 
     let proportion 10
 
-    if (5 / 7) > random-float 1 [   ; 5/7 times kids go to school and adults go to work
+    if ((5 - fq) / 7) > random-float 1 [   ; 5/7 times kids go to school and adults go to work
 
       ifelse member? self schoolkids [
         if schools-open?  [
@@ -642,7 +652,7 @@ to infect  ;; turtle procedure
                                  ;; Schoolchildren meet their schoolmates every SCHOOLDAY, and can infect them.
           let classmates table:get school myclass
           set classmates classmates  with [isolated? = false]
-          ask n-of (count classmates / 2) other classmates [
+          ask n-of ((count classmates / 2) * c) other classmates [
             if can-be-infected? [
               if has-app? and [has-app?] of spreader [add-contact spreader]
               if (not cured?) and random 100 < (chance * age-discount) [newinfection spreader "school"]
@@ -652,27 +662,30 @@ to infect  ;; turtle procedure
       ]
       [
         if office-worker? [
-          let todaysvictims (turtle-set close-colleagues one-of wide-colleagues)
+          let todaysvictims (turtle-set n-of (count close-colleagues * c) close-colleagues one-of wide-colleagues)
           ask todaysvictims [if can-be-infected? and (not isolated?) [
             if has-app? and [has-app?] of spreader [add-contact spreader]
-            if (not cured?) and random 100 < chance [newinfection spreader "work"]
+            if (not cured?) and random 100 < (chance * b) [newinfection spreader "work"]
             ]
           ]
         ]
       ]
     ]
 
+    if ((7 - fq) / 7) > random-float 1 [
+
       ;; First, we go for our friends
-    if (age <= 67 or 0.5 > random-float 1) [    ;;; Old people only meet friends on even days (= go out half of the times younger people do).
-                                                ;;; Every day the agent meets a certain fraction of her friends.
-                                                ;;; If the agent has the contact tracing app, a link is created between she and the friends who also have the app.
-                                                ;;; If the agent is infective, with probability infection-chance, he infects the susceptible friends who he's is meeting.
-      if count friends > 0 [
-        let howmany min (list (1 + random round (count friends / proportion)) 50)
-        ask n-of howmany friends [
-          if not isolated? and can-be-infected? [
-            if has-app? and [has-app?] of spreader [add-contact spreader]
-            if (not cured?) and random 100 < (chance * age-discount) [newinfection spreader "friends"]]
+      if (age <= 67 or 0.5 > random-float 1) [    ;;; Old people only meet friends on even days (= go out half of the times younger people do).
+                                                  ;;; Every day the agent meets a certain fraction of her friends.
+                                                  ;;; If the agent has the contact tracing app, a link is created between she and the friends who also have the app.
+                                                  ;;; If the agent is infective, with probability infection-chance, he infects the susceptible friends who he's is meeting.
+        if count friends > 0 [
+          let howmany min (list (1 + random round (count friends / proportion)) 50)
+          ask n-of howmany friends [
+            if not isolated? and can-be-infected? [
+              if has-app? and [has-app?] of spreader [add-contact spreader]
+              if (not cured?) and random 100 < ((chance * age-discount) * b) [newinfection spreader "friends"]]
+          ]
         ]
       ]
     ]
@@ -681,7 +694,7 @@ to infect  ;; turtle procedure
     if count relatives > 0  and (2 / 7) > random-float 1 [
       ask one-of relatives [
         if can-be-infected? and (not isolated?) [
-          if (not cured?) and random 100 < (chance * age-discount) [newinfection spreader "relations"]
+          if (not cured?) and random 100 < ((chance * age-discount) * b) [newinfection spreader "relations"]
         ]
       ]
     ]
@@ -941,26 +954,11 @@ PENS
 "% Recovered" 1.0 0 -9276814 true "" "plot (table:get populations \"recovered\" / N-people) * 100"
 "% Susceptible" 1.0 0 -10899396 true "" "plot (table:get populations \"susceptible\" / N-people) * 100"
 
-SLIDER
-15
-165
-210
-198
-initial-links-per-age-group
-initial-links-per-age-group
-0
-100
-100.0
-1
-1
-NIL
-HORIZONTAL
-
 SWITCH
 15
-200
+165
 147
-233
+198
 show-layout
 show-layout
 1
@@ -1008,9 +1006,9 @@ lockdown-at-first-death
 
 TEXTBOX
 150
-205
+170
 225
-240
+205
 (Very slow Don't use)
 12
 0.0
@@ -1088,9 +1086,9 @@ HORIZONTAL
 
 BUTTON
 15
-240
+205
 137
-273
+238
 Export network
 export-network
 NIL
@@ -1419,6 +1417,17 @@ false
 "" ""
 PENS
 "default" 1.0 1 -14070903 true "" ""
+
+SWITCH
+1115
+300
+1282
+333
+social-distancing?
+social-distancing?
+1
+1
+-1000
 
 @#$#@#$#@
 # covid19 in small communities

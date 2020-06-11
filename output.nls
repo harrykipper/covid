@@ -82,8 +82,8 @@ to print-final-summary
    let names( list "household: " " relations: " " friends: " " school: " " random: " " work: ")
    let i 0
    output-print (word "Infection sources: ")
-   foreach table:values counters [c -> 
-     output-type (word item i names (precision (100 * c / tot) 1) "%"  )
+   foreach table:values counters [ctr -> 
+     output-type (word item i names (precision (100 * ctr / tot) 1) "%"  )
      set i i + 1]
   ]
   [
@@ -99,7 +99,7 @@ to print-final-summary
       "," ((totalinf / N-people) * 100)
       "," (precision ((deaths / totalinf) * 100) 2) "," ticks "," tests-performed)
     ifelse tot > 0 
-    [foreach table:values counters [c -> file-type (word "," (precision (c / tot) 2))]]
+    [foreach table:values counters [ctr -> file-type (word "," (precision (ctr / tot) 2))]]
     [file-type ",0,0,0,0,0"]
     file-print ""
     file-close
