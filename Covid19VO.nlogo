@@ -147,10 +147,10 @@ to setup
 
   clear-all
 
- ; if impossible-run [
- ;   reset-ticks
- ;   stop
- ; ]
+  if impossible-run [
+    reset-ticks
+    stop
+  ]
 
   set-default-shape turtles "circle"
 
@@ -314,7 +314,7 @@ end
 ;=====================================================================================
 
 to go
-  ;if behaviorspace-run-number != 0 and ticks = 0 [if impossible-run [stop]]
+  if ticks = 0 and impossible-run [stop]
 
   if table:get populations "infected" = 0 [
     print-final-summary
@@ -801,7 +801,7 @@ end
 ;; =======================================================
 
 to-report impossible-run
-  if tests-per-100-people = 0 and pct-with-tracing-app = 0 and app-compliance = "High" [report true]
+  if pct-with-tracing-app = 0 and app-compliance = "High" [report true]
   report false
 end
 
@@ -2102,6 +2102,7 @@ export-network</setup>
     </enumeratedValueSet>
     <enumeratedValueSet variable="schools-open?">
       <value value="true"/>
+      <value value="false"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>
