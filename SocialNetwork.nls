@@ -137,7 +137,7 @@ to create-schools
       let howManyClasses ceiling (count thesekids / 30)
       let kidsperclass ceiling (count thesekids / howManyClasses)
       let ctr 1
-      while [c <= howManyClasses] [
+      while [ctr <= howManyClasses] [
         let thisclass up-to-n-of kidsperclass thesekids with [myclass = 0]
         ask thisclass [set myclass (word a "-" ctr)]
         set ctr ctr + 1

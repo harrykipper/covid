@@ -197,12 +197,9 @@ to setup
   infect-initial-agents
 
 
-
   ifelse use-existing-nw?
   [read-workplaces]
-
   [create-workplaces]
-
 
   set s0 table:get populations "susceptible"
   if behaviorspace-run-number = 0 [
@@ -565,7 +562,7 @@ end
 
 to meet-people
   let here table:get placecnt neigh
-  let nmMeet 0.015 * item 0 here ;;gives 1% of the people in the neigh
+  let nmMeet (0.015 * item 0 here) * c ;;gives 1% of the people in the neigh
   let propelderly  0.5 * (1 - item 1 here) ;;gives 50% of the proportion of the elderly in the neigh
   set howmanyelder round (nmMeet * propelderly)
   set howmanyrnd nmMeet - howmanyelder
@@ -584,7 +581,7 @@ to meet-people
     ask crowd [
       if (can-be-infected?) and (not isolated?) [
         if has-app? and [has-app?] of spreader [add-contact spreader]
-        if (not cured?) and random 100 < (chance * age-discount * 0.1) [newinfection spreader "random"]  ; If the worker infects someone, it counts as random
+        if (not cured?) and random 100 < ((chance * age-discount) * 0.1 * b) [newinfection spreader "random"]  ; If the worker infects someone, it counts as random
       ]
     ]
   ]
@@ -596,7 +593,7 @@ to meet-people
         ask victim [
           if can-be-infected? [
             if has-app? and [has-app?] of spreader [add-contact spreader]
-            if (not cured?) and random 100 < (chance * age-discount * 0.1) [newinfection spreader "work"] ; If the worker is infected by someone, it's work.
+            if (not cured?) and random 100 < ((chance * 0.1) * b) [newinfection spreader "work"] ; If the worker is infected by someone, it's work.
           ]
         ]
 
@@ -1428,7 +1425,7 @@ SWITCH
 333
 social-distancing?
 social-distancing?
-1
+0
 1
 -1000
 
@@ -2019,6 +2016,92 @@ export-network</setup>
     </enumeratedValueSet>
     <enumeratedValueSet variable="schools-open?">
       <value value="false"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="baseline" repetitions="96" sequentialRunOrder="false" runMetricsEveryStep="false">
+    <setup>setup</setup>
+    <go>go</go>
+    <enumeratedValueSet variable="show-layout">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-cured">
+      <value value="5.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-existing-nw?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infection-chance">
+      <value value="6.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-seed?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="lockdown-at-first-death">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initial-links-per-age-group">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="pct-with-tracing-app">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-infected">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="app-compliance">
+      <value value="&quot;Low&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tests-per-100-people">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="schools-open?">
+      <value value="true"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="socialDist" repetitions="10" sequentialRunOrder="false" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <enumeratedValueSet variable="show-layout">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-cured">
+      <value value="5.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-existing-nw?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="social-distancing?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-infected">
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="lockdown-at-first-death">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tests-per-100-people">
+      <value value="0"/>
+      <value value="2"/>
+      <value value="3"/>
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="app-compliance">
+      <value value="&quot;Low&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="pct-with-tracing-app">
+      <value value="0"/>
+      <value value="30"/>
+      <value value="60"/>
+      <value value="90"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infection-chance">
+      <value value="8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-seed?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="schools-open?">
+      <value value="true"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>

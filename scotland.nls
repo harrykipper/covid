@@ -1,6 +1,4 @@
-
 to create-agents-sco
-
   let scale 5
   foreach csv:from-file "glaHH.csv" [zn ->
     let ag list item 2 zn item 3 zn 
@@ -30,7 +28,6 @@ to create-agents-sco
     
   set seniors turtles with [age >= 67]
   set schoolkids turtles with [age > 5 and age < 18]
-
   set adults turtles with [age > 14]
 end
 
@@ -53,7 +50,6 @@ to read-agents-sco
   
   set seniors turtles with [age >= 67]
   set schoolkids turtles with [age > 5 and age < 18]
-
   set adults turtles with [age > 14]
 end
 
@@ -251,7 +247,7 @@ to create-schools-sco [ngh]
       let howManyClasses ceiling (count thesekids / 30)
       let kidsperclass ceiling (count thesekids / howManyClasses)
       let ctr 1
-      while [c <= howManyClasses] [
+      while [ctr <= howManyClasses] [
         let thisclass up-to-n-of kidsperclass thesekids with [myclass = 0]
         ask thisclass [set myclass (word ngh "-" a "-" ctr)]
         set ctr ctr + 1
