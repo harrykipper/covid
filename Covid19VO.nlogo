@@ -155,26 +155,21 @@ to setup
   ;set b ifelse-value many-asymptomatics? [1][1.4]
 
   set app-initalize? false
-  read-agents-sco
+
+  ifelse use-existing-nw? [read-agents-sco][create-agents-sco]
 
   set N-people count turtles
-;  set seniors turtles with [age >= 67]
-;  set schoolkids turtles with [age > 5 and age < 18]
-;  set working-age-agents turtles with [age > 22 and age < 67]
-
-  ; set adults  turtles with [age > 14]
-
   set-initial-variables
 
-  ifelse use-existing-nw? = false
-    [
-      create-hh-sco
-      ;ask seniors [create-relations]
-      create-friendships2
-      remove-excess
-  ][import-network]
+  ifelse use-existing-nw?
+  [import-network]
+  [
+    create-hh-sco
+    ask seniors [create-relations]
+    create-friendships2
+    remove-excess
+  ]
 
-  ;create-schools
   if schools-open? [foreach table:keys place [ngh -> create-schools-sco ngh]]
 
   ask turtles [
@@ -190,8 +185,12 @@ to setup
   reset-ticks
 
   infect-initial-agents
-   ifelse use-existing-nw?
-  [import-workplaces]
+
+
+
+  ifelse use-existing-nw?
+  [read-workplaces]
+
   [create-workplaces]
 
 

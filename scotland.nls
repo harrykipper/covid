@@ -1,26 +1,28 @@
 
+to create-agents-sco
 
-to read-agents-sco
   let scale 5
   foreach csv:from-file "glaHH.csv" [zn ->
     let ag list item 2 zn item 3 zn 
     let i 4
     ;print (word zn " - age " ag)
-    while [i < 20] [ 
-      let howmany round (item i zn / scale)
-     ; show (word howmany " ppl type " i)
-      if howmany > 0 [
-        crt howmany [
-          set neigh item 0 zn
-          set sex item 1 zn
-          set age my-age zn 
-          set hhtype i - 3
+    while [i < 18] [
+     if i != 16 [ 
+        let howmany round (item i zn / scale)
+        ; show (word howmany " ppl type " i)
+        if howmany > 0 [
+          crt howmany [
+            set neigh item 0 zn
+            set sex item 1 zn
+            set age my-age zn 
+            set hhtype i - 3
+          ]
         ]
       ]
       set i i + 1
     ]
   ]
-  ask turtles with [member? hhtype [13 15 16]][die]
+ ; ask turtles with [member? hhtype [13 15 16]][die]
   set place table:group-agents turtles [neigh]
   
   set placecnt table:from-list map [area ->  
@@ -30,15 +32,30 @@ to read-agents-sco
     
   set seniors turtles with [age >= 67]
   set schoolkids turtles with [age > 5 and age < 18]
-  let F-workers-middle turtles with [(age > 22) and (age <= 49) and (sex = "F")] 
-  let F-workers-older turtles with [(age >= 50) and (age <= 64) and (sex = "F")] 
-  let F-workers (turtle-set n-of round (0.79 * count F-workers-middle) F-workers-middle  n-of round (0.67 * count F-workers-older) F-workers-older)
-   
-  let M-workers-middle turtles with [(age > 22) and (age <= 49) and (sex = "M")] 
-  let M-workers-older turtles with [(age >= 50) and (age <= 64) and (sex = "M")] 
-  let M-workers (turtle-set n-of round (0.87 * count M-workers-middle) M-workers-middle  n-of round (0.74 * count M-workers-older) M-workers-older)
-  set working-age-agents (turtle-set F-workers M-workers) 
+
+  set adults turtles with [age > 14]
+end
+
+to read-agents-sco
+  crt 102908
+  foreach csv:from-file "glasgow_agents.csv" [ag ->
+    ask turtle item 0 ag [
+      set age item 1 ag
+      set sex item 2 ag
+      set hhtype item 3 ag
+      set neigh item 4 ag
+    ]
+  ]
+  set place table:group-agents turtles [neigh]
   
+  set placecnt table:from-list map [area ->  
+    (
+      list (item 0 area) (list (count turtle-set item 1 area) (count (turtle-set item 1 area) with [age < 67] / count (turtle-set item 1 area)))
+    ) ] table:to-list place
+  
+  set seniors turtles with [age >= 67]
+  set schoolkids turtles with [age > 5 and age < 18]
+
   set adults turtles with [age > 14]
 end
 

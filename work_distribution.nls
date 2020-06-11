@@ -1,7 +1,18 @@
 to create-workplaces
+  reset-timer
+  let F-workers-middle turtles with [(age > 22) and (age <= 49) and (sex = "F")] 
+  let F-workers-older turtles with [(age >= 50) and (age <= 64) and (sex = "F")] 
+  let F-workers (turtle-set n-of round (0.79 * count F-workers-middle) F-workers-middle  n-of round (0.67 * count F-workers-older) F-workers-older)
+   
+  let M-workers-middle turtles with [(age > 22) and (age <= 49) and (sex = "M")] 
+  let M-workers-older turtles with [(age >= 50) and (age <= 64) and (sex = "M")] 
+  let M-workers (turtle-set n-of round (0.87 * count M-workers-middle) M-workers-middle  n-of round (0.74 * count M-workers-older) M-workers-older)
+  set working-age-agents (turtle-set F-workers M-workers) 
+  
   work-distribution
   assign-work-to-agents
   assign-colleagues
+  show timer
   output-print  (word "The city has " count turtles " residents, "  length (work-place) " work sites and " (count workers + count crowd-workers) " employees ")
   output-print (word   "of which " count crowd-workers " are working with close contact to the public ") 
 end
@@ -118,10 +129,16 @@ to export-workplaces
     ask both-ends [file-type (word who ",")]
     file-print (word wp-id "," wtype)
   ]
+  ask workers with [count my-wps = 0 and my-work != 0][
+    file-print (word who ",," my-work ",null")
+  ]
+  file-close
+  file-open "crowd-workers.csv"
+  ask crowd-workers [file-print who]
   file-close
 end
 
-to import-workplaces
+to read-workplaces
   ask turtles [
     set wide-colleagues []
     set close-colleagues []
@@ -129,32 +146,41 @@ to import-workplaces
   
   foreach csv:from-file "workplaces.csv" [lnk ->
     let orig turtle item 0 lnk
-    let dest turtle item 1 lnk
     let id item 2 lnk
     let tp item 3 lnk
-    ifelse tp = "wide" [
-      ask orig [
-        if my-work = 0 [set my-work id]
-        set wide-colleagues lput dest wide-colleagues
+    ifelse tp != "null" [
+      let dest turtle item 1 lnk
+      ifelse tp = "wide" [
+        ask orig [
+          if my-work = 0 [set my-work id]
+          set wide-colleagues lput dest wide-colleagues
+        ]
+        ask dest [
+          if my-work = 0 [set my-work id]
+          set wide-colleagues lput orig wide-colleagues
+        ]
       ]
-      ask dest [
-        if my-work = 0 [set my-work id]
-        set wide-colleagues lput orig wide-colleagues
+      [
+        ask orig [set close-colleagues lput dest close-colleagues]
+        ask dest [set close-colleagues lput orig close-colleagues]
       ]
     ]
-    [
-      ask orig [set close-colleagues lput dest close-colleagues]
-      ask dest [set close-colleagues lput orig close-colleagues]
-    ]
+    [ask orig [set my-work id]]
   ]
-  set workers turtles with [my-work != 0]
-  ask workers [
-    set office-worker? true
-    set wide-colleagues turtle-set wide-colleagues
-    set close-colleagues turtle-set close-colleagues
+    set workers turtles with [my-work != 0]
+    ask workers [
+      set office-worker? true
+      set wide-colleagues turtle-set wide-colleagues
+      set close-colleagues turtle-set close-colleagues
   ]
-  set crowd-workers working-age-agents with [not member? self workers]
-  ask crowd-workers [set crowd-worker? true]
-  output-print  (word "The city has " count turtles " residents, "  max [my-work] of turtles  " work sites and " (count crowd-workers + count workers) " employees ")
-  output-print (word   "of which " count crowd-workers " are working with close contact to the public ")
+  
+  foreach csv:from-file "crowd-workers.csv" [ag ->
+    ask turtle item 0 ag [set crowd-worker? true]
+  ]
+  set crowd-workers turtles with  [crowd-worker?]
+  
+  if behaviorspace-run-number = 0 [
+    output-print  (word "The city has " count turtles " residents, "  max [my-work] of turtles  " work sites and " (count crowd-workers + count workers) " employees ")
+    output-print (word   "of which " count crowd-workers " are working with close contact to the public ")
+  ]
 end

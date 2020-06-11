@@ -159,7 +159,7 @@ to plot-spreaders
 end
 
 to export-agents
-  file-open "lecce_agents.csv"
-  ask turtles [file-print (word who "," age "," sex "," status)]
+  file-open "glasgow_agents.csv"
+  ask turtles [file-print (word who "," age "," sex "," hhtype "," neigh)]
   file-close
 end
