@@ -37,7 +37,7 @@ globals
   infections           ;; table containing the average number of infections of people recovered or dead in the past week
   placecnt             ;;table of size of neigh and prop of young
   cum-infected
-
+  work                 ;;table of agents by work-id
   ;; Reproduction rate
   beta-n               ;; The average number of new secondary infections per infected this tick
   gamma                ;; The average number of new recoveries per infected this tick
