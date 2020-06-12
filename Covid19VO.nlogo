@@ -154,10 +154,10 @@ to setup
   set show-layout false
   set use-existing-nw? true
 
-  ;if impossible-run [
-  ;  reset-ticks
-  ;  stop
-  ;]
+  if impossible-run [
+    reset-ticks
+    stop
+  ]
 
   set-default-shape turtles "circle"
 
@@ -221,7 +221,7 @@ end
 
 to set-initial-variables
   set average-isolation-tendency 70
-  set compliance-adjustment ifelse-value app-compliance = "High" [0.9][0.65]
+  set compliance-adjustment ifelse-value app-compliance = "High" [0.9][0.5]
   ;;initially we start the expirement with no app-----------------------
   ;;ifelse pct-with-tracing-app > 0 [set contact-tracing true][]
   set contact-tracing false
@@ -321,7 +321,7 @@ end
 ;=====================================================================================
 
 to go
-  ;if ticks = 0 and impossible-run [stop]
+  if ticks = 0 and impossible-run [stop]
 
   if table:get populations "infected" = 0 [
     print-final-summary
@@ -577,11 +577,11 @@ to meet-people
   let spreader self
   let chance chance-of-infecting
   let victim self
-  let crowd other table:get place neigh
-  set crowd (turtle-set
+  let locals other table:get place neigh
+  let crowd (turtle-set
 
-    up-to-n-of  random-poisson (howmanyrnd ) crowd with [ age < 67]
-    up-to-n-of  random-poisson (howmanyelder) crowd with [age > 67])
+    up-to-n-of random-poisson (howmanyrnd ) locals with [ age < 67]
+    up-to-n-of random-poisson (howmanyelder) locals with [age > 67])
 
   ifelse infected?  [
     ;; Here the worker is infecting others
@@ -653,7 +653,7 @@ to infect  ;; turtle procedure
 
     if ((5 - fq) / 7) > random-float 1 [   ; 5/7 times kids go to school and adults go to work
 
-      ifelse member? self schoolkids [
+      ifelse age > 5 and age < 18 [
         if schools-open?  [
           set proportion 20      ;; Children who go to school will meet less friends
                                  ;; Schoolchildren meet their schoolmates every SCHOOLDAY, and can infect them.
@@ -842,10 +842,10 @@ day
 30.0
 
 BUTTON
-175
-160
-255
-193
+170
+170
+250
+203
 setup
 setup
 NIL
@@ -859,10 +859,10 @@ NIL
 1
 
 BUTTON
-255
-160
-320
-193
+250
+170
+315
+203
 go
 go
 T
@@ -877,9 +877,9 @@ NIL
 
 PLOT
 0
-725
+525
 406
-917
+717
 Populations
 days
 # people
@@ -897,10 +897,10 @@ PENS
 "Self-Isolating" 1.0 0 -13791810 true "" "plot table:get populations \"isolated\""
 
 PLOT
--2
-924
-407
-1092
+0
+720
+409
+888
 Infection and Recovery Rates
 days
 rate
@@ -924,7 +924,7 @@ infection-chance
 infection-chance
 0
 50
-7.8
+8.0
 0.1
 1
 %
@@ -932,9 +932,9 @@ HORIZONTAL
 
 MONITOR
 5
-175
+160
 75
-220
+205
 R0
 r0
 2
@@ -943,9 +943,9 @@ r0
 
 PLOT
 5
-545
+345
 405
-720
+520
 Prevelance of Susceptible/Infected/Recovered
 days
 % total pop.
@@ -962,10 +962,10 @@ PENS
 "% Susceptible" 1.0 0 -10899396 true "" "plot (table:get populations \"susceptible\" / N-people) * 100"
 
 BUTTON
-245
-270
-340
-303
+195
+310
+290
+343
 LOCKDOWN
 lockdown
 NIL
@@ -979,10 +979,10 @@ NIL
 0
 
 MONITOR
-5
-235
-73
-280
+815
+300
+883
+345
 Deaths
 table:get populations \"dead\"
 0
@@ -990,9 +990,9 @@ table:get populations \"dead\"
 11
 
 SWITCH
-505
+5
 310
-690
+190
 343
 lockdown-at-first-death
 lockdown-at-first-death
@@ -1004,13 +1004,13 @@ OUTPUT
 325
 15
 1085
-260
+270
 16
 
 SLIDER
-175
+170
 30
-320
+315
 63
 initially-infected
 initially-infected
@@ -1023,10 +1023,10 @@ initially-infected
 HORIZONTAL
 
 PLOT
-5
-345
-345
-540
+0
+890
+340
+1085
 Infections per agent
 # agents infected
 # agents
@@ -1042,9 +1042,9 @@ PENS
 
 SLIDER
 5
-310
+240
 179
-343
+273
 pct-with-tracing-app
 pct-with-tracing-app
 0
@@ -1056,25 +1056,25 @@ pct-with-tracing-app
 HORIZONTAL
 
 SLIDER
-185
-310
-360
-343
+5
+275
+180
+308
 tests-per-100-people
 tests-per-100-people
 0
 20
-0.0
+1.5
 0.01
 1
 NIL
 HORIZONTAL
 
 SWITCH
-175
-125
-320
-158
+170
+135
+315
+168
 use-seed?
 use-seed?
 1
@@ -1082,10 +1082,10 @@ use-seed?
 -1000
 
 MONITOR
-90
-235
-160
-280
+895
+300
+965
+345
 Available
 tests-remaining
 0
@@ -1094,9 +1094,9 @@ tests-remaining
 
 MONITOR
 80
-175
+160
 157
-220
+205
 current R0
 rtime
 4
@@ -1104,7 +1104,7 @@ rtime
 11
 
 PLOT
-345
+410
 345
 695
 540
@@ -1127,10 +1127,10 @@ PENS
 "Work" 1.0 0 -13840069 true "" "plot table:get counters \"work\""
 
 SWITCH
-365
-310
-500
-343
+180
+240
+315
+273
 schools-open?
 schools-open?
 0
@@ -1148,30 +1148,30 @@ Disease Configuration (see also DiseaseConfig.nls)
 1
 
 TEXTBOX
-230
-105
-320
-123
+225
+115
+315
+133
 Runtime config
 12
 0.0
 1
 
 TEXTBOX
-75
-285
-240
-311
+15
+215
+180
+241
 ==| MITIGATIONS |==
 14
 0.0
 1
 
 BUTTON
-345
-270
-470
-303
+295
+310
+420
+343
 REMOVE LOCKDOWN
 remove-lockdown
 NIL
@@ -1185,10 +1185,10 @@ NIL
 1
 
 MONITOR
-165
-235
-235
-280
+970
+300
+1040
+345
 Performed
 tests-performed
 1
@@ -1196,10 +1196,10 @@ tests-performed
 11
 
 TEXTBOX
-115
-220
-215
-238
+900
+285
+1000
+303
 Tests ======
 11
 0.0
@@ -1225,9 +1225,9 @@ PENS
 
 TEXTBOX
 50
-70
+80
 145
-88
+98
 Behaviour config
 12
 0.0
@@ -1235,34 +1235,34 @@ Behaviour config
 
 CHOOSER
 10
-90
+100
 148
-135
+145
 app-compliance
 app-compliance
 "High" "Low"
 1
 
 SLIDER
-175
+170
 65
-320
+315
 98
 initially-cured
 initially-cured
 0
 100
-5.1
+7.0
 0.1
 1
 %
 HORIZONTAL
 
 BUTTON
-475
-270
-565
-303
+425
+310
+515
+343
 NIL
 close-schools
 NIL
@@ -1276,10 +1276,10 @@ NIL
 1
 
 BUTTON
-565
-270
-665
-303
+520
+310
+620
+343
 NIL
 reopen-schools
 NIL
@@ -1293,10 +1293,10 @@ NIL
 1
 
 PLOT
-770
-545
-1095
+835
 775
+1135
+1005
 Degree distribution (log-log)
 log(degree)
 log(# of nodes)
@@ -1311,10 +1311,10 @@ PENS
 "default" 1.0 2 -16777216 true "" ""
 
 PLOT
-845
-790
-1170
-1035
+835
+1000
+1135
+1245
 Degree distribution
 degree
 # of nodes
@@ -1331,7 +1331,7 @@ PENS
 PLOT
 695
 345
-950
+1040
 540
 Type of infection
 NIL
@@ -1344,15 +1344,15 @@ true
 true
 "" ""
 PENS
-"Symptomatic" 1.0 0 -955883 true "" "plot table:get cumulatives \"symptomatic\""
+"Symptomatic (mild)" 1.0 0 -955883 true "" "plot table:get cumulatives \"symptomatic\""
 "Asymptomatic" 1.0 0 -13840069 true "" "plot table:get cumulatives \"asymptomatic\""
 "Severe" 1.0 0 -2674135 true "" "plot table:get cumulatives \"severe\""
 
 PLOT
-955
-345
-1210
-540
+770
+545
+1040
+760
 work-sites
 # of workers on site
 # of work  sites
@@ -1367,13 +1367,13 @@ PENS
 "default" 1.0 1 -14070903 true "" ""
 
 SWITCH
-690
-310
-857
-343
+180
+275
+330
+308
 social-distancing?
 social-distancing?
-0
+1
 1
 -1000
 
@@ -1966,29 +1966,26 @@ export-network</setup>
       <value value="false"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="baseline" repetitions="96" sequentialRunOrder="false" runMetricsEveryStep="false">
+  <experiment name="baseline" repetitions="80" sequentialRunOrder="false" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
     <enumeratedValueSet variable="show-layout">
       <value value="false"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initially-cured">
-      <value value="5.1"/>
+      <value value="7"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="use-existing-nw?">
       <value value="true"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="infection-chance">
-      <value value="6.5"/>
+      <value value="8"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="use-seed?">
       <value value="false"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="lockdown-at-first-death">
       <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initial-links-per-age-group">
-      <value value="100"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="pct-with-tracing-app">
       <value value="0"/>
@@ -2004,6 +2001,9 @@ export-network</setup>
     </enumeratedValueSet>
     <enumeratedValueSet variable="schools-open?">
       <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="social-distancing?">
+      <value value="false"/>
     </enumeratedValueSet>
   </experiment>
   <experiment name="socialDist" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
@@ -2036,6 +2036,7 @@ export-network</setup>
     </enumeratedValueSet>
     <enumeratedValueSet variable="app-compliance">
       <value value="&quot;High&quot;"/>
+      <value value="&quot;Low&quot;"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="pct-with-tracing-app">
       <value value="0"/>
