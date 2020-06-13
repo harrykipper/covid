@@ -24,7 +24,7 @@ to work-distribution
  set workers working-age-agents with [crowd-worker? = false]
   
  let work-size-band (list [1 4][5 9][10 14][15 49][50 60])   ;;work  size bands, based on Glasgow statistics: https://www.gov.scot/publications/businesses-in-scotland-2019/  Businesses in Scotland: 2019 XLS table 8
- let per-work-size  (list 0.63 0.16 0.07 0.11 0.04)           ;;per of sites within the size band   
+ let per-work-size  (list 0.63 0.16 0.07 0.1 0.04)           ;;per of sites within the size band   
  let nm-sites 400 * count turtles with [age > 16 ]  / 10000  ;number of work sites, based on 400 work sites per 10,000 population over 16- based on Glasgow statistics
  let i 0
  set work-place (list )
@@ -112,16 +112,7 @@ to assign-colleagues
   ]
 end
 
-to plot-worksites
-  ;output-print  (word "The city has " count turtles " residents, "  length (work-place) " work sites and " (count crowd-workers + count workers) " employees ")
-  
-  ;set-current-plot "work-sites"
-  ;plot-pen-reset  ;; erase what we plotted before
-  ;let maxsize max work-place
-  ;set-plot-x-range 1 (maxsize + 1)  ;; + 1 to make room for the width of the last bar
-  ;set-plot-pen-interval 5
-  ;histogram work-place
-end
+
 
 to export-workplaces
   file-open "workplaces.csv"
@@ -180,7 +171,26 @@ to read-workplaces
   set crowd-workers turtles with  [crowd-worker?]
   
   if behaviorspace-run-number = 0 [
-    output-print  (word "The city has " count turtles " residents, "  max [my-work] of turtles  " work sites and " (count crowd-workers + count workers) " employees ")
-    output-print (word   "of which " count crowd-workers " are working with close contact to the public ")
+    set work table:group-agents turtles with [my-work > 0] [my-work]
+    let work-list table:values work
+    let i 0
+    set work-place[]
+    repeat table:length work 
+       [set work-place lput count(item i work-list) work-place
+        set i i + 1]
+    
+    plot-worksites 
+    output-print  (word "The city has " count turtles " residents, "  length (work-place)  " work sites and " (count crowd-workers + count workers) " employees ")
+    output-print (word   "of which " count crowd-workers " are working with close contact to the public ") 
   ]
 end
+
+to plot-worksites
+  set-current-plot "work-sites"
+  plot-pen-reset  ;; erase what we plotted before
+  let maxsize max work-place
+  set-plot-x-range 1 (maxsize + 1)  ;; + 1 to make room for the width of the last bar
+  set-plot-pen-interval 5
+  histogram work-place
+end
+
