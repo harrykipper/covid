@@ -13,7 +13,8 @@ to create-workplaces
   assign-work-to-agents
   assign-colleagues
   show timer
-  output-print  (word "The city has " count turtles " residents, "  length (work-place) " work sites and " (count workers + count crowd-workers) " employees ")
+  plot-worksites 
+  output-print  (word "The city has " count turtles " residents, "  length (work-place)  " work sites and " (count crowd-workers + count workers) " employees ")
   output-print (word   "of which " count crowd-workers " are working with close contact to the public ") 
 end
 
@@ -86,7 +87,7 @@ end
 
 to assign-colleagues
   ; first we create the wide group
-  let workplaces table:group-agents workers with [my-work != 0][my-work]
+  set workplaces table:group-agents workers with [my-work != 0][my-work]
   ask turtle-set table:values workplaces [
     set out-grp nobody
     set wide-colleagues other table:get workplaces my-work
@@ -152,8 +153,12 @@ to read-workplaces
         ]
       ]
       [
-        ask orig [set close-colleagues lput dest close-colleagues]
-        ask dest [set close-colleagues lput orig close-colleagues]
+        ask orig [
+          set my-work id 
+          set close-colleagues lput dest close-colleagues]
+        ask dest [
+          set my-work id
+          set close-colleagues lput orig close-colleagues]
       ]
     ]
     [ask orig [set my-work id]]
@@ -171,11 +176,11 @@ to read-workplaces
   set crowd-workers turtles with  [crowd-worker?]
   
   if behaviorspace-run-number = 0 [
-    set work table:group-agents turtles with [my-work > 0] [my-work]
-    let work-list table:values work
+    set workplaces table:group-agents turtles with [my-work > 0] [my-work]
+    let work-list table:values workplaces
     let i 0
     set work-place[]
-    repeat table:length work 
+    repeat table:length workplaces 
        [set work-place lput count(item i work-list) work-place
         set i i + 1]
     

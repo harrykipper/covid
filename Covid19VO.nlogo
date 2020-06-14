@@ -37,7 +37,7 @@ globals
   infections           ;; table containing the average number of infections of people recovered or dead in the past week
   placecnt             ;;table of size of neigh and prop of young
   cum-infected
-  work                 ;;table of agents by work-id
+  workplaces                 ;;table of agents by work-id
   ;; Reproduction rate
   beta-n               ;; The average number of new secondary infections per infected this tick
   gamma                ;; The average number of new recoveries per infected this tick
@@ -205,8 +205,8 @@ to setup
 
 
   ifelse use-existing-nw?
-  [read-workplaces]
-  [create-workplaces]
+      [read-workplaces]
+      [create-workplaces]
 
   set s0 table:get populations "susceptible"
   if behaviorspace-run-number = 0 [
