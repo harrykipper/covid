@@ -816,9 +816,9 @@ end
 @#$#@#$#@
 GRAPHICS-WINDOW
 410
-775
+765
 833
-1199
+1189
 -1
 -1
 2.065
@@ -1294,9 +1294,9 @@ NIL
 
 PLOT
 835
-775
+765
 1135
-1005
+995
 Degree distribution (log-log)
 log(degree)
 log(# of nodes)
@@ -2039,10 +2039,7 @@ export-network</setup>
       <value value="&quot;Low&quot;"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="pct-with-tracing-app">
-      <value value="0"/>
-      <value value="40"/>
-      <value value="60"/>
-      <value value="80"/>
+      <value value="20"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="infection-chance">
       <value value="8"/>
