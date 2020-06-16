@@ -60,11 +60,10 @@ The model can be configured changing the transition probabilities and timings in
 | social-distancing?	      | Whether social distancing measures are in place |
 | app-compliance              | Likelihood that a non-symptomatic agent notified by the app will self-isolate | 
 | use-seed                    | The simulation uses a fixed random seed |
-| use-existing-nw             | Use a pre-made social network instead of creating one at setup (much faster) |
 
 ## How to use
 
-Download the content of the repository, and open Covid19Vo.nlogo in the last version of NetLogo (https://ccl.northwestern.edu/netlogo/6.1.1/). The model is useful to show the progression of the infection and appreciate the difference in infections and casualties with and without social distancing/lockdown measures, and to test the effectiveness of infection mitigation strategies such as contact tracing apps. Specifically, the complex interaction between the availability of testing and app adoption can be usefully explored with this model.
+Download the content of the repository, and open Covid19VO.nlogo in the last version of NetLogo (https://ccl.northwestern.edu/netlogo/6.1.1/). The model is useful to show the progression of the infection and appreciate the difference in infections and casualties with and without social distancing/lockdown measures and, more importantly, to test the effectiveness of infection mitigation strategies such as contact tracing apps. Specifically, the complex interaction between the availability of testing and different levels of app adoption can be usefully explored with this model.
 
 The model also shows that, when we assume that the viral transmission runs predominantly through one's social network, the dynamic of the infection is different from that emerging under the assumption of most SEIR models of an equal probability of everyone infecting everyone else.
 
