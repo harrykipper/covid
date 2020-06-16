@@ -2,7 +2,33 @@
 
 A tentative multi-layer network agent-based model of the progression of the COVID19 infection and its mitigations: lockdowns, social distancing, contact tracing, massive testing.
 
+## How to use
+
+Download the content of the repository, and open Covid19VO.nlogo in the last version of NetLogo (https://ccl.northwestern.edu/netlogo/6.1.1/).
+
+### Model configuration
+
+The model is based on the available knowledge on the progression of the COVID19 infection. It can be configured modifying the probabilities of transition between different infection states and the relative time intervals in **DiseaseConfig.nls** and the following parameters in Netlogo's interface:
+
+| Parameter 		      | Description
+| --------------------------- | ------------------------------------------------------------ |
+| infection-chance            | Daily probability of infecting a subset of one infected person's network |
+| initially-infected          | Proportion of the population infected on simulation day 0 |
+| initially-cured	      | Proportion of the population having recovered from infection on simulation day 0 |
+| average-isolation-tendency  | Probability of self-isolating after displaying symptoms      |
+| lockdown-at-first-death     | Implement a full lockdown upon the first reported death  |
+| pct-with-tracing-app	      | Percentage of the population carrying the contact-tracing app |
+| tests-per-100-people	      | Number of tests available **per week** as proportion of the population |
+| schools-open?               | Whether kids go to school each morning |
+| social-distancing?	      | Whether social distancing measures are in place |
+| app-compliance              | Likelihood that a non-symptomatic agent notified by the app will self-isolate | 
+| use-seed                    | The simulation uses a fixed random seed |
+
 ## The model
+
+The model implements an urban population and is designed to test and appreciate the difference in infections and casualties with and without social distancing/lockdown measures and, more importantly, to test the effectiveness of infection mitigation strategies such as large scale testing and contact tracing apps. Specifically, the complex interaction between the availability of testing and different levels of app adoption can be usefully explored with this model.
+
+The model also shows that, when we assume that the viral transmission runs predominantly through one's social network, the dynamic of the infection is different from that emerging under the assumption of most SEIR models of an equal probability of everyone infecting everyone else.
 
 ### Agents
 
@@ -42,30 +68,3 @@ Social distancing is implemented in the model assuming a subset of workers worki
 ### Contact tracing 
 
 The model simulates a proposed contact tracing strategy for the "second phase" of epidemic control: an opt-in smartphone app. Upon model initialization a certain proportion of agents are given the "app". If an agent with the app tests positive for COVID19 all other agents who have come into contact with her in the previous 10 days, and also have the app, are notified and have the option to self-segregate as a precaution.
-
-## Model configuration
-
-The model can be configured changing the transition probabilities and timings in DiseaseConfig.nls and the following parameters in Netlogo's interface:
-
-| Parameter 		      | Description
-| --------------------------- | ------------------------------------------------------------ |
-| infection-chance            | Daily probability of infecting a subset of one infected person's network |
-| initially-infected          | Proportion of the population infected on simulation day 0 |
-| initially-cured	      | Proportion of the population having recovered from infection on simulation day 0 |
-| average-isolation-tendency  | Probability of self-isolating after displaying symptoms      |
-| lockdown-at-first-death     | Implement a full lockdown upon the first reported death  |
-| pct-with-tracing-app	      | Percentage of the population carrying the contact-tracing app |
-| tests-per-100-people	      | Number of tests available **per week** as proportion of the population |
-| schools-open?               | Whether kids go to school each morning |
-| social-distancing?	      | Whether social distancing measures are in place |
-| app-compliance              | Likelihood that a non-symptomatic agent notified by the app will self-isolate | 
-| use-seed                    | The simulation uses a fixed random seed |
-
-## How to use
-
-Download the content of the repository, and open Covid19VO.nlogo in the last version of NetLogo (https://ccl.northwestern.edu/netlogo/6.1.1/). The model is useful to show the progression of the infection and appreciate the difference in infections and casualties with and without social distancing/lockdown measures and, more importantly, to test the effectiveness of infection mitigation strategies such as contact tracing apps. Specifically, the complex interaction between the availability of testing and different levels of app adoption can be usefully explored with this model.
-
-The model also shows that, when we assume that the viral transmission runs predominantly through one's social network, the dynamic of the infection is different from that emerging under the assumption of most SEIR models of an equal probability of everyone infecting everyone else.
-
-The model is easy to adapt to test different levels of infectiousness and different proportions of people becoming symptomatic and severely ill. 
-
