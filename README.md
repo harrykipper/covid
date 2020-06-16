@@ -12,7 +12,7 @@ The model is based on the available knowledge on the progression of the COVID19 
 
 | Parameter 		      | Description
 | --------------------------- | ------------------------------------------------------------ |
-| infection-chance            | Daily probability of infecting a subset of one infected person's network |
+| infection-chance            | Probability that an infected agent infects a susceptible agent upon contact |
 | initially-infected          | Proportion of the population infected on simulation day 0 |
 | initially-cured	      | Proportion of the population having recovered from infection on simulation day 0 |
 | average-isolation-tendency  | Probability of self-isolating after displaying symptoms      |
