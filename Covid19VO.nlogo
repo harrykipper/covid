@@ -20,7 +20,6 @@ globals
   show-layout
 
   ;; Behaviour
-  average-isolation-tendency
   compliance-adjustment
   high-prob-isolating
   low-prob-isolating
@@ -30,6 +29,7 @@ globals
   tests-remaining
   tests-per-day
   tests-performed
+  tests-today
   hospital-beds        ;; Number of places in the hospital (currently unused)
   counters             ;; Table containing information on source of infection e.g household, friends...
   populations          ;;
@@ -220,7 +220,6 @@ to setup
 end
 
 to set-initial-variables
-  set average-isolation-tendency 70
   set compliance-adjustment ifelse-value app-compliance = "High" [0.9][0.5]
   ;;initially we start the expirement with no app-----------------------
   ;;ifelse pct-with-tracing-app > 0 [set contact-tracing true][]
@@ -392,6 +391,7 @@ end
 to clear-count
   set nb-infected 0
   set nb-recovered 0
+  set tests-today 0
 end
 
 to change-state [new-state]
@@ -773,6 +773,7 @@ to get-tested
     ;show (word "  day " ticks ": tested-today?: " tested-today? " - aware?: " aware? "  - now getting tested")
     set tests-remaining tests-remaining - 1
     set tests-performed tests-performed + 1
+    set tests-today tests-today + 1
     ; if tests-remaining = 0 and behaviorspace-run-number = 0 [output-print (word "Day " ticks ": tests finished")]
 
     ;; If someone is found to be positive they:
@@ -842,10 +843,10 @@ day
 30.0
 
 BUTTON
-170
-170
-250
-203
+10
+120
+90
+153
 setup
 setup
 NIL
@@ -859,10 +860,10 @@ NIL
 1
 
 BUTTON
-250
-170
-315
-203
+90
+120
+155
+153
 go
 go
 T
@@ -1071,10 +1072,10 @@ NIL
 HORIZONTAL
 
 SWITCH
-170
-135
-315
-168
+10
+85
+155
+118
 use-seed?
 use-seed?
 1
@@ -1148,10 +1149,10 @@ Disease Configuration (see also DiseaseConfig.nls)
 1
 
 TEXTBOX
-225
-115
-315
-133
+65
+65
+155
+83
 Runtime config
 12
 0.0
@@ -1224,20 +1225,20 @@ PENS
 "default" 1.0 1 -16777216 false "" ""
 
 TEXTBOX
-50
-80
-145
-98
+225
+110
+320
+128
 Behaviour config
 12
 0.0
 1
 
 CHOOSER
-10
-100
-148
-145
+180
+130
+318
+175
 app-compliance
 app-compliance
 "High" "Low"
@@ -1376,6 +1377,21 @@ social-distancing?
 1
 1
 -1000
+
+SLIDER
+160
+175
+320
+208
+average-isolation-tendency
+average-isolation-tendency
+0
+100
+80.0
+1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 # covid19 in small communities
@@ -1966,7 +1982,7 @@ export-network</setup>
       <value value="false"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="baseline" repetitions="80" sequentialRunOrder="false" runMetricsEveryStep="false">
+  <experiment name="baseline2" repetitions="10" sequentialRunOrder="false" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
     <enumeratedValueSet variable="show-layout">
@@ -1977,6 +1993,9 @@ export-network</setup>
     </enumeratedValueSet>
     <enumeratedValueSet variable="use-existing-nw?">
       <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="average-isolation-tendency">
+      <value value="70"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="infection-chance">
       <value value="8"/>
@@ -2006,7 +2025,7 @@ export-network</setup>
       <value value="false"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="socialDist" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
+  <experiment name="socialDistancing2" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
     <enumeratedValueSet variable="show-layout">
@@ -2014,6 +2033,9 @@ export-network</setup>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initially-cured">
       <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="average-isolation-tendency">
+      <value value="80"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="use-existing-nw?">
       <value value="true"/>
@@ -2028,10 +2050,6 @@ export-network</setup>
       <value value="false"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="tests-per-100-people">
-      <value value="0"/>
-      <value value="1.5"/>
-      <value value="3"/>
-      <value value="6"/>
       <value value="100"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="app-compliance">
@@ -2039,7 +2057,11 @@ export-network</setup>
       <value value="&quot;Low&quot;"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="pct-with-tracing-app">
+      <value value="0"/>
       <value value="20"/>
+      <value value="40"/>
+      <value value="60"/>
+      <value value="80"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="infection-chance">
       <value value="8"/>
@@ -2049,7 +2071,6 @@ export-network</setup>
     </enumeratedValueSet>
     <enumeratedValueSet variable="schools-open?">
       <value value="true"/>
-      <value value="false"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>
