@@ -1,6 +1,6 @@
-# Modelling the effectiveness of covid19 contact tracing apps 
+# Modelling the progression of COVID19 and the effectiveness of mitigation strategies
 
-A tentative multi-layer network agent-based model of the progression of the COVID19 infection and its mitigations
+A tentative multi-layer network agent-based model of the progression of the COVID19 infection and its mitigations: lockdowns, social distancing, contact tracing, massive testing.
 
 ## The model
 
