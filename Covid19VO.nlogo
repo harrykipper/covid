@@ -154,7 +154,7 @@ to setup
   set show-layout false
   set use-existing-nw? true
 
-  if impossible-run [
+  if behaviorspace-run-number != 0 and impossible-run [
     reset-ticks
     stop
   ]
