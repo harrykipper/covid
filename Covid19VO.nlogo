@@ -375,7 +375,7 @@ to go
   ;;after the infection between contactas took place during the day, at the "end of the day" agents change states
   ask turtles with [infected?][progression-disease]
 
-  if tests-remaining > 0 [test-people]
+  if tests-remaining > 0 and length testing-today > 0 [test-people]
 
   ifelse behaviorspace-run-number != 0
   [ save-individual ]
@@ -1417,7 +1417,7 @@ average-isolation-tendency
 average-isolation-tendency
 0
 100
-80.0
+70.0
 1
 1
 NIL
@@ -2080,6 +2080,61 @@ export-network</setup>
       <value value="false"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="tests-per-100-people">
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="app-compliance">
+      <value value="&quot;High&quot;"/>
+      <value value="&quot;Low&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="pct-with-tracing-app">
+      <value value="0"/>
+      <value value="20"/>
+      <value value="40"/>
+      <value value="60"/>
+      <value value="80"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infection-chance">
+      <value value="8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-seed?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="schools-open?">
+      <value value="true"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="weakPriority" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
+    <setup>setup</setup>
+    <go>go</go>
+    <metric>count turtles</metric>
+    <enumeratedValueSet variable="show-layout">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-cured">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="average-isolation-tendency">
+      <value value="70"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-existing-nw?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="social-distancing?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-infected">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="lockdown-at-first-death">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tests-per-100-people">
+      <value value="0"/>
+      <value value="0.5"/>
+      <value value="1"/>
+      <value value="1.5"/>
+      <value value="3"/>
+      <value value="6"/>
       <value value="100"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="app-compliance">
