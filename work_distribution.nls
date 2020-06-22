@@ -113,8 +113,6 @@ to assign-colleagues
   ]
 end
 
-
-
 to export-workplaces
   file-open "workplaces.csv"
   ask wps [
@@ -154,11 +152,13 @@ to read-workplaces
       ]
       [
         ask orig [
-          set my-work id 
-          set close-colleagues lput dest close-colleagues]
+          set my-work id
+          set close-colleagues lput dest close-colleagues
+        ]
         ask dest [
           set my-work id
-          set close-colleagues lput orig close-colleagues]
+          set close-colleagues lput orig close-colleagues
+        ]
       ]
     ]
     [ask orig [set my-work id]]
@@ -173,7 +173,7 @@ to read-workplaces
   foreach csv:from-file "crowd-workers.csv" [ag ->
     ask turtle item 0 ag [set crowd-worker? true]
   ]
-  set crowd-workers turtles with  [crowd-worker?]
+  set crowd-workers turtles with [crowd-worker?]
   
   if behaviorspace-run-number = 0 [
     set workplaces table:group-agents turtles with [my-work > 0] [my-work]

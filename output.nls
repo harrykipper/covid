@@ -112,7 +112,7 @@ to save-individual
     file-print "run,t,pctApp,pctTest,lockdown,schoolsopen,compliance,susceptible,infected,recovered,isolated,dead,hospitalized,presymptomatic,symptomatic,asymptomatic,severe,tests"
   ]
   file-print ( word behaviorspace-run-number "," ticks "," pct-with-tracing-app "," tests-per-100-people ","
-    lockdown-at-first-death ","  schools-open? "," app-compliance "," csv:to-row table:values populations "," tests-performed ) 
+    lockdown-at-first-death ","  schools-open? "," app-compliance "," csv:to-row table:values populations "," tests-today ) 
   file-close
 end
 
