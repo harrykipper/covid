@@ -19,6 +19,9 @@ globals
   use-existing-nw?
   show-layout
 
+  testing-today
+  testing-tomorrow
+
   ;; Behaviour
   compliance-adjustment
   high-prob-isolating
@@ -367,10 +370,12 @@ to go
   ]
 
   ;;crow workers work 5 days and may infect the crowd or be infected by the crowd
-  ask crowd-workers with [(not isolated?) or (not cured?)][if 5 / 7 > random-float 1 [meet-people]]
+  ask crowd-workers with [not isolated?] [if 5 / 7 > random-float 1 [meet-people]]
 
   ;;after the infection between contactas took place during the day, at the "end of the day" agents change states
   ask turtles with [infected?][progression-disease]
+
+  if tests-remaining > 0 [test-people]
 
   ifelse behaviorspace-run-number != 0
   [ save-individual ]
@@ -398,6 +403,8 @@ to clear-count
   set nb-infected 0
   set nb-recovered 0
   set tests-today 0
+  set testing-today testing-tomorrow
+  set testing-tomorrow []
 end
 
 to change-state [new-state]
@@ -503,7 +510,23 @@ to kill-agent
   ]
 end
 
+to test-people
+  set testing-today remove-duplicates testing-today
+  let to-test length testing-today
+
+  if to-test >= tests-remaining [set to-test tests-remaining]
+
+  repeat to-test [
+    ask item 0 testing-today [get-tested]
+    set testing-today remove-item 0 testing-today
+  ]
+end
+
 ;; ===============================================================================
+
+to enter-list
+  set testing-tomorrow fput self testing-tomorrow
+end
 
 to-report should-test?
   if not tested-today? and not aware? [report true]
@@ -556,9 +579,8 @@ to hospitalize ;; turtle procedure
 
   ;; We assume that hospitals always have tests. If I end up in hospital, the app will tell people.
   ask tracing-neighbors with [should-test?] [
-    ifelse tests-remaining > 0
-    [get-tested]
-    [if not isolated? [maybe-isolate "app-contact-of-positive"]]
+    if not isolated? [maybe-isolate "app-contact-of-positive"]
+    enter-list
   ]
   ifelse not isolated? [set isolated? true]                 ;; The agent is isolated, so people won't encounter him around, but we don't count him
   [table:put populations "isolated" table:get populations "isolated" - 1]
@@ -795,17 +817,19 @@ to get-tested
       if any? relatives [
         ask relatives [
           if should-isolate?
-            [ifelse tests-remaining > 0
-              [get-tested]
-              [maybe-isolate "relation-of-positive"]]
+            [
+              maybe-isolate "relation-of-positive"
+              enter-list
+              ]
         ]
       ]
 
       if has-app? [
         ask tracing-neighbors with [should-test?] [
-          ifelse tests-remaining > 0
-          [ get-tested ]
-          [ if not isolated? [maybe-isolate "app-contact-of-positive"]]
+
+
+          if not isolated? [maybe-isolate "app-contact-of-positive"]
+          enter-list
         ]
       ]
     ]
@@ -2095,4 +2119,3 @@ Line -7500403 true 150 150 210 180
 @#$#@#$#@
 1
 @#$#@#$#@
-
