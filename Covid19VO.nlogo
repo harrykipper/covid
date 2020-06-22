@@ -154,7 +154,7 @@ to setup
   set show-layout false
   set use-existing-nw? true
 
-  if impossible-run [
+  if behaviorspace-run-number != 0 and impossible-run [
     reset-ticks
     stop
   ]
@@ -211,7 +211,13 @@ to setup
   set s0 table:get populations "susceptible"
   if behaviorspace-run-number = 0 [
 
-    output-print (word "Infected agents: " [who] of turtles with [infected?])
+    output-print (word  count turtles with [infected?]  " individuals are currently infected " "(" precision (100 * count turtles with [infected?] / N-people) 2 "%)")
+    let school-state "open"
+    let sd-state "people practice social distancing"
+    if schools-open? = false [set school-state "closed"]
+    if social-distancing? = false [set sd-state "people do not practice social distancing"]
+    output-print  (word "The schools are " school-state ", " sd-state)
+
     plot-friends
     plot-age
     ;plot-worksites
@@ -1050,7 +1056,7 @@ pct-with-tracing-app
 pct-with-tracing-app
 0
 100
-0.0
+87.0
 1
 1
 %
@@ -1134,7 +1140,7 @@ SWITCH
 273
 schools-open?
 schools-open?
-0
+1
 1
 -1000
 
@@ -1242,7 +1248,7 @@ CHOOSER
 app-compliance
 app-compliance
 "High" "Low"
-1
+0
 
 SLIDER
 170
@@ -1374,7 +1380,7 @@ SWITCH
 308
 social-distancing?
 social-distancing?
-1
+0
 1
 -1000
 
@@ -2089,3 +2095,4 @@ Line -7500403 true 150 150 210 180
 @#$#@#$#@
 1
 @#$#@#$#@
+
