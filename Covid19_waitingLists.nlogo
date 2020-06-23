@@ -401,10 +401,6 @@ to clear-count
   set nb-infected 0
   set nb-recovered 0
   set tests-today 0
- ; if ticks mod 7 = 0 [
- ;   set tests-sym []
- ;   set tests-oth []
- ; ]
 end
 
 to change-state [new-state]
@@ -468,6 +464,7 @@ to recover
   set infected? false
   set symptomatic? false
   set cured? true
+  remove-me-from-lists
 
   if behaviorspace-run-number = 0 [
     ifelse table:has-key? infections ticks
@@ -784,7 +781,7 @@ to reopen-schools
 end
 
 to enter-queue [situation]
-  ifelse situation = "symptomatic-individual" or prioritize-symptomatics? = false
+  ifelse (situation = "symptomatic-individual") OR (prioritize-symptomatics? = false)
   [set tests-sym lput self tests-sym]
   [set tests-oth lput self tests-oth]
 end
@@ -811,6 +808,11 @@ to test-people
       ask thisguy [get-tested]
     ]
   ]
+  ;; We reset the list at the end of the day, or every 7 days, or never.
+  ;if ticks mod 7 = 0 [
+  set tests-sym []
+  set tests-oth []
+  ;]
 end
 
 to get-tested
@@ -825,9 +827,11 @@ to get-tested
   ;; 4. If they use the app, the contacts are notified and have the option of getting tested or isolate.
   ifelse infected? [
     if should-isolate? [isolate]
+
     set tested-today? true
     set aware? true
     remove-me-from-lists
+
     ask hh with [should-test?]   ;;check this: here it should be all household members who are not cured should isolate
       [if not isolated? [maybe-isolate "household-of-positive"]] ;;shouldn't we do one probability for the whole family- currently each of them decides separtly
 
@@ -854,7 +858,7 @@ end
 
 to remove-me-from-lists
   if member? self tests-sym [set tests-sym remove self tests-sym]
-  if member? self tests-oth [set tests-oth remove self tests-oth]
+  if prioritize-symptomatics? and  member? self tests-oth [set tests-oth remove self tests-oth]
 end
 
 ;; =======================================================
