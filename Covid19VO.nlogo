@@ -206,7 +206,6 @@ to setup
 
   infect-initial-agents
 
-
   ifelse use-existing-nw?
       [read-workplaces]
       [create-workplaces]
@@ -252,6 +251,8 @@ to set-initial-variables
   ;;ask n-of (round count adults * (pct-with-tracing-app / 100)) adults [set has-app? true]
 
   set lockdown? false
+  set testing-today []
+  set testing-tomorrow []
 end
 
 ;; In this variant we test the situation of several countries with 5% cured and 0.5% infected
@@ -375,7 +376,7 @@ to go
   ;;after the infection between contactas took place during the day, at the "end of the day" agents change states
   ask turtles with [infected?][progression-disease]
 
-  if tests-remaining > 0 and length testing-today > 0 [test-people]
+  if tests-remaining > 0 and (length testing-today) > 0 [test-people]
 
   ifelse behaviorspace-run-number != 0
   [ save-individual ]
@@ -807,7 +808,7 @@ to get-tested
     ;; If someone is found to be positive they:
     ;; 1. Isolate, 2. Their household decides whether to isolate, 3. The relations visited this week also decide whether to isolate
     ;; 4. If they use the app, the contacts are notified and have the option of getting tested or isolate.
-    if infected? [
+    ifelse infected? [
       if should-isolate? [isolate]
       set tested-today? true
       set aware? true
@@ -832,7 +833,7 @@ to get-tested
           enter-list
         ]
       ]
-    ]
+    ][if isolated? [unisolate]]
   ]
 end
 
@@ -1080,7 +1081,7 @@ pct-with-tracing-app
 pct-with-tracing-app
 0
 100
-87.0
+33.0
 1
 1
 %
