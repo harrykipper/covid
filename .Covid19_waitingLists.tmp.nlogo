@@ -429,7 +429,7 @@ to progression-disease
       if (t-incubation - t-infectious + state-counter > 3) [set chance-of-infecting chance-of-infecting * 0.9] ;; we assume asymptomatic infectiousness declines at 3rd day
       ][ifelse (my-state = "symptomatic") and (state-counter = t-symptomatic) [recover][
         ifelse (my-state = "severe") and (state-counter = t-severe) [hospitalize][      ;;severe cases are hospitlized within several days
-          if (my-state = "in-hospital") and (state-counter = t-hospital) [ifelse probability-of-dying * gender-discount > random 100  [kill-agent] [recover]]  ;patient either dies in hospital or recover
+          if (my-state = "in-hospital") and (state-counter = t-hospital) [ifelse probability-of-dying  > random 100  [kill-agent] [recover]]  ;patient either dies in hospital or recover
         ]
       ]
     ]
