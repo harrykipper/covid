@@ -49,6 +49,7 @@ end
 to-report probabilityofdying
   ;; After 10 days in the hospital the agent has the following probability of dying
   report (ifelse-value
+    age < 15 [0.5]   
     age < 40 [3]
     age < 50 [8]
     age < 60 [16]
