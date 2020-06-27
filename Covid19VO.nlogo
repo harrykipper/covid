@@ -1081,7 +1081,7 @@ pct-with-tracing-app
 pct-with-tracing-app
 0
 100
-33.0
+0.0
 1
 1
 %
@@ -1096,7 +1096,7 @@ tests-per-100-people
 tests-per-100-people
 0
 20
-1.5
+0.0
 0.01
 1
 NIL
@@ -1165,7 +1165,7 @@ SWITCH
 273
 schools-open?
 schools-open?
-1
+0
 1
 -1000
 
@@ -1273,7 +1273,7 @@ CHOOSER
 app-compliance
 app-compliance
 "High" "Low"
-0
+1
 
 SLIDER
 170
@@ -1405,7 +1405,7 @@ SWITCH
 308
 social-distancing?
 social-distancing?
-0
+1
 1
 -1000
 
