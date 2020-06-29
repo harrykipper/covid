@@ -365,7 +365,7 @@ to go
     infect
     if ( member? my-state ["symptomatic" "severe"]) and (should-test?) and (state-counter = testing-urgency) [
       ifelse tests-remaining > 0
-        [get-tested]
+        [get-tested "symptomatic-individual"]
         [if not isolated? [maybe-isolate "symptomatic-individual"]]
     ]
   ]
@@ -518,7 +518,7 @@ to test-people
   if to-test >= tests-remaining [set to-test tests-remaining]
 
   repeat to-test [
-    ask item 0 testing-today [get-tested]
+    ask item 0 testing-today [get-tested "other"]
     set testing-today remove-item 0 testing-today
   ]
 end
@@ -581,7 +581,9 @@ to hospitalize ;; turtle procedure
   ;; We assume that hospitals always have tests. If I end up in hospital, the app will tell people.
   ask tracing-neighbors with [should-test?] [
     if not isolated? [maybe-isolate "app-contact-of-positive"]
-    enter-list
+    ifelse prioritize-symptomatics?
+    [enter-list]
+    [if tests-remaining > 0 [get-tested "other"]]
   ]
   ifelse not isolated? [set isolated? true]                 ;; The agent is isolated, so people won't encounter him around, but we don't count him
   [table:put populations "isolated" table:get populations "isolated" - 1]
@@ -797,11 +799,14 @@ to reopen-schools
   set schools-open? true
 end
 
-to get-tested
+to get-tested [origin]
   if not tested-today? [  ;; I'm only doing this because there are some who for some reason test more times on the same day and I can't catch them...
     ;show (word "  day " ticks ": tested-today?: " tested-today? " - aware?: " aware? "  - now getting tested")
-    set tests-remaining tests-remaining - 1
-    set tests-performed tests-performed + 1
+    let depletion 1
+    if origin = "symptomatic-individual" [set depletion depletion + random 3] ; between 0 and three negatives for each symptomatic tested
+
+    set tests-remaining tests-remaining - depletion
+    set tests-performed tests-performed + depletion
     set tests-today tests-today + 1
     ; if tests-remaining = 0 and behaviorspace-run-number = 0 [output-print (word "Day " ticks ": tests finished")]
 
@@ -820,17 +825,19 @@ to get-tested
           if should-isolate?
             [
               maybe-isolate "relation-of-positive"
-              enter-list
-              ]
+              ifelse prioritize-symptomatics?
+              [enter-list]
+              [if tests-remaining > 0 [get-tested "other"]]
+          ]
         ]
       ]
 
       if has-app? [
         ask tracing-neighbors with [should-test?] [
-
-
           if not isolated? [maybe-isolate "app-contact-of-positive"]
-          enter-list
+           ifelse prioritize-symptomatics?
+              [enter-list]
+              [if tests-remaining > 0 [get-tested "other"]]
         ]
       ]
     ][if isolated? [unisolate]]
@@ -1037,7 +1044,7 @@ OUTPUT
 15
 1085
 270
-16
+30
 
 SLIDER
 170
@@ -1048,7 +1055,7 @@ initially-infected
 initially-infected
 0
 5
-0.5
+0.3
 0.1
 1
 %
@@ -1284,7 +1291,7 @@ initially-cured
 initially-cured
 0
 100
-7.0
+0.0
 0.1
 1
 %
@@ -1423,6 +1430,17 @@ average-isolation-tendency
 1
 NIL
 HORIZONTAL
+
+SWITCH
+345
+280
+557
+313
+prioritize-symptomatics?
+prioritize-symptomatics?
+1
+1
+-1000
 
 @#$#@#$#@
 # covid19 in small communities
@@ -2157,6 +2175,64 @@ export-network</setup>
     </enumeratedValueSet>
     <enumeratedValueSet variable="schools-open?">
       <value value="true"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="depletion" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
+    <setup>setup</setup>
+    <go>go</go>
+    <enumeratedValueSet variable="show-layout">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-cured">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="average-isolation-tendency">
+      <value value="70"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-existing-nw?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="social-distancing?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-infected">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="lockdown-at-first-death">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tests-per-100-people">
+      <value value="0"/>
+      <value value="0.5"/>
+      <value value="1"/>
+      <value value="1.5"/>
+      <value value="3"/>
+      <value value="6"/>
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="app-compliance">
+      <value value="&quot;High&quot;"/>
+      <value value="&quot;Low&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="pct-with-tracing-app">
+      <value value="0"/>
+      <value value="20"/>
+      <value value="40"/>
+      <value value="60"/>
+      <value value="80"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infection-chance">
+      <value value="8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-seed?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="schools-open?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prioritize-symptomatics?">
+      <value value="true"/>
+      <value value="false"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>
