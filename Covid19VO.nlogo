@@ -70,6 +70,11 @@ globals
   place                ;; Table of neighbourhoods and their residents             ;;
   work-place           ;list of work place size
   double-t
+  nm-sym-covid        ;; number of symptomatic covid19 who want to get tested today
+  flu-symp            ;;number of agents with flu-symptomas that will try to get tested for covid19
+  ratio-flu-covid    ;; ration between covid and flu
+
+  tested-positive    ;;number of agents tested as positive
 ]
 
 turtles-own
@@ -245,7 +250,8 @@ to set-initial-variables
   set tests-per-day 0
   set tests-remaining tests-per-day
   set tests-performed 0
-
+  set flu-symp (0.035 / 7) * N-people * 0.3 ;;3.5% of pop have flu on any given week, for daily we divide by 7, 30% will have cough or fever or sore throat and get tested
+  set tested-positive 0
   ;; initially we don't distribute an app
   ;;let adults turtles with [age > 14]
   ;;ask n-of (round count adults * (pct-with-tracing-app / 100)) adults [set has-app? true]
@@ -358,6 +364,10 @@ to go
     set days-isolated days-isolated + 1
     if ((symptomatic? = false) and (days-isolated = 10)) [unisolate]
   ]
+  let symp-covid turtle-set turtles with [infected? and (not hospitalized?)]
+  set symp-covid symp-covid with [(member? my-state ["symptomatic" "severe"]) and (should-test?) and (state-counter = testing-urgency)]
+  set nm-sym-covid count symp-covid  ;;number of covi19 who wants to get-tested today
+  if nm-sym-covid > 0 [set ratio-flu-covid flu-symp / nm-sym-covid]
 
   ask turtles with [infected? and (not hospitalized?)] [   ;; we could exclude those still in the incubation phase here. We don't, so that we produce a few false positives in the app
 
@@ -803,17 +813,18 @@ to get-tested [origin]
   if not tested-today? [  ;; I'm only doing this because there are some who for some reason test more times on the same day and I can't catch them...
     ;show (word "  day " ticks ": tested-today?: " tested-today? " - aware?: " aware? "  - now getting tested")
     let depletion 1
-    if origin = "symptomatic-individual" [set depletion depletion + random 3] ; between 0 and three negatives for each symptomatic tested
+    if origin = "symptomatic-individual" [set depletion depletion + ratio-flu-covid] ; between 0 and three negatives for each symptomatic tested
 
     set tests-remaining tests-remaining - depletion
     set tests-performed tests-performed + depletion
-    set tests-today tests-today + 1
+    set tests-today tests-today + 1 + depletion  ;;this all tests today including flu symptomatic
     ; if tests-remaining = 0 and behaviorspace-run-number = 0 [output-print (word "Day " ticks ": tests finished")]
 
     ;; If someone is found to be positive they:
     ;; 1. Isolate, 2. Their household decides whether to isolate, 3. The relations visited this week also decide whether to isolate
     ;; 4. If they use the app, the contacts are notified and have the option of getting tested or isolate.
     ifelse infected? [
+      set tested-positive tested-positive + 1
       if should-isolate? [isolate]
       set tested-today? true
       set aware? true
@@ -1103,7 +1114,7 @@ tests-per-100-people
 tests-per-100-people
 0
 20
-0.0
+1.5
 0.01
 1
 NIL
@@ -1291,7 +1302,7 @@ initially-cured
 initially-cured
 0
 100
-0.0
+7.0
 0.1
 1
 %
@@ -1438,7 +1449,7 @@ SWITCH
 313
 prioritize-symptomatics?
 prioritize-symptomatics?
-1
+0
 1
 -1000
 
