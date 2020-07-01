@@ -1,6 +1,5 @@
 __includes ["DiseaseConfig.nls" "output.nls" "SocialNetwork.nls" "layout.nls" "scotland.nls" "work_distribution.nls"  ]
 
-
 extensions [csv table]
 
 undirected-link-breed [households household]
@@ -70,7 +69,6 @@ globals
   place                ;; Table of neighbourhoods and their residents             ;;
   work-place           ;list of work place size
   double-t
-  nm-sym-covid        ;; number of symptomatic covid19 who want to get tested today
   flu-symp            ;;number of agents with flu-symptomas that will try to get tested for covid19
   ratio-flu-covid    ;; ration between covid and flu
 
@@ -305,34 +303,6 @@ to reset-variables
   ifelse sex = "F" [set gender-discount 0.8] [set gender-discount 1]
 end
 
-to read-agents
-  let row 0
-  foreach csv:from-file "lizzanello.csv" [ag ->
-    let i 1
-    if row > 0 [
-      while [i < length ag][
-        crt item i ag [
-          set myclass 0
-          set age item 0 ag + 1 ;; ISTAT data are from 2019, everyone is one year older now..
-          ifelse i < 5 [set sex "M"][set sex "F"]
-          ifelse i = 1 or i = 5 [set status 0][
-            ifelse i = 2 or i = 6 [set status 1][
-              ifelse i = 3 or i = 7 [set status 2][set status 3
-                ;ifelse i = 4 or i = 8 [set status 3][set status 4]
-              ]
-            ]
-          ]
-        ]
-        set i i + 1
-      ]
-    ]
-    set row row + 1
-  ]
-  set seniors turtles with [age >= 67]
-  set schoolkids turtles with [age > 5 and age < 18]
-  set working-age-agents turtles with [age > 22 and age < 67]
-  set adults  turtles with [age > 14]
-end
 ;=====================================================================================
 
 to go
@@ -343,9 +313,9 @@ to go
     stop
   ]
 
-  clear-count     ; this is to compute R0 the epiDEM's way
-  ;;to initial the app onece 5% of the population are cured
+  clear-count
 
+  ;;to initial the app onece 5% of the population are cured
   if app-initalize? = false [
     if table:get populations "recovered" / N-people > 0.05 [
       initial-app
@@ -364,23 +334,26 @@ to go
     set days-isolated days-isolated + 1
     if ((symptomatic? = false) and (days-isolated = 10)) [unisolate]
   ]
-  let symp-covid turtle-set turtles with [infected? and (not hospitalized?)]
-  set symp-covid symp-covid with [(member? my-state ["symptomatic" "severe"]) and (should-test?) and (state-counter = testing-urgency)]
-  set nm-sym-covid count symp-covid  ;;number of covi19 who wants to get-tested today
-  if nm-sym-covid > 0 [set ratio-flu-covid flu-symp / nm-sym-covid]
+
+  let symp-covid turtles with [infected? and (not hospitalized?) and
+    (member? my-state ["symptomatic" "severe"]) and
+    (should-test?) and
+    (state-counter = testing-urgency)
+  ]
+  let nm-sym-covid count symp-covid  ;;number of covid19 who wants to get-tested today
+  if nm-sym-covid > 0 [set ratio-flu-covid round (flu-symp / nm-sym-covid)]
 
   ask turtles with [infected? and (not hospitalized?)] [   ;; we could exclude those still in the incubation phase here. We don't, so that we produce a few false positives in the app
-
     ; Infected agents (except those in hospital) infect others
     infect
-    if ( member? my-state ["symptomatic" "severe"]) and (should-test?) and (state-counter = testing-urgency) [
+    if member? self symp-covid [
       ifelse tests-remaining > 0
         [get-tested "symptomatic-individual"]
         [if not isolated? [maybe-isolate "symptomatic-individual"]]
     ]
   ]
 
-  ;;crow workers work 5 days and may infect the crowd or be infected by the crowd
+  ;;crowd workers work 5 days and may infect the crowd or be infected by the crowd
   ask crowd-workers with [not isolated?] [if 5 / 7 > random-float 1 [meet-people]]
 
   ;;after the infection between contactas took place during the day, at the "end of the day" agents change states
@@ -414,6 +387,7 @@ to clear-count
   set nb-infected 0
   set nb-recovered 0
   set tests-today 0
+  set tested-positive 0
   set testing-today testing-tomorrow
   set testing-tomorrow []
 end
@@ -432,9 +406,7 @@ end
 
 ;; After the incubation period the person may become asymptomatic or mild symptomatic or severe symptomatic. Severe are hospitlized within few days
 to progression-disease
-
   set state-counter state-counter + 1
-
   ifelse (my-state = "incubation") [
     if (state-counter = t-infectious) [set chance-of-infecting infection-chance ]
     if (state-counter = t-incubation) [determine-progress]
@@ -665,7 +637,8 @@ to infect  ;; turtle procedure
   let spreader self
   let chance chance-of-infecting
 
-  ;; Every day an infected person risks infecting all other household members. Even if the agent is isolating or there's a lockdown.
+  ;; Every day an infected person risks infecting all other household members.
+  ;; Even if the agent is isolating or there's a lockdown.
   if count hh > 0  [
     let hh-infection-chance chance
 
@@ -749,8 +722,8 @@ to infect  ;; turtle procedure
 
     ;; Here we determine who are the unknown people we encounter. This is the 'random' group.
     ;; If we are isolated or there is a lockdown, this is assumed to be zero.
-    ;; Elderly people are assumed to go out half as much as everyone else
-    ;;currently an individual meets  a draw from poisson distribution with average howmanyrnd or howmanyelder
+    ;; Elderly people are assumed to go out half as much as everyone else.
+    ;; Currently an individual meets a draw from a poisson distribution with average howmanyrnd or howmanyelder
     if random-passersby != nobody [
       ask random-passersby [
         if (can-be-infected?) and (not isolated?)  [
@@ -810,55 +783,53 @@ to reopen-schools
 end
 
 to get-tested [origin]
-  if not tested-today? [  ;; I'm only doing this because there are some who for some reason test more times on the same day and I can't catch them...
-    ;show (word "  day " ticks ": tested-today?: " tested-today? " - aware?: " aware? "  - now getting tested")
-    let depletion 1
-    if origin = "symptomatic-individual" [set depletion depletion + ratio-flu-covid] ; between 0 and three negatives for each symptomatic tested
+  ;show (word "  day " ticks ": tested-today?: " tested-today? " - aware?: " aware? "  - now getting tested")
+  let depletion 1
+  if origin = "symptomatic-individual" [set depletion depletion + ratio-flu-covid]
 
-    set tests-remaining tests-remaining - depletion
-    set tests-performed tests-performed + depletion
-    set tests-today tests-today + 1 + depletion  ;;this all tests today including flu symptomatic
-    ; if tests-remaining = 0 and behaviorspace-run-number = 0 [output-print (word "Day " ticks ": tests finished")]
+  set tests-remaining tests-remaining - depletion
+  set tests-performed tests-performed + depletion
+  set tests-today tests-today + depletion  ; this all tests today including flu symptomatic
+                                           ; if tests-remaining = 0 and behaviorspace-run-number = 0 [output-print (word "Day " ticks ": tests finished")]
 
-    ;; If someone is found to be positive they:
-    ;; 1. Isolate, 2. Their household decides whether to isolate, 3. The relations visited this week also decide whether to isolate
-    ;; 4. If they use the app, the contacts are notified and have the option of getting tested or isolate.
-    ifelse infected? [
-      set tested-positive tested-positive + 1
-      if should-isolate? [isolate]
-      set tested-today? true
-      set aware? true
-      ask hh with [should-test?]   ;;check this: here it should be all household members who are not cured should isolate
+  ;; If someone is found to be positive they:
+  ;; 1. Isolate, 2. Their household decides whether to isolate, 3. The relations visited this week also decide whether to isolate
+  ;; 4. If they use the app, the contacts are notified and have the option of getting tested or isolate.
+  ifelse infected? [
+    set tested-positive tested-positive + 1
+    if should-isolate? [isolate]
+    set tested-today? true
+    set aware? true
+    ask hh with [should-test?]   ;;check this: here it should be all household members who are not cured should isolate
       [if not isolated? [maybe-isolate "household-of-positive"]] ;;shouldn't we do one probability for the whole family- currently each of them decides separtly
 
-      if any? relatives [
-        ask relatives [
-          if should-isolate?
+    if any? relatives [
+      ask relatives [
+        if should-isolate?
             [
               maybe-isolate "relation-of-positive"
               ifelse prioritize-symptomatics?
               [enter-list]
               [if tests-remaining > 0 [get-tested "other"]]
-          ]
         ]
       ]
+    ]
 
-      if has-app? [
-        ask tracing-neighbors with [should-test?] [
-          if not isolated? [maybe-isolate "app-contact-of-positive"]
-           ifelse prioritize-symptomatics?
-              [enter-list]
-              [if tests-remaining > 0 [get-tested "other"]]
-        ]
+    if has-app? [
+      ask tracing-neighbors with [should-test?] [
+        if not isolated? [maybe-isolate "app-contact-of-positive"]
+        ifelse prioritize-symptomatics?
+        [enter-list]
+        [if tests-remaining > 0 [get-tested "other"]]
       ]
-    ][if isolated? [unisolate]]
-  ]
+    ]
+  ][if isolated? [unisolate]]
 end
 
 ;; =======================================================
 
 to-report impossible-run
-  if pct-with-tracing-app = 0 and app-compliance = "High" [report true]
+  if (pct-with-tracing-app = 0 and app-compliance = "High") OR (tests-per-100-people = 0 and prioritize-symptomatics?)  [report true]
   report false
 end
 
@@ -1055,7 +1026,7 @@ OUTPUT
 15
 1085
 270
-30
+26
 
 SLIDER
 170
@@ -2188,7 +2159,7 @@ export-network</setup>
       <value value="true"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="depletion" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
+  <experiment name="flu" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
     <enumeratedValueSet variable="show-layout">

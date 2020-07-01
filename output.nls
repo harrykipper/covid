@@ -36,7 +36,10 @@ to current-rt
   [mean table:values infections][0]
 end
 
-;; =================== SUMMARY ==================
+;; ========================== SUMMARY ==========================
+;; These show in the output window and in the plots when we are running 
+;; in graphical mode. They have no effect in batch mode
+;; ============================================================
 
 to print-current-summary
   let infected count turtles with [infected?]
@@ -55,65 +58,6 @@ end
 
 to-report inc-rate  
  report table:get populations "infected" / cum-infected
-end
-
-to print-final-summary
-  let deaths table:get populations "dead"
-  let recovered table:get populations "recovered"
-  let totalinf table:get populations "infected" + recovered + deaths
-  let totalinfpct precision ((totalinf / N-people) * 100) 3
-  
-  ifelse behaviorspace-run-number = 0 [
-    plot-spreaders
-    output-print " ================================ "
-    output-print (word "End of epidemic: day " ticks)
-    output-print (word "Total infected: " totalinfpct "% of population" )
-    output-print (word "Total deaths: " deaths ". - Mortality rate: " precision ((deaths / totalinf) * 100) 2 "%")
-    output-print (word "Tests performed: " tests-performed)
-    let asy table:get cumulatives "asymptomatic"
-    let sym table:get cumulatives "symptomatic"
-    let sev table:get cumulatives "severe"
-    let all_cases sev + sym + asy  
-    output-print (word "Ratio: hospital reported/community non-reported: " precision (( asy + sym) / sev ) 1 ) 
-    output-print (word "Severe: " precision (100 * sev / all_cases) 1 "% " " Symptomatic: "  precision (100 * sym / all_cases) 1 "% " " Asymptomatic: " precision (100 * asy / all_cases) 1 "% ") 
-    let tot sum table:values counters 
-    output-print (word "Infection sources: ")
-    foreach table:keys counters [ctr -> 
-      output-type (word ctr ": " (precision (100 * table:get counters ctr / tot) 1) "% "  )
-    ]
-  ]
-  [
-    let file-name word behaviorspace-experiment-name ".csv"
-    ifelse file-exists? file-name
-    [file-open file-name]
-    [
-      file-open file-name
-      file-print "run,pctApp,pctTest,lockdown,schools,compliance,deaths,propInfected,mortality,days,tests,household,relations,friends,school,random,work"
-    ]
-    let tot sum table:values counters
-    file-type (
-      word behaviorspace-run-number "," pct-with-tracing-app "," tests-per-100-people "," lockdown-at-first-death "," schools-open? "," app-compliance "," deaths
-      "," ((totalinf / N-people) * 100)
-      "," (precision ((deaths / totalinf) * 100) 2) "," ticks "," tests-performed)
-    ifelse tot > 0 
-    [foreach table:values counters [ctr -> file-type (word "," (precision (ctr / tot) 2))]]
-    [file-type ",0,0,0,0,0"]
-    file-print ""
-    file-close
-  ]
-end
-
-to save-individual 
-  let file-name word behaviorspace-experiment-name "_ind.csv" 
-  ifelse file-exists? file-name
-  [file-open file-name]
-  [
-    file-open file-name
-    file-print "run,t,pctApp,pctTest,lockdown,schoolsopen,compliance,susceptible,infected,recovered,isolated,dead,hospitalized,presymptomatic,symptomatic,asymptomatic,severe,tests"
-  ]
-  file-print ( word behaviorspace-run-number "," ticks "," pct-with-tracing-app "," tests-per-100-people ","
-    lockdown-at-first-death ","  schools-open? "," app-compliance "," csv:to-row table:values populations "," tests-today ) 
-  file-close
 end
 
 to plot-friends
@@ -159,5 +103,73 @@ end
 to export-agents
   file-open "glasgow_agents.csv"
   ask turtles [file-print (word who "," age "," sex "," hhtype "," neigh)]
+  file-close
+end
+
+
+;; ================================ OUTPUT FILES ====================================
+
+;; These are produced only when we run in batch mode. We generate two output files: 
+;; one contains the final state of the simulation once the epidemic is over;
+;; the other (suffix _ind) records the progression of the epidemic in a single run.
+
+;; ==================================================================================
+
+to print-final-summary
+  let deaths table:get populations "dead"
+  let recovered table:get populations "recovered"
+  let totalinf table:get populations "infected" + recovered + deaths
+  let totalinfpct precision ((totalinf / N-people) * 100) 3
+  
+  ifelse behaviorspace-run-number = 0 [
+    plot-spreaders
+    output-print " ================================ "
+    output-print (word "End of epidemic: day " ticks)
+    output-print (word "Total infected: " totalinfpct "% of population" )
+    output-print (word "Total deaths: " deaths ". - Mortality rate: " precision ((deaths / totalinf) * 100) 2 "%")
+    output-print (word "Tests performed: " tests-performed)
+    let asy table:get cumulatives "asymptomatic"
+    let sym table:get cumulatives "symptomatic"
+    let sev table:get cumulatives "severe"
+    let all_cases sev + sym + asy  
+    output-print (word "Ratio: hospital reported/community non-reported: " precision (( asy + sym) / sev ) 1 ) 
+    output-print (word "Severe: " precision (100 * sev / all_cases) 1 "% " " Symptomatic: "  precision (100 * sym / all_cases) 1 "% " " Asymptomatic: " precision (100 * asy / all_cases) 1 "% ") 
+    let tot sum table:values counters 
+    output-print (word "Infection sources: ")
+    foreach table:keys counters [ctr -> 
+      output-type (word ctr ": " (precision (100 * table:get counters ctr / tot) 1) "% "  )
+    ]
+  ]
+  [
+    let file-name word behaviorspace-experiment-name ".csv"
+    ifelse file-exists? file-name
+    [file-open file-name]
+    [
+      file-open file-name
+      file-print "run,pctApp,pctTest,lockdown,schools,compliance,SymPriority,deaths,propInfected,mortality,days,tests,household,relations,friends,school,random,work"
+    ]
+    let tot sum table:values counters
+    file-type (word
+      behaviorspace-run-number "," pct-with-tracing-app "," tests-per-100-people "," lockdown-at-first-death "," schools-open? "," app-compliance "," prioritize-symptomatics? "," 
+      deaths "," ((totalinf / N-people) * 100) "," (precision ((deaths / totalinf) * 100) 2) "," ticks "," tests-performed
+    )
+    ifelse tot > 0 
+    [foreach table:values counters [ctr -> file-type (word "," (precision (ctr / tot) 2))]]
+    [file-type ",0,0,0,0,0"]
+    file-print ""
+    file-close
+  ]
+end
+
+to save-individual 
+  let file-name word behaviorspace-experiment-name "_ind.csv" 
+  ifelse file-exists? file-name
+  [file-open file-name]
+  [
+    file-open file-name
+    file-print "run,t,pctApp,pctTest,lockdown,schoolsopen,compliance,SymPriority,susceptible,infected,recovered,isolated,dead,hospitalized,presymptomatic,symptomatic,asymptomatic,severe,tests,positiveTests"
+  ]
+  file-print (word behaviorspace-run-number "," ticks "," pct-with-tracing-app "," tests-per-100-people ","
+    lockdown-at-first-death ","  schools-open? "," app-compliance "," prioritize-symptomatics? "," csv:to-row table:values populations "," tests-today "," tested-positive) 
   file-close
 end
