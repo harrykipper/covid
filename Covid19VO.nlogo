@@ -134,6 +134,9 @@ turtles-own
 
   neigh
   hhtype
+
+  days_cont           ;;days of contacts since being infected
+  nm_contacts         ;;number of contacts the agents had
 ]
 
 friendships-own [mean-age]
@@ -301,6 +304,8 @@ to reset-variables
   set crowd-worker? false
   ifelse age <= 15 [set age-discount 0.5][set age-discount 1]
   ifelse sex = "F" [set gender-discount 0.8] [set gender-discount 1]
+  set  days_cont 0
+  set nm_contacts 0
 end
 
 ;=====================================================================================
@@ -345,6 +350,7 @@ to go
 
   ask turtles with [infected? and (not hospitalized?)] [   ;; we could exclude those still in the incubation phase here. We don't, so that we produce a few false positives in the app
     ; Infected agents (except those in hospital) infect others
+    set days_cont days_cont + 1
     infect
     if member? self symp-covid [
       ifelse tests-remaining > 0
@@ -595,7 +601,7 @@ to meet-people
 
     up-to-n-of random-poisson (howmanyrnd ) locals with [ age < 67]
     up-to-n-of random-poisson (howmanyelder) locals with [age > 67])
-
+  set nm_contacts nm_contacts + count crowd
   ifelse infected?  [
     ;; Here the worker is infecting others
     ask crowd [
@@ -662,7 +668,9 @@ to infect  ;; turtle procedure
         up-to-n-of random-poisson howmanyelder other locals with [age > 65 ]
       )
     ]
-
+    let nm-passby 0
+    if random-passersby != nobody [set nm-passby count random-passersby ]
+    set nm_contacts nm_contacts + count hh + nm-passby
     let proportion 10
 
     if ((5 - fq) / 7) > random-float 1 [   ; 5/7 times kids go to school and adults go to work
@@ -674,6 +682,7 @@ to infect  ;; turtle procedure
           let classmates table:get school myclass
           set classmates classmates  with [isolated? = false]
           ask n-of ((count classmates / 2) * c) other classmates [
+          set nm_contacts nm_contacts + (count classmates / 2) * c
             if can-be-infected? [
               if has-app? and [has-app?] of spreader [add-contact spreader]
               if (not cured?) and random 100 < (chance * age-discount) [newinfection spreader "school"]
@@ -684,6 +693,7 @@ to infect  ;; turtle procedure
       [
         if office-worker? [
           let todaysvictims (turtle-set n-of (count close-colleagues * c) close-colleagues one-of wide-colleagues)
+         set nm_contacts nm_contacts + count todaysvictims
           ask todaysvictims [if can-be-infected? and (not isolated?) [
             if has-app? and [has-app?] of spreader [add-contact spreader]
             if (not cured?) and random 100 < (chance * b) [newinfection spreader "work"]
@@ -702,6 +712,7 @@ to infect  ;; turtle procedure
                                                   ;;; If the agent is infective, with probability infection-chance, he infects the susceptible friends who he's is meeting.
         if count friends > 0 [
           let howmany min (list (1 + random round (count friends / proportion)) 50)
+          set nm_contacts nm_contacts + howmany
           ask n-of howmany friends [
             if not isolated? and can-be-infected? [
               if has-app? and [has-app?] of spreader [add-contact spreader]
@@ -713,6 +724,7 @@ to infect  ;; turtle procedure
 
     ;; Every week we visit granpa twice and risk infecting him
     if count relatives > 0  and (2 / 7) > random-float 1 [
+      set nm_contacts nm_contacts + 1
       ask one-of relatives [
         if can-be-infected? and (not isolated?) [
           if (not cured?) and random 100 < ((chance * age-discount) * b) [newinfection spreader "relations"]
@@ -1085,7 +1097,7 @@ tests-per-100-people
 tests-per-100-people
 0
 20
-1.5
+3.0
 0.01
 1
 NIL
@@ -1423,6 +1435,24 @@ prioritize-symptomatics?
 0
 1
 -1000
+
+PLOT
+10
+1095
+210
+1245
+Number of contacts per day
+NIL
+NIL
+0.0
+50.0
+0.0
+10.0
+true
+false
+"" ""
+PENS
+"default" 1.0 1 -16777216 true "" "histogram [nm_contacts / (days_cont + 0.0000001)]  of turtles with [my-state = \"recovered\"] "
 
 @#$#@#$#@
 # covid19 in small communities
