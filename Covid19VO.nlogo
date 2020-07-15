@@ -588,7 +588,7 @@ end
 
 to meet-people
   let here table:get placecnt neigh
-  let nmMeet (0.015 * item 0 here) * c ;;gives 1% of the people in the neigh
+  let nmMeet (0.015 * item 0 here) * c ;;gives 1.5% of the people in the neigh
   let propelderly  0.5 * (1 - item 1 here) ;;gives 50% of the proportion of the elderly in the neigh
   set howmanyelder round (nmMeet * propelderly)
   set howmanyrnd nmMeet - howmanyelder
