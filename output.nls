@@ -174,3 +174,11 @@ to save-individual
     lockdown-at-first-death ","  schools-open? "," app-compliance "," prioritize-symptomatics? "," csv:to-row table:values populations "," tests-today "," tested-positive) 
   file-close
 end
+
+to save_contacts
+  file-open "contacts2.csv"
+  file-print (word "contacts" "," "days")
+  ask turtles with [my-state = "recovered" and days_cont > 0]
+     [file-print (word nm_contacts "," days_cont)]
+  file-close
+end

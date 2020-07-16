@@ -598,12 +598,11 @@ to meet-people
   let victim self
   let locals other table:get place neigh
   let crowd (turtle-set
-
     up-to-n-of random-poisson (howmanyrnd ) locals with [ age < 67]
     up-to-n-of random-poisson (howmanyelder) locals with [age > 67])
-  set nm_contacts nm_contacts + count crowd
   ifelse infected?  [
     ;; Here the worker is infecting others
+    set nm_contacts nm_contacts + count crowd
     ask crowd [
       if (can-be-infected?) and (not isolated?) [
         if has-app? and [has-app?] of spreader [add-contact spreader]
@@ -1097,7 +1096,7 @@ tests-per-100-people
 tests-per-100-people
 0
 20
-3.0
+0.01
 0.01
 1
 NIL
@@ -1419,7 +1418,7 @@ average-isolation-tendency
 average-isolation-tendency
 0
 100
-70.0
+0.0
 1
 1
 NIL
