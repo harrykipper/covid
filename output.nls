@@ -176,7 +176,7 @@ to save-individual
 end
 
 to save_contacts
-  file-open "contacts2.csv"
+  file-open "contacts_SD.csv"
   file-print (word "contacts" "," "days")
   ask turtles with [my-state = "recovered" and days_cont > 0]
      [file-print (word nm_contacts "," days_cont)]

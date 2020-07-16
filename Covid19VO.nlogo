@@ -1405,7 +1405,7 @@ SWITCH
 308
 social-distancing?
 social-distancing?
-1
+0
 1
 -1000
 
