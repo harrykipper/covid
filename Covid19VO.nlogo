@@ -37,6 +37,7 @@ globals
   populations          ;;
   cumulatives          ;; table of cumulative disease states
   infections           ;; table containing the average number of infections of people recovered or dead in the past week
+  all-infections
   placecnt             ;;table of size of neigh and prop of young
   cum-infected
   workplaces                 ;;table of agents by work-id
@@ -45,6 +46,8 @@ globals
   gamma                ;; The average number of new recoveries per infected this tick
   s0                   ;; Initial number of susceptibles
   r0                   ;; The number of secondary infections that arise due to a single infective introduced in a wholly susceptible population
+  k0                   ;; K value: clustering of spreading events (variance to mean)
+
   rtime
   nb-infected          ;; Number of secondary infections caused by an infected person at the end of the tick
   nb-infected-previous
@@ -257,6 +260,8 @@ to set-initial-variables
   ;;let adults turtles with [age > 14]
   ;;ask n-of (round count adults * (pct-with-tracing-app / 100)) adults [set has-app? true]
 
+  set all-infections []
+
   set lockdown? false
   set testing-today []
   set testing-tomorrow []
@@ -371,7 +376,6 @@ to go
   [ save-individual ]
   [
     table:remove infections (ticks - 8)
-    table:put infections ticks mean table:get-or-default infections ticks (list 0)
     if ticks = 7
       [set double-t 7
       set cum-infected table:get cumulatives "asymptomatic" + table:get cumulatives "symptomatic" + table:get cumulatives "severe"
@@ -381,8 +385,8 @@ to go
       set double-t ticks
       set cum-infected table:get cumulatives "asymptomatic" + table:get cumulatives "symptomatic" + table:get cumulatives "severe"
     ]
-
     if show-layout [ask turtles [assign-color]]
+    plot-contacts
     calculate-r0
     current-rt
   ]
@@ -404,7 +408,6 @@ to change-state [new-state]
   table:put populations my-state (table:get populations my-state + 1)
   table:put cumulatives my-state (table:get cumulatives my-state + 1)
 end
-
 
 ;; =========================================================================
 ;;                    PROGRESSION OF THE INFECTION
@@ -457,6 +460,7 @@ to recover
   set infected? false
   set symptomatic? false
   set cured? true
+  set all-infections lput spreading-to all-infections
 
   if behaviorspace-run-number = 0 [
     ifelse table:has-key? infections ticks
@@ -480,6 +484,7 @@ to kill-agent
   table:put cumulatives "dead" (table:get cumulatives "dead" + 1)
   if hospitalized? [set isolated? false]
   if isolated? [table:put populations "isolated" (table:get populations "isolated" - 1)]
+  set all-infections lput spreading-to all-infections
 
   if behaviorspace-run-number = 0 [
     ifelse table:has-key? infections ticks
@@ -676,12 +681,13 @@ to infect  ;; turtle procedure
 
       ifelse age > 5 and age < 18 [
         if schools-open?  [
-          set proportion 20      ;; Children who go to school will meet less friends
+          set proportion proportion * 2.5   ;; Children who go to school will meet less friends
                                  ;; Schoolchildren meet their schoolmates every SCHOOLDAY, and can infect them.
           let classmates table:get school myclass
           set classmates classmates  with [isolated? = false]
-          ask n-of ((count classmates / 2) * c) other classmates [
           set nm_contacts nm_contacts + (count classmates / 2) * c
+          ask n-of ((count classmates / 2) * c) other classmates [
+
             if can-be-infected? [
               if has-app? and [has-app?] of spreader [add-contact spreader]
               if (not cured?) and random 100 < (chance * age-discount) [newinfection spreader "school"]
@@ -692,7 +698,7 @@ to infect  ;; turtle procedure
       [
         if office-worker? [
           let todaysvictims (turtle-set n-of (count close-colleagues * c) close-colleagues one-of wide-colleagues)
-         set nm_contacts nm_contacts + count todaysvictims
+          set nm_contacts nm_contacts + count todaysvictims
           ask todaysvictims [if can-be-infected? and (not isolated?) [
             if has-app? and [has-app?] of spreader [add-contact spreader]
             if (not cured?) and random 100 < (chance * b) [newinfection spreader "work"]
@@ -710,7 +716,8 @@ to infect  ;; turtle procedure
                                                   ;;; If the agent has the contact tracing app, a link is created between she and the friends who also have the app.
                                                   ;;; If the agent is infective, with probability infection-chance, he infects the susceptible friends who he's is meeting.
         if count friends > 0 [
-          let howmany min (list (1 + random round (count friends / proportion)) 50)
+          let howmany 1 + random round (count friends / proportion)
+          ;show word "meeting with friends:  " howmany
           set nm_contacts nm_contacts + howmany
           ask n-of howmany friends [
             if not isolated? and can-be-infected? [
@@ -874,10 +881,10 @@ day
 30.0
 
 BUTTON
-10
-120
-90
-153
+7
+146
+87
+179
 setup
 setup
 NIL
@@ -891,10 +898,10 @@ NIL
 1
 
 BUTTON
-90
-120
-155
-153
+87
+146
+152
+179
 go
 go
 T
@@ -962,17 +969,6 @@ infection-chance
 %
 HORIZONTAL
 
-MONITOR
-5
-160
-75
-205
-R0
-r0
-2
-1
-11
-
 PLOT
 5
 345
@@ -994,10 +990,10 @@ PENS
 "% Susceptible" 1.0 0 -10899396 true "" "plot (table:get populations \"susceptible\" / N-people) * 100"
 
 BUTTON
-195
-310
-290
-343
+376
+309
+471
+342
 LOCKDOWN
 lockdown
 NIL
@@ -1022,10 +1018,10 @@ table:get populations \"dead\"
 11
 
 SWITCH
-5
-310
-190
-343
+186
+309
+371
+342
 lockdown-at-first-death
 lockdown-at-first-death
 1
@@ -1048,17 +1044,17 @@ initially-infected
 initially-infected
 0
 5
-0.3
+0.1
 0.1
 1
 %
 HORIZONTAL
 
 PLOT
-0
-890
-340
-1085
+1045
+332
+1385
+527
 Infections per agent
 # agents infected
 # agents
@@ -1073,10 +1069,10 @@ PENS
 "default" 1.0 1 -16777216 true "" ""
 
 SLIDER
-5
-240
-179
-273
+7
+307
+181
+340
 pct-with-tracing-app
 pct-with-tracing-app
 0
@@ -1088,10 +1084,10 @@ pct-with-tracing-app
 HORIZONTAL
 
 SLIDER
-5
-275
-180
-308
+186
+274
+361
+307
 tests-per-100-people
 tests-per-100-people
 0
@@ -1103,10 +1099,10 @@ NIL
 HORIZONTAL
 
 SWITCH
-10
-85
-155
-118
+7
+111
+152
+144
 use-seed?
 use-seed?
 1
@@ -1125,15 +1121,15 @@ tests-remaining
 11
 
 MONITOR
-80
-160
-157
-205
-current R0
+1075
+280
+1154
+329
+R0
 rtime
-4
+3
 1
-11
+12
 
 PLOT
 410
@@ -1159,10 +1155,10 @@ PENS
 "Work" 1.0 0 -13840069 true "" "plot table:get counters \"work\""
 
 SWITCH
-180
-240
-315
-273
+7
+270
+178
+303
 schools-open?
 schools-open?
 0
@@ -1180,30 +1176,20 @@ Disease Configuration (see also DiseaseConfig.nls)
 1
 
 TEXTBOX
-65
-65
-155
-83
+62
+91
+152
+109
 Runtime config
 12
 0.0
 1
 
-TEXTBOX
-15
-215
-180
-241
-==| MITIGATIONS |==
-14
-0.0
-1
-
 BUTTON
-295
-310
-420
-343
+476
+309
+601
+342
 REMOVE LOCKDOWN
 remove-lockdown
 NIL
@@ -1257,19 +1243,19 @@ PENS
 
 TEXTBOX
 225
-110
+125
 320
-128
+143
 Behaviour config
 12
 0.0
 1
 
 CHOOSER
-180
-130
-318
-175
+164
+145
+319
+190
 app-compliance
 app-compliance
 "High" "Low"
@@ -1284,17 +1270,17 @@ initially-cured
 initially-cured
 0
 100
-7.0
+0.0
 0.1
 1
 %
 HORIZONTAL
 
 BUTTON
-425
-310
-515
-343
+606
+309
+696
+342
 NIL
 close-schools
 NIL
@@ -1308,10 +1294,10 @@ NIL
 1
 
 BUTTON
-520
-310
-620
-343
+700
+309
+800
+342
 NIL
 reopen-schools
 NIL
@@ -1325,10 +1311,10 @@ NIL
 1
 
 PLOT
-835
-765
-1135
-995
+839
+810
+1107
+1021
 Degree distribution (log-log)
 log(degree)
 log(# of nodes)
@@ -1343,10 +1329,10 @@ PENS
 "default" 1.0 2 -16777216 true "" ""
 
 PLOT
-835
-1000
-1135
-1245
+1110
+808
+1378
+1023
 Degree distribution
 degree
 # of nodes
@@ -1399,36 +1385,36 @@ PENS
 "default" 1.0 1 -14070903 true "" ""
 
 SWITCH
-180
-275
-330
-308
+360
+274
+510
+307
 social-distancing?
 social-distancing?
-0
+1
 1
 -1000
 
 SLIDER
 160
-175
+190
 320
-208
+223
 average-isolation-tendency
 average-isolation-tendency
 0
 100
-0.0
+70.0
 1
 1
 NIL
 HORIZONTAL
 
 SWITCH
-345
-280
-557
-313
+513
+274
+725
+307
 prioritize-symptomatics?
 prioritize-symptomatics?
 0
@@ -1436,10 +1422,10 @@ prioritize-symptomatics?
 -1000
 
 PLOT
-10
-1095
-210
-1245
+0
+891
+410
+1152
 Number of contacts per day
 NIL
 NIL
@@ -1451,7 +1437,56 @@ true
 false
 "" ""
 PENS
-"default" 1.0 1 -16777216 true "" "histogram [nm_contacts / (days_cont + 0.0000001)]  of turtles with [my-state = \"recovered\"] "
+"default" 1.0 1 -16777216 true "" ""
+
+MONITOR
+1160
+280
+1385
+330
+prop infected by top 20% spreaders
+k0
+3
+1
+12
+
+PLOT
+1044
+530
+1385
+760
+Infection distribution (log-log)
+NIL
+NIL
+0.0
+0.3
+0.0
+0.3
+true
+false
+"" ""
+PENS
+"default" 1.0 2 -16777216 true "" ""
+
+TEXTBOX
+1030
+781
+1230
+806
+Friendship network
+16
+0.0
+1
+
+TEXTBOX
+65
+241
+264
+284
+Mitigations vvvvvvvvvvv
+16
+0.0
+1
 
 @#$#@#$#@
 # covid19 in small communities
@@ -2234,6 +2269,64 @@ export-network</setup>
     </enumeratedValueSet>
     <enumeratedValueSet variable="infection-chance">
       <value value="8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-seed?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="schools-open?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prioritize-symptomatics?">
+      <value value="true"/>
+      <value value="false"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="superspread" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
+    <setup>setup</setup>
+    <go>go</go>
+    <enumeratedValueSet variable="show-layout">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-cured">
+      <value value="5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="average-isolation-tendency">
+      <value value="70"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-existing-nw?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="social-distancing?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-infected">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="lockdown-at-first-death">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tests-per-100-people">
+      <value value="0"/>
+      <value value="0.5"/>
+      <value value="1"/>
+      <value value="1.5"/>
+      <value value="3"/>
+      <value value="6"/>
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="app-compliance">
+      <value value="&quot;High&quot;"/>
+      <value value="&quot;Low&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="pct-with-tracing-app">
+      <value value="0"/>
+      <value value="20"/>
+      <value value="40"/>
+      <value value="60"/>
+      <value value="80"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infection-chance">
+      <value value="3.5"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="use-seed?">
       <value value="false"/>
