@@ -559,7 +559,7 @@ to maybe-isolate [origin]
     if origin = "symptomatic-individual" [
       ask hh with [should-isolate?][maybe-isolate "household-of-symptomatic"]
       if any? relatives [ask relatives with [should-isolate?] [maybe-isolate "relation-of-symptomatic"]]
-      if has-app? [ask tracing-neighbors with [should-isolate?] [maybe-isolate "app-contact-of-symptomatic"]]
+      ;if has-app? [ask tracing-neighbors with [should-isolate?] [maybe-isolate "app-contact-of-symptomatic"]]
     ]
   ]
 end
