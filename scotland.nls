@@ -39,6 +39,7 @@ to read-agents-sco
       set sex item 2 ag
       set hhtype item 3 ag
       set neigh item 4 ag
+      set ward table:get wardmap neigh
     ]
   ]
   set place table:group-agents turtles [neigh]
@@ -241,7 +242,7 @@ end
 
 to create-schools-sco [ngh]
   foreach remove-duplicates [age] of schoolkids [a ->
-    let thesekids schoolkids with [age = a and neigh = ngh]
+    let thesekids schoolkids with [age = a and ward = ngh]
     ask thesekids [set myclass 0]
     ifelse count thesekids > 30 [
       let howManyClasses ceiling (count thesekids / 30)

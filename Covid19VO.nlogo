@@ -76,6 +76,8 @@ globals
   ratio-flu-covid    ;; ration between covid and flu
 
   tested-positive    ;;number of agents tested as positive
+
+  wardmap              ;; pcode - ward lookup table
 ]
 
 turtles-own
@@ -136,6 +138,7 @@ turtles-own
   aware?
 
   neigh
+  ward
   hhtype
 
   days_cont           ;;days of contacts since being infected
@@ -185,6 +188,8 @@ to setup
 
   set app-initalize? false
 
+  read-wards
+
   ifelse use-existing-nw? [read-agents-sco][create-agents-sco]
 
   set N-people count turtles
@@ -199,7 +204,8 @@ to setup
     remove-excess
   ]
 
-  if schools-open? [foreach table:keys place [ngh -> create-schools-sco ngh]]
+  if schools-open? ;[foreach table:keys place [ngh -> create-schools-sco ngh]]
+  [foreach remove-duplicates table:values wardmap [ngh -> create-schools-sco ngh]]
 
   ask turtles [
     reset-variables
@@ -233,6 +239,13 @@ to setup
     plot-age
     ;plot-worksites
     set infections table:make
+  ]
+end
+
+to read-wards
+  set wardmap table:make
+  foreach csv:from-file "Glasgow_wards_lookup.csv" [w ->
+    table:put wardmap item 0 w item 1 w
   ]
 end
 
@@ -1443,7 +1456,7 @@ MONITOR
 1160
 280
 1385
-330
+329
 prop infected by top 20% spreaders
 k0
 3
