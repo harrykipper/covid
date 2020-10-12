@@ -1505,10 +1505,10 @@ Mitigations vvvvvvvvvvv
 1
 
 SLIDER
-1150
-105
-1322
-138
+1119
+120
+1291
+153
 fq-friends
 fq-friends
 0
@@ -1520,10 +1520,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-1150
-145
-1322
-178
+1119
+160
+1291
+193
 lambda
 lambda
 0.0025
@@ -1535,10 +1535,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-1150
-185
-1322
-218
+1119
+200
+1291
+233
 prob-rnd-infection
 prob-rnd-infection
 0.01
@@ -1550,10 +1550,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-1150
-65
-1322
-98
+1119
+80
+1291
+113
 prop-friends-met
 prop-friends-met
 1
@@ -1563,6 +1563,16 @@ prop-friends-met
 1
 NIL
 HORIZONTAL
+
+TEXTBOX
+1120
+28
+1245
+71
+Sensitivity analysis
+16
+0.0
+1
 
 @#$#@#$#@
 # covid19 in small communities
