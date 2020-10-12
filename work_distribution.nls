@@ -38,7 +38,7 @@ to work-distribution
     ]
   let total sum work-place
   let working-age count workers     ;;number of workers  
-  set work-place map [k -> round (working-age * k / total)] work-place     ;;determning the number of employees in each site based on proportional size of the site
+  set work-place map [ff -> round (working-age * ff / total)] work-place     ;;determning the number of employees in each site based on proportional size of the site
   let y sum work-place - working-age
   if y > 0 [set work-place replace-item 0 work-place (item 0 work-place - y) ]    
   
