@@ -175,9 +175,9 @@ to setup
   set-default-shape turtles "circle"
 
   ifelse social-distancing? [
-    set b 0.7
-    set fq 2
-    set c 0.7
+    set b 0.7       ;; reduction factor in probability of infection
+    set fq 2        ;; discount in frequency of work/school
+    set c 0.7       ;; reduction factor in # people around at work/school/street
   ][
     set b 1
     set fq 0
@@ -722,7 +722,7 @@ to infect  ;; turtle procedure
       ]
     ]
 
-    if ((5 - fq-friends) / 7) > random-float 1 [
+    if ((6 - fq-friends) / 7) > random-float 1 [
 
       ;; First, we go for our friends
       if (age <= 67 or 0.5 > random-float 1) [    ;;; Old people only meet friends on even days (= go out half of the times younger people do).
@@ -979,7 +979,7 @@ infection-chance
 infection-chance
 0
 0.2
-0.085
+0.076
 0.001
 1
 NIL
@@ -1407,7 +1407,7 @@ SWITCH
 307
 social-distancing?
 social-distancing?
-0
+1
 1
 -1000
 
@@ -1513,7 +1513,7 @@ fq-friends
 fq-friends
 0
 4
-1.0
+0.0
 1
 1
 NIL
@@ -1566,10 +1566,10 @@ HORIZONTAL
 
 TEXTBOX
 1120
-28
-1245
-71
-Sensitivity analysis
+20
+1305
+86
+Parameters for sensitivity analysis
 16
 0.0
 1
@@ -1990,383 +1990,6 @@ NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 <experiments>
-  <experiment name="experiment" repetitions="10" sequentialRunOrder="false" runMetricsEveryStep="false">
-    <setup>setup</setup>
-    <go>go</go>
-    <enumeratedValueSet variable="show-layout">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="use-network?">
-      <value value="true"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="infection-chance">
-      <value value="10"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="incubation-days">
-      <value value="5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initially-infected">
-      <value value="2"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="pct-with-tracing-app">
-      <value value="0"/>
-      <value value="35"/>
-      <value value="50"/>
-      <value value="75"/>
-      <value value="100"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="tests-per-100-people">
-      <value value="0"/>
-      <value value="35"/>
-      <value value="50"/>
-      <value value="75"/>
-      <value value="100"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initial-links-per-age-group">
-      <value value="8"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="lockdown-at-first-death">
-      <value value="true"/>
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="average-isolation-tendency">
-      <value value="80"/>
-    </enumeratedValueSet>
-  </experiment>
-  <experiment name="phase2" repetitions="10" runMetricsEveryStep="false">
-    <setup>setup</setup>
-    <go>go</go>
-    <enumeratedValueSet variable="use-existing-nw?">
-      <value value="true"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="infection-chance">
-      <value value="6.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="tests-per-100-people">
-      <value value="0"/>
-      <value value="1.5"/>
-      <value value="3"/>
-      <value value="25"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initial-links-per-age-group">
-      <value value="25"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="pct-with-tracing-app">
-      <value value="0"/>
-      <value value="40"/>
-      <value value="60"/>
-      <value value="100"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initially-infected">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initially-cured">
-      <value value="5.1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="use-seed?">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="app-compliance">
-      <value value="&quot;Low&quot;"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="lockdown-at-first-death">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="schools-open?">
-      <value value="true"/>
-      <value value="false"/>
-    </enumeratedValueSet>
-  </experiment>
-  <experiment name="speedtest" repetitions="1" runMetricsEveryStep="true">
-    <setup>setup</setup>
-    <go>go</go>
-    <enumeratedValueSet variable="show-layout">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initially-cured">
-      <value value="5.1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="use-existing-nw?">
-      <value value="true"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="infection-chance">
-      <value value="6.7"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initially-infected">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="lockdown-at-first-death">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initial-links-per-age-group">
-      <value value="15"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="app-compliance">
-      <value value="&quot;Low&quot;"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="use-seed?">
-      <value value="true"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="pct-with-tracing-app">
-      <value value="0"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="incubation-days">
-      <value value="5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="tests-per-100-people">
-      <value value="0"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="schools-open?">
-      <value value="true"/>
-    </enumeratedValueSet>
-  </experiment>
-  <experiment name="create-net" repetitions="1" sequentialRunOrder="false" runMetricsEveryStep="false">
-    <setup>setup
-export-network</setup>
-    <enumeratedValueSet variable="show-layout">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initially-cured">
-      <value value="5.1"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="use-existing-nw?">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="infection-chance">
-      <value value="6.7"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="tests-per-100-people">
-      <value value="3"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="lockdown-at-first-death">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initial-links-per-age-group">
-      <value value="100"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="app-compliance">
-      <value value="&quot;High&quot;"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="pct-with-tracing-app">
-      <value value="40"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="incubation-days">
-      <value value="5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="use-seed?">
-      <value value="true"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initially-infected">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="schools-open?">
-      <value value="false"/>
-    </enumeratedValueSet>
-  </experiment>
-  <experiment name="baseline2" repetitions="10" sequentialRunOrder="false" runMetricsEveryStep="false">
-    <setup>setup</setup>
-    <go>go</go>
-    <enumeratedValueSet variable="show-layout">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initially-cured">
-      <value value="7"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="use-existing-nw?">
-      <value value="true"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="average-isolation-tendency">
-      <value value="70"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="infection-chance">
-      <value value="8"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="use-seed?">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="lockdown-at-first-death">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="pct-with-tracing-app">
-      <value value="0"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initially-infected">
-      <value value="0.5"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="app-compliance">
-      <value value="&quot;Low&quot;"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="tests-per-100-people">
-      <value value="0"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="schools-open?">
-      <value value="true"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="social-distancing?">
-      <value value="false"/>
-    </enumeratedValueSet>
-  </experiment>
-  <experiment name="socialDistancing2" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
-    <setup>setup</setup>
-    <go>go</go>
-    <enumeratedValueSet variable="show-layout">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initially-cured">
-      <value value="7"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="average-isolation-tendency">
-      <value value="80"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="use-existing-nw?">
-      <value value="true"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="social-distancing?">
-      <value value="true"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initially-infected">
-      <value value="0.3"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="lockdown-at-first-death">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="tests-per-100-people">
-      <value value="100"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="app-compliance">
-      <value value="&quot;High&quot;"/>
-      <value value="&quot;Low&quot;"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="pct-with-tracing-app">
-      <value value="0"/>
-      <value value="20"/>
-      <value value="40"/>
-      <value value="60"/>
-      <value value="80"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="infection-chance">
-      <value value="8"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="use-seed?">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="schools-open?">
-      <value value="true"/>
-    </enumeratedValueSet>
-  </experiment>
-  <experiment name="weakPriority" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
-    <setup>setup</setup>
-    <go>go</go>
-    <metric>count turtles</metric>
-    <enumeratedValueSet variable="show-layout">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initially-cured">
-      <value value="7"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="average-isolation-tendency">
-      <value value="70"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="use-existing-nw?">
-      <value value="true"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="social-distancing?">
-      <value value="true"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initially-infected">
-      <value value="0.3"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="lockdown-at-first-death">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="tests-per-100-people">
-      <value value="0"/>
-      <value value="0.5"/>
-      <value value="1"/>
-      <value value="1.5"/>
-      <value value="3"/>
-      <value value="6"/>
-      <value value="100"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="app-compliance">
-      <value value="&quot;High&quot;"/>
-      <value value="&quot;Low&quot;"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="pct-with-tracing-app">
-      <value value="0"/>
-      <value value="20"/>
-      <value value="40"/>
-      <value value="60"/>
-      <value value="80"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="infection-chance">
-      <value value="8"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="use-seed?">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="schools-open?">
-      <value value="true"/>
-    </enumeratedValueSet>
-  </experiment>
-  <experiment name="flu" repetitions="1" sequentialRunOrder="false" runMetricsEveryStep="false">
-    <setup>setup</setup>
-    <go>go</go>
-    <enumeratedValueSet variable="show-layout">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initially-cured">
-      <value value="7"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="average-isolation-tendency">
-      <value value="70"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="use-existing-nw?">
-      <value value="true"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="social-distancing?">
-      <value value="true"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="initially-infected">
-      <value value="0.3"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="lockdown-at-first-death">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="tests-per-100-people">
-      <value value="0"/>
-      <value value="0.5"/>
-      <value value="1"/>
-      <value value="1.5"/>
-      <value value="3"/>
-      <value value="6"/>
-      <value value="100"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="app-compliance">
-      <value value="&quot;High&quot;"/>
-      <value value="&quot;Low&quot;"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="pct-with-tracing-app">
-      <value value="0"/>
-      <value value="20"/>
-      <value value="40"/>
-      <value value="60"/>
-      <value value="80"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="infection-chance">
-      <value value="8"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="use-seed?">
-      <value value="false"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="schools-open?">
-      <value value="true"/>
-    </enumeratedValueSet>
-    <enumeratedValueSet variable="prioritize-symptomatics?">
-      <value value="true"/>
-      <value value="false"/>
-    </enumeratedValueSet>
-  </experiment>
   <experiment name="revised2" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
