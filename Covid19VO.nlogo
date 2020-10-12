@@ -375,13 +375,16 @@ to go
     ]
   ]
 
-  ;;crowd workers work 5 days and may infect the crowd or be infected by the crowd
+  ;;crowd workers work 5 days and may infect the customers or be infected by them
   ask crowd-workers with [not isolated?] [if 5 / 7 > random-float 1 [meet-people]]
+
+  ;;non-symptomatic are can get tested in tests are still available- in case of priorty to  testing symptomatic
+  if tests-remaining > 0 and (length testing-today) > 0 [test-people]
 
   ;;after the infection between contactas took place during the day, at the "end of the day" agents change states
   ask turtles with [infected?][progression-disease]
 
-  if tests-remaining > 0 and (length testing-today) > 0 [test-people]
+
 
   ifelse behaviorspace-run-number != 0
   [ save-individual ]
@@ -553,7 +556,7 @@ to maybe-isolate [origin]
   if member? origin low-prob-isolating and not symptomatic? [set tendency tendency * compliance-adjustment]
   if random-float 1 < tendency [
     isolate
-    ;; When someone in a household is isolating with symptoms, everybody else also should. Fixed probability here.
+    ;;symptomatic ask hh members and relatives to isolate
     if origin = "symptomatic-individual" [
       ask hh with [should-isolate?][maybe-isolate "household-of-symptomatic"]
       if any? relatives [ask relatives with [should-isolate?] [maybe-isolate "relation-of-symptomatic"]]
@@ -562,9 +565,8 @@ to maybe-isolate [origin]
   ]
 end
 
-;; When the agent is isolating all friendhips and relations are frozen. If she goes to school, she stops.
-;; Crucially household links stay in place, as it is assumed that one isolates at home
-;; Other household members may also have to isolate.
+;; When the agent is isolating all friendhips and relations are frozen. The agent stops going to school or work.
+;; household members links stay in place, as it is assumed that one isolates at home
 to isolate
   set isolated? true
   table:put populations "isolated" (table:get populations "isolated" + 1)
@@ -582,7 +584,7 @@ to hospitalize ;; turtle procedure
   set hospitalized? true
   set aware? true
 
-  ;; We assume that hospitals always have tests. If I end up in hospital, the app will tell people.
+  ;; We assume that hospitals always have tests. If the aget ends up in hospital, the app updates the contacts.
   ask tracing-neighbors with [should-test?] [
     if not isolated? [maybe-isolate "app-contact-of-positive"]
     ifelse prioritize-symptomatics?
@@ -606,7 +608,7 @@ end
 ;; There's a chance that the worker will get infected and that he will infect someone.
 to meet-people
   let here table:get placecnt neigh
-  let nmMeet ((lambda * 3) * item 0 here) * c ;;gives 1.5% of the people in the neigh
+  let nmMeet ((lambda * 3) * item 0 here) * c ;;contacts with customera are:lambda % of the people in the neigh
   let propelderly  0.5 * (1 - item 1 here) ;;gives 50% of the proportion of the elderly in the neigh
   set howmanyelder round (nmMeet * propelderly)
   set howmanyrnd nmMeet - howmanyelder
@@ -653,7 +655,7 @@ to infect  ;; turtle procedure
   ;; Number of people we meet at random every day: 1 per 1000 people. Elderly goes out 1/2 less than other
   let here table:get placecnt neigh
 
-  let nmMeet (lambda * item 0 here) * c ;;gives 0.5% of the people in the neigh
+  let nmMeet (lambda * item 0 here) * c ;;random contacts with lambda % of the people in the neigh
   let propelderly  0.5 * (1 - item 1 here) ;;gives 50% of the proportion of the elderly in the neigh
   set howmanyelder round(nmMeet * propelderly)
   set howmanyrnd nmMeet - howmanyelder
@@ -664,9 +666,9 @@ to infect  ;; turtle procedure
   ;; Even if the agent is isolating or there's a lockdown.
   if count hh > 0  [
     let hh-infection-chance chance
-
-    ;; if the person is isolating the people in the household will try to stay away...
+    ;; if the person is isolating the people in the household have a reduced risk to get infected
     if isolated? [set hh-infection-chance hh-infection-chance * 0.7]
+
     ask hh with [(not cured?) and can-be-infected?] [
       if random-float 1 < (hh-infection-chance * age-discount) [newinfection spreader "household"]
     ]
@@ -675,8 +677,8 @@ to infect  ;; turtle procedure
   ;; When there's no lockdown, and we are not isolated, we go out and infect other people.
   if (not isolated?) and (not lockdown?) [
 
-    ;; Infected agents will infect someone at random. The probability is 1/10 of the normal infection-chance
-    ;; Here, again, if both parties have the app a link is created to keep track of the meeting
+    ;; Infected agents will infect someone at random. The probability is a fraction of the normal infection-chance
+    ;; If both parties have the app a link is created to keep track of the meeting
     let random-passersby nobody
     if (age <= 67 or 0.5 > random-float 1) [
       let locals table:get place neigh
@@ -689,15 +691,14 @@ to infect  ;; turtle procedure
     let nm-passby 0
     if random-passersby != nobody [set nm-passby count random-passersby ]
     set nm_contacts nm_contacts + count hh + nm-passby
-    let proportion prop-friends-met   ;; Change this and the infection probability if we want more superpreading
-    if age > 16 and age < 40 [set proportion proportion / 2] ;; the young meet more people
-
+    let proportion max-prop-friends-met   ;; Change this and the infection probability if we want more superpreading
+    if  age > 40 [set proportion proportion / 2] ;; older meets less
 
 
     ifelse age > 5 and age < 18 [
       if schools-open? and ((5 / 7) > random-float 1) [  ;; If schools are open children go to school 5 days a week
-        set proportion proportion * 2.5   ;; Children who go to school will meet less friends
-                                          ;; Schoolchildren meet their schoolmates every SCHOOLDAY, and can infect them.
+        ;; Schoolchildren meet their schoolmates every SCHOOLDAY, and can infect them.
+        set proportion proportion / 2 ;;school children meet less than younger adults
         let classmates table:get school myclass
         set classmates classmates  with [isolated? = false]
         set nm_contacts nm_contacts + (count classmates / 2) * c
@@ -725,12 +726,12 @@ to infect  ;; turtle procedure
     if ((6 - fq-friends) / 7) > random-float 1 [
 
       ;; First, we go for our friends
-      if (age <= 67 or 0.5 > random-float 1) [    ;;; Old people only meet friends on even days (= go out half of the times younger people do).
+      if (age <= 67 or 0.5 > random-float 1) [    ;;; Old people only meet friends  half of the times younger people do.
                                                   ;;; Every day the agent meets a certain fraction of her friends.
                                                   ;;; If the agent has the contact tracing app, a link is created between she and the friends who also have the app.
                                                   ;;; If the agent is infective, with probability infection-chance, he infects the susceptible friends who he's is meeting.
         if count friends > 0 [
-          let howmany 1 + random round (count friends / proportion)
+          let howmany 1 + random round (count friends * proportion)
           ;show word "meeting with friends:  " howmany
           set nm_contacts nm_contacts + howmany
           ask n-of howmany friends [
@@ -825,15 +826,15 @@ to get-tested [origin]
                                            ; if tests-remaining = 0 and behaviorspace-run-number = 0 [output-print (word "Day " ticks ": tests finished")]
 
   ;; If someone is found to be positive they:
-  ;; 1. Isolate, 2. Their household decides whether to isolate, 3. The relations visited this week also decide whether to isolate
+  ;; 1. Isolate, 2. Their household decides whether to isolate, 3. The notify relatives
   ;; 4. If they use the app, the contacts are notified and have the option of getting tested or isolate.
   ifelse infected? [
     set tested-positive tested-positive + 1
     if should-isolate? [isolate]
     set tested-today? true
     set aware? true
-    ask hh with [should-test?]   ;;check this: here it should be all household members who are not cured should isolate
-      [if not isolated? [maybe-isolate "household-of-positive"]] ;;shouldn't we do one probability for the whole family- currently each of them decides separtly
+    ask hh with [should-test?]  ;;notify the hh memebers
+      [if not isolated? [maybe-isolate "household-of-positive"]] ;;hh member decides wether to self-isolte
 
     if any? relatives [
       ask relatives [
@@ -851,11 +852,12 @@ to get-tested [origin]
       ask tracing-neighbors with [should-test?] [
         if not isolated? [maybe-isolate "app-contact-of-positive"]
         ifelse prioritize-symptomatics?
-        [enter-list]
-        [if tests-remaining > 0 [get-tested "other"]]
+        [enter-list] ;;in case of priority to symtomatic app contacts enter a list and get tested the following day if tests are available
+        [if tests-remaining > 0 [get-tested "other"]] ;;in case no priority to symtomatic they are tested if tests are currently available
       ]
     ]
-  ][if isolated? [unisolate]]
+  ]
+  [if isolated? [unisolate]] ;;agent who was isolating and tested negative will unisolate
 end
 
 ;; =======================================================
@@ -1554,12 +1556,12 @@ SLIDER
 80
 1291
 113
-prop-friends-met
-prop-friends-met
+max-prop-friends-met
+max-prop-friends-met
+0
 1
-10
-6.0
-1
+0.3
+0.05
 1
 NIL
 HORIZONTAL
