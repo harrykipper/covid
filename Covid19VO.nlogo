@@ -608,7 +608,7 @@ end
 ;; There's a chance that the worker will get infected and that he will infect someone.
 to meet-people
   let here table:get placecnt neigh
-  let nmMeet ((lambda * 3) * item 0 here) * c ;;contacts with customera are:lambda % of the people in the neigh
+  let nmMeet ((lambda * 3) * item 0 here)  ;;contacts with customera are:lambda % of the people in the neigh
   let propelderly  0.5 * (1 - item 1 here) ;;gives 50% of the proportion of the elderly in the neigh
   set howmanyelder round (nmMeet * propelderly)
   set howmanyrnd nmMeet - howmanyelder
@@ -622,18 +622,22 @@ to meet-people
     up-to-n-of random-poisson (howmanyelder) locals with [age > 67])
   ifelse infected?  [
     ;; Here the worker is infecting others
-    set nm_contacts nm_contacts + count crowd
     ask crowd [
-      if (can-be-infected?) and (not isolated?) [
+      let in_contact false
+      if random-float 1 < c [
+            set in_contact true
+            set nm_contacts nm_contacts + 1]
+      if (can-be-infected?) and (not isolated?) and in_contact [
         if has-app? and [has-app?] of spreader [add-contact spreader]
         if (not cured?) and random-float 1 < (chance * age-discount * prob-rnd-infection * b) [newinfection spreader "random"]  ; If the worker infects someone, it counts as random
       ]
     ]
   ]
   [
-    ask crowd with [(infected?) and (not isolated?)] [
+    ask crowd with [(infected?) and (not isolated?) and (random-float 1 < c)]   [
       ;; here the worker is being infected by others
-        set spreader self
+      set nm_contacts nm_contacts + 1
+      set spreader self
         set chance chance-of-infecting
         ask victim [
           if can-be-infected? [
@@ -655,7 +659,7 @@ to infect  ;; turtle procedure
   ;; Number of people we meet at random every day: 1 per 1000 people. Elderly goes out 1/2 less than other
   let here table:get placecnt neigh
 
-  let nmMeet (lambda * item 0 here) * c ;;random contacts with lambda % of the people in the neigh
+  let nmMeet (lambda * item 0 here)  ;;random contacts with lambda % of the people in the neigh
   let propelderly  0.5 * (1 - item 1 here) ;;gives 50% of the proportion of the elderly in the neigh
   set howmanyelder round(nmMeet * propelderly)
   set howmanyrnd nmMeet - howmanyelder
@@ -690,7 +694,7 @@ to infect  ;; turtle procedure
     ]
     let nm-passby 0
     if random-passersby != nobody [set nm-passby count random-passersby ]
-    set nm_contacts nm_contacts + count hh + nm-passby
+    set nm_contacts nm_contacts + count hh
     let proportion max-prop-friends-met   ;; Change this and the infection probability if we want more superpreading
     if  age > 40 [set proportion proportion / 2] ;; older meets less
 
@@ -701,10 +705,13 @@ to infect  ;; turtle procedure
         set proportion proportion / 2 ;;school children meet less than younger adults
         let classmates table:get school myclass
         set classmates classmates  with [isolated? = false]
-        set nm_contacts nm_contacts + (count classmates / 2) * c
-        ask n-of ((count classmates / 2) * c) other classmates [
+        ask n-of ((count classmates * 0.5) ) other classmates [
+          let in_contact false
+          if random-float 1 < c [
+            set in_contact true
+            set nm_contacts nm_contacts + 1]
+          if can-be-infected? and in_contact [
 
-          if can-be-infected? [
             if has-app? and [has-app?] of spreader [add-contact spreader]
             if (not cured?) and random-float 1 < (chance * age-discount) [newinfection spreader "school"]
           ]
@@ -713,9 +720,14 @@ to infect  ;; turtle procedure
     ]
     [
       if office-worker? and (((5 - fq) / 7) > random-float 1) [ ;; People who work in offices go to work 5 days a week
-        let todaysvictims (turtle-set n-of (count close-colleagues * c) close-colleagues one-of wide-colleagues)
-        set nm_contacts nm_contacts + count todaysvictims
-        ask todaysvictims [if can-be-infected? and (not isolated?) [
+        let todaysvictims (turtle-set n-of (count close-colleagues) close-colleagues one-of wide-colleagues)
+        ask todaysvictims [
+          let in_contact false
+          if random-float 1 < c [
+            set in_contact true
+            set nm_contacts nm_contacts + 1 ]
+          if can-be-infected? and (not isolated?) and (in_contact) [
+          set nm_contacts nm_contacts + 1
           if has-app? and [has-app?] of spreader [add-contact spreader]
           if (not cured?) and random-float 1 < (chance * b) [newinfection spreader "work"]
           ]
@@ -759,7 +771,11 @@ to infect  ;; turtle procedure
     ;; Currently an individual meets a draw from a poisson distribution with average howmanyrnd or howmanyelder
     if random-passersby != nobody [
       ask random-passersby [
-        if (can-be-infected?) and (not isolated?)  [
+        let in_contact false
+        if random-float 1 < c [
+            set in_contact true
+            set nm_contacts nm_contacts + 1]
+        if (can-be-infected?) and (not isolated?) and in_contact  [
           if has-app? and [has-app?] of spreader [add-contact spreader]
           if (not cured?) and random-float 1 < (chance * age-discount * prob-rnd-infection * b) [newinfection spreader "random"]
         ]
@@ -981,7 +997,7 @@ infection-chance
 infection-chance
 0
 0.2
-0.076
+0.08
 0.001
 1
 NIL
@@ -1062,7 +1078,7 @@ initially-infected
 initially-infected
 0
 5
-0.5
+0.3
 0.1
 1
 %
@@ -1515,7 +1531,7 @@ fq-friends
 fq-friends
 0
 4
-0.0
+1.0
 1
 1
 NIL
@@ -1530,7 +1546,7 @@ lambda
 lambda
 0.0025
 0.01
-0.005
+0.01
 0.0025
 1
 NIL
@@ -1560,7 +1576,7 @@ max-prop-friends-met
 max-prop-friends-met
 0
 1
-0.3
+0.1
 0.05
 1
 NIL
