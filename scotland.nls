@@ -241,11 +241,12 @@ to create-student-hh [ngh]
 end
 
 to create-schools-sco [ngh]
+  let max-class-size 32 / (fq + 1)
   foreach remove-duplicates [age] of schoolkids [a ->
     let thesekids schoolkids with [age = a and ward = ngh]
     ask thesekids [set myclass 0]
-    ifelse count thesekids > 30 [
-      let howManyClasses ceiling (count thesekids / 30)
+    ifelse count thesekids > max-class-size [
+      let howManyClasses ceiling (count thesekids / max-class-size)
       let kidsperclass ceiling (count thesekids / howManyClasses)
       let ctr 1
       while [ctr <= howManyClasses] [

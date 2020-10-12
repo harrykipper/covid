@@ -24,12 +24,12 @@ to-report probability-of-showing-symptoms
   ;; the agent has the following probability of developing the symptoms of COVID-19.
   ;; If the person is showing symptoms, it'll take 7 more days to recover.
   report (ifelse-value
-    age < 10 [2]       ;; Children rarely show any symptoms
-    age < 20 [26]      ;; young adults
-    age <= 40 [55]     ;; Agents between 30 and 40
-    age <= 50 [62]    ;; agents between 40 and 50
-    age <= 70 [72]     ;; agents between 50 and 70
-    [82]              ;; agents above 70
+    age < 10 [0.02]       ;; Children rarely show any symptoms
+    age < 20 [0.26]      ;; young adults
+    age <= 40 [0.55]     ;; Agents between 30 and 40
+    age <= 50 [0.62]    ;; agents between 40 and 50
+    age <= 70 [0.72]     ;; agents between 50 and 70
+    [0.82]              ;; agents above 70
   )
 end
 
@@ -37,24 +37,24 @@ to-report probabilityofworsening
   ;; After 10 days with symptoms the agent has the following probability of
   ;; worsening and needing hospital care.
   report (ifelse-value
-    age < 15 [2]         ;; 
-    age < 40 [6]         ;; agents below age 40 who display symptoms have a 2% chance of ending up in hospital
-    age <= 50 [9]        ;; agents between 40 and 50 ....
-    age < 60 [13]        ;; agents between 50 and 60
-    age < 70  [17]                 ;; over 60
-    [20]
+    age < 15 [0.02]         ;; 
+    age < 40 [0.06]         ;; agents below age 40 who display symptoms have a 2% chance of ending up in hospital
+    age <= 50 [0.09]        ;; agents between 40 and 50 ....
+    age < 60 [0.13]        ;; agents between 50 and 60
+    age < 70  [0.17]                 ;; over 60
+    [0.20]
   )
 end
 
 to-report probabilityofdying
   ;; After 10 days in the hospital the agent has the following probability of dying
   report (ifelse-value
-    age < 15 [0.5]   
-    age < 40 [3]
-    age < 50 [8]
-    age < 60 [16]
-    age <= 70 [25]
-    [50]
+    age < 15 [0.005]   
+    age < 40 [0.03]
+    age < 50 [0.08]
+    age < 60 [0.16]
+    age <= 70 [0.25]
+    [0.50]
   )
 end
 
@@ -63,7 +63,7 @@ to assign-disease-par
   set probability-of-worsening probabilityofworsening * gender-discount
   
   set isolation-tendency random-normal average-isolation-tendency (average-isolation-tendency / 4)
-  if isolation-tendency > 100 [ set isolation-tendency 100 ]
+  if isolation-tendency > 1 [ set isolation-tendency 1 ]
   if isolation-tendency < 0 [ set isolation-tendency 0 ]
   
   set prob-symptoms probability-of-showing-symptoms
