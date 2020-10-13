@@ -177,7 +177,7 @@ to setup
   ifelse social-distancing? [
     set b 0.7       ;; reduction factor in probability of infection
     set fq 2        ;; discount in frequency of work/school
-    set c 0.7       ;; reduction factor in # people around at work/school/street
+    set c 0.7       ;; reduction factor in contacts around at work/school/street
   ][
     set b 1
     set fq 0
@@ -727,7 +727,6 @@ to infect  ;; turtle procedure
             set in_contact true
             set nm_contacts nm_contacts + 1 ]
           if can-be-infected? and (not isolated?) and (in_contact) [
-          set nm_contacts nm_contacts + 1
           if has-app? and [has-app?] of spreader [add-contact spreader]
           if (not cured?) and random-float 1 < (chance * b) [newinfection spreader "work"]
           ]
@@ -745,9 +744,12 @@ to infect  ;; turtle procedure
         if count friends > 0 [
           let howmany 1 + random round (count friends * proportion)
           ;show word "meeting with friends:  " howmany
-          set nm_contacts nm_contacts + howmany
           ask n-of howmany friends [
-            if not isolated? and can-be-infected? [
+             let in_contact false
+             if random-float 1 < c [
+               set in_contact true
+               set nm_contacts nm_contacts + 1 ]
+            if (not isolated?) and (can-be-infected?) (and in_contact) [
               if has-app? and [has-app?] of spreader [add-contact spreader]
               if (not cured?) and random-float 1 < ((chance * age-discount) * b) [newinfection spreader "friends"]]
           ]
