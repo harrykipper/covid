@@ -630,6 +630,7 @@ to meet-people
             set nm_contacts nm_contacts + 1]
       if (can-be-infected?) and (not isolated?) and in_contact [
         if has-app? and [has-app?] of spreader [add-contact spreader]
+
         if (not cured?) and random-float 1 < (chance * age-discount * prob-rnd-infection * b) [newinfection spreader "random"]  ; If the worker infects someone, it counts as random
       ]
     ]
@@ -643,6 +644,7 @@ to meet-people
         ask victim [
           if can-be-infected? [
             if has-app? and [has-app?] of spreader [add-contact spreader]
+
             if (not cured?) and random-float 1 < (chance * prob-rnd-infection * b) [newinfection spreader "work"] ; If the worker is infected by someone, it's work.
           ]
         ]
@@ -782,6 +784,7 @@ to infect  ;; turtle procedure
             set nm_contacts nm_contacts + 1]
         if (can-be-infected?) and (not isolated?) and in_contact  [
           if has-app? and [has-app?] of spreader [add-contact spreader]
+
           if (not cured?) and random-float 1 < (chance * age-discount * prob-rnd-infection * b) [newinfection spreader "random"]
         ]
       ]
@@ -1473,7 +1476,7 @@ PLOT
 891
 410
 1152
-Number of contacts per day
+Number of contacts per day of infected
 NIL
 NIL
 0.0
