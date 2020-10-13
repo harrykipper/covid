@@ -738,25 +738,22 @@ to infect  ;; turtle procedure
       ]
     ]
 
-    if ((7 - fq-friends) / 7) > random-float 1 [
-
-      ;; The following applies to everyone who has friends
-      if (age <= 67 or 0.5 > random-float 1) [    ;;; Old people only meet friends  half of the times younger people do.
-                                                  ;;; Every day the agent meets a certain fraction of her friends.
-                                                  ;;; If the agent has the contact tracing app, a link is created between she and the friends who also have the app.
-                                                  ;;; If the agent is infective, with probability infection-chance, he infects the susceptible friends who he's is meeting.
-        if count friends > 0 [
-          let howmany 1 + random round (count friends * proportion)
-          ;show word "meeting with friends:  " howmany
-          ask n-of howmany friends [
-             let in_contact false
-             if random-float 1 < c [
-               set in_contact true
-               set nm_contacts nm_contacts + 1 ]
-            if (not isolated?) and (can-be-infected?) and (in_contact) [
-              if has-app? and [has-app?] of spreader [add-contact spreader]
-              if (not cured?) and random-float 1 < ((chance * age-discount) * b) [newinfection spreader "friends"]]
-          ]
+    ;; The following applies to everyone who has friends
+    if (age <= 67 or 0.5 > random-float 1) [    ;;; Old people only meet friends  half of the times younger people do.
+                                                ;;; Every day the agent meets a certain fraction of her friends.
+                                                ;;; If the agent has the contact tracing app, a link is created between she and the friends who also have the app.
+                                                ;;; If the agent is infective, with probability infection-chance, he infects the susceptible friends who he's is meeting.
+      if count friends > 0 [
+        let howmany 1 + random round (count friends * proportion)
+        ;show word "meeting with friends:  " howmany
+        ask n-of howmany friends [
+          let in_contact false
+          if random-float 1 < c [
+            set in_contact true
+            set nm_contacts nm_contacts + 1 ]
+          if (not isolated?) and (can-be-infected?) and (in_contact) [
+            if has-app? and [has-app?] of spreader [add-contact spreader]
+            if (not cured?) and random-float 1 < ((chance * age-discount) * b) [newinfection spreader "friends"]]
         ]
       ]
     ]
@@ -888,8 +885,8 @@ end
 to APP-ALERT
   if not isolated? [maybe-isolate "app-contact-of-positive"]
   ifelse prioritize-symptomatics?
-  [enter-list]
-  [if tests-remaining > 0 [get-tested "other"]]
+  [if should-test? [enter-list]]
+  [if should-test? and tests-remaining > 0 [get-tested "other"]]
 end
 
 ;; =======================================================
@@ -1539,25 +1536,10 @@ Mitigations vvvvvvvvvvv
 1
 
 SLIDER
-1119
-120
-1291
-153
-fq-friends
-fq-friends
-0
-4
-0.0
-1
-1
-NIL
-HORIZONTAL
-
-SLIDER
-1119
-160
-1291
-193
+1128
+162
+1300
+195
 lambda
 lambda
 0.0025
@@ -1569,10 +1551,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-1119
-200
-1291
-233
+1128
+203
+1300
+236
 prob-rnd-infection
 prob-rnd-infection
 0.01
@@ -1584,10 +1566,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-1119
-80
-1291
-113
+1128
+123
+1300
+156
 max-prop-friends-met
 max-prop-friends-met
 0
@@ -1599,10 +1581,10 @@ NIL
 HORIZONTAL
 
 TEXTBOX
-1120
-20
-1305
-86
+1129
+63
+1314
+129
 Parameters for sensitivity analysis
 16
 0.0
