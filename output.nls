@@ -92,7 +92,7 @@ to plot-friends
 end
 
 to plot-contacts
-  set-current-plot "Number of contacts per day"
+  set-current-plot "Number of contacts per day of infected"
   set-plot-x-range 0 50
   histogram [nm_contacts / (days_cont + 0.0000001)]  of turtles with [my-state = "recovered"] 
 end
