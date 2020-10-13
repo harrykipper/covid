@@ -629,6 +629,7 @@ to meet-people
             set nm_contacts nm_contacts + 1]
       if (can-be-infected?) and (not isolated?) and in_contact [
         if has-app? and [has-app?] of spreader [add-contact spreader]
+
         if (not cured?) and random-float 1 < (chance * age-discount * prob-rnd-infection * b) [newinfection spreader "random"]  ; If the worker infects someone, it counts as random
       ]
     ]
@@ -642,6 +643,7 @@ to meet-people
         ask victim [
           if can-be-infected? [
             if has-app? and [has-app?] of spreader [add-contact spreader]
+
             if (not cured?) and random-float 1 < (chance * prob-rnd-infection * b) [newinfection spreader "work"] ; If the worker is infected by someone, it's work.
           ]
         ]
@@ -734,7 +736,7 @@ to infect  ;; turtle procedure
       ]
     ]
 
-    if ((6 - fq-friends) / 7) > random-float 1 [
+    if ((7 - fq-friends) / 7) > random-float 1 [
 
       ;; First, we go for our friends
       if (age <= 67 or 0.5 > random-float 1) [    ;;; Old people only meet friends  half of the times younger people do.
@@ -779,6 +781,7 @@ to infect  ;; turtle procedure
             set nm_contacts nm_contacts + 1]
         if (can-be-infected?) and (not isolated?) and in_contact  [
           if has-app? and [has-app?] of spreader [add-contact spreader]
+
           if (not cured?) and random-float 1 < (chance * age-discount * prob-rnd-infection * b) [newinfection spreader "random"]
         ]
       ]
@@ -1306,7 +1309,7 @@ initially-cured
 initially-cured
 0
 100
-7.0
+0.0
 0.1
 1
 %
@@ -1462,7 +1465,7 @@ PLOT
 891
 410
 1152
-Number of contacts per day
+Number of contacts per day of infected
 NIL
 NIL
 0.0
@@ -1533,7 +1536,7 @@ fq-friends
 fq-friends
 0
 4
-1.0
+0.0
 1
 1
 NIL
@@ -1548,7 +1551,7 @@ lambda
 lambda
 0.0025
 0.01
-0.01
+0.005
 0.0025
 1
 NIL
