@@ -2006,7 +2006,7 @@ NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 <experiments>
-  <experiment name="revised2" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
+  <experiment name="new_deal" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
     <enumeratedValueSet variable="show-layout">
@@ -2051,7 +2051,7 @@ NetLogo 6.1.1
       <value value="80"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="infection-chance">
-      <value value="0.076"/>
+      <value value="0.08"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="use-seed?">
       <value value="false"/>
@@ -2069,8 +2069,8 @@ NetLogo 6.1.1
     <enumeratedValueSet variable="prob-rnd-infection">
       <value value="0.1"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="fq-friends">
-      <value value="1"/>
+    <enumeratedValueSet variable="max-prop-friends-met">
+      <value value="0.1"/>
     </enumeratedValueSet>
   </experiment>
   <experiment name="sensitivity" repetitions="10" sequentialRunOrder="false" runMetricsEveryStep="false">
