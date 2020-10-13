@@ -604,9 +604,10 @@ end
 
 ;=====================================================================================
 
-;; Encounters between 'crowd workers' and the crows.
+;; Encounters between 'crowd workers' and the crowd.
 ;; There's a chance that the worker will get infected and that he will infect someone.
 to meet-people
+  set b 1
   let here table:get placecnt neigh
   let nmMeet ((lambda * 3) * item 0 here)  ;;contacts with customera are:lambda % of the people in the neigh
   let propelderly  0.5 * (1 - item 1 here) ;;gives 50% of the proportion of the elderly in the neigh
@@ -698,7 +699,7 @@ to infect  ;; turtle procedure
     let proportion max-prop-friends-met   ;; Change this and the infection probability if we want more superpreading
     if  age > 40 [set proportion proportion / 2] ;; older meets less
 
-
+    ;; The following are schoolkids
     ifelse age > 5 and age < 18 [
       if schools-open? and ((5 / 7) > random-float 1) [  ;; If schools are open children go to school 5 days a week
         ;; Schoolchildren meet their schoolmates every SCHOOLDAY, and can infect them.
@@ -718,6 +719,7 @@ to infect  ;; turtle procedure
         ]
       ]
     ]
+    ;; People who work in offices
     [
       if office-worker? and (((5 - fq) / 7) > random-float 1) [ ;; People who work in offices go to work 5 days a week
         let todaysvictims (turtle-set n-of (count close-colleagues) close-colleagues one-of wide-colleagues)
@@ -734,9 +736,9 @@ to infect  ;; turtle procedure
       ]
     ]
 
-    if ((6 - fq-friends) / 7) > random-float 1 [
+    if ((7 - fq-friends) / 7) > random-float 1 [
 
-      ;; First, we go for our friends
+      ;; The following applies to everyone who has friends
       if (age <= 67 or 0.5 > random-float 1) [    ;;; Old people only meet friends  half of the times younger people do.
                                                   ;;; Every day the agent meets a certain fraction of her friends.
                                                   ;;; If the agent has the contact tracing app, a link is created between she and the friends who also have the app.
@@ -772,6 +774,7 @@ to infect  ;; turtle procedure
     ;; Elderly people are assumed to go out half as much as everyone else.
     ;; Currently an individual meets a draw from a poisson distribution with average howmanyrnd or howmanyelder
     if random-passersby != nobody [
+      set b 1
       ask random-passersby [
         let in_contact false
         if random-float 1 < c [
@@ -865,17 +868,25 @@ to get-tested [origin]
         ]
       ]
     ]
-
-    if has-app? [
-      ask tracing-neighbors with [should-test?] [
-        if not isolated? [maybe-isolate "app-contact-of-positive"]
-        ifelse prioritize-symptomatics?
-        [enter-list] ;;in case of priority to symtomatic app contacts enter a list and get tested the following day if tests are available
-        [if tests-remaining > 0 [get-tested "other"]] ;;in case no priority to symtomatic they are tested if tests are currently available
-      ]
-    ]
+    if age > 5 and age <= 18 [ask table:get school myclass [SCHOOL-ALERT]]
+    ;; Following a positive test the app notifies the contacts
+    if has-app? [ask tracing-neighbors with [should-test?] [APP-ALERT]]
   ]
   [if isolated? [unisolate]] ;;agent who was isolating and tested negative will unisolate
+end
+
+to SCHOOL-ALERT
+  if not isolated? [isolate]
+  ifelse prioritize-symptomatics?
+  [enter-list]
+  [if tests-remaining > 0 [get-tested "other"]]
+end
+
+to APP-ALERT
+  if not isolated? [maybe-isolate "app-contact-of-positive"]
+  ifelse prioritize-symptomatics?
+  [enter-list]
+  [if tests-remaining > 0 [get-tested "other"]]
 end
 
 ;; =======================================================
@@ -1184,7 +1195,7 @@ true
 "" ""
 PENS
 "Household" 1.0 0 -16777216 true "" "plot table:get counters \"household\""
-"Friends" 1.0 0 -13791810 true "" "plot table:get counters \"friends\""
+"Social" 1.0 0 -13791810 true "" "plot table:get counters \"friends\""
 "School" 1.0 0 -2674135 true "" "plot table:get counters \"school\""
 "Strangers" 1.0 0 -955883 true "" "plot table:get counters \"random\""
 "Relations" 1.0 0 -7500403 true "" "plot table:get counters \"relations\""
@@ -1295,7 +1306,7 @@ CHOOSER
 app-compliance
 app-compliance
 "High" "Low"
-1
+0
 
 SLIDER
 170
@@ -1306,7 +1317,7 @@ initially-cured
 initially-cured
 0
 100
-7.0
+0.0
 0.1
 1
 %
@@ -1427,7 +1438,7 @@ SWITCH
 307
 social-distancing?
 social-distancing?
-1
+0
 1
 -1000
 
@@ -1533,7 +1544,7 @@ fq-friends
 fq-friends
 0
 4
-1.0
+0.0
 1
 1
 NIL
@@ -1548,7 +1559,7 @@ lambda
 lambda
 0.0025
 0.01
-0.01
+0.005
 0.0025
 1
 NIL
