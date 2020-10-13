@@ -749,7 +749,7 @@ to infect  ;; turtle procedure
              if random-float 1 < c [
                set in_contact true
                set nm_contacts nm_contacts + 1 ]
-            if (not isolated?) and (can-be-infected?) (and in_contact) [
+            if (not isolated?) and (can-be-infected?) and (in_contact) [
               if has-app? and [has-app?] of spreader [add-contact spreader]
               if (not cured?) and random-float 1 < ((chance * age-discount) * b) [newinfection spreader "friends"]]
           ]
