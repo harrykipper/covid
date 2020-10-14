@@ -627,7 +627,7 @@ to meet-people
       let in_contact false
       if random-float 1 < c [
             set in_contact true
-            set nm_contacts nm_contacts + 1]
+            ask myself[set nm_contacts nm_contacts + 1] ]
       if (can-be-infected?) and (not isolated?) and in_contact [
         if has-app? and [has-app?] of spreader [add-contact spreader]
 
@@ -638,7 +638,7 @@ to meet-people
   [
     ask crowd with [(infected?) and (not isolated?) and (random-float 1 < c)]   [
       ;; here the worker is being infected by others
-      set nm_contacts nm_contacts + 1
+      ask myself[set nm_contacts nm_contacts + 1]
       set spreader self
         set chance chance-of-infecting
         ask victim [
@@ -712,11 +712,10 @@ to infect  ;; turtle procedure
           let in_contact false
           if random-float 1 < c [
             set in_contact true
-            set nm_contacts nm_contacts + 1]
+            ask myself[set nm_contacts nm_contacts + 1 ] ]
           if can-be-infected? and in_contact [
-
             if has-app? and [has-app?] of spreader [add-contact spreader]
-            if (not cured?) and random-float 1 < (chance * age-discount) [newinfection spreader "school"]
+              if (not cured?) and random-float 1 < (chance * age-discount) [newinfection spreader "school"]
           ]
         ]
       ]
@@ -729,7 +728,7 @@ to infect  ;; turtle procedure
           let in_contact false
           if random-float 1 < c [
             set in_contact true
-            set nm_contacts nm_contacts + 1 ]
+            ask myself[set nm_contacts nm_contacts + 1 ] ]
           if can-be-infected? and (not isolated?) and (in_contact) [
           if has-app? and [has-app?] of spreader [add-contact spreader]
           if (not cured?) and random-float 1 < (chance * b) [newinfection spreader "work"]
@@ -750,7 +749,7 @@ to infect  ;; turtle procedure
           let in_contact false
           if random-float 1 < c [
             set in_contact true
-            set nm_contacts nm_contacts + 1 ]
+            ask myself[set nm_contacts nm_contacts + 1] ]
           if (not isolated?) and (can-be-infected?) and (in_contact) [
             if has-app? and [has-app?] of spreader [add-contact spreader]
             if (not cured?) and random-float 1 < ((chance * age-discount) * b) [newinfection spreader "friends"]]
@@ -778,7 +777,7 @@ to infect  ;; turtle procedure
         let in_contact false
         if random-float 1 < c [
             set in_contact true
-            set nm_contacts nm_contacts + 1]
+            ask myself[set nm_contacts nm_contacts + 1] ]
         if (can-be-infected?) and (not isolated?) and in_contact  [
           if has-app? and [has-app?] of spreader [add-contact spreader]
 
@@ -868,7 +867,7 @@ to get-tested [origin]
         ]
       ]
     ]
-    if age > 5 and age <= 18 [ask table:get school myclass [SCHOOL-ALERT]]
+    if age > 5 and age < 18 [ask table:get school myclass [SCHOOL-ALERT]]
     ;; Following a positive test the app notifies the contacts
     if has-app? [ask tracing-neighbors with [should-test?] [APP-ALERT]]
   ]
@@ -1091,7 +1090,7 @@ initially-infected
 initially-infected
 0
 5
-0.3
+5.0
 0.1
 1
 %
@@ -1306,7 +1305,7 @@ CHOOSER
 app-compliance
 app-compliance
 "High" "Low"
-0
+1
 
 SLIDER
 170
@@ -1438,7 +1437,7 @@ SWITCH
 307
 social-distancing?
 social-distancing?
-0
+1
 1
 -1000
 
@@ -1451,7 +1450,7 @@ average-isolation-tendency
 average-isolation-tendency
 0
 1
-0.7
+0.0
 0.01
 1
 NIL
