@@ -630,7 +630,7 @@ to meet-people
       if (can-be-infected?) and (not isolated?) and in_contact [
         if has-app? and [has-app?] of spreader [add-contact spreader]
 
-        if (not cured?) and random-float 1 < (chance * age-discount * prob-rnd-infection) [newinfection spreader "random"]  ; If the worker infects someone, it counts as random
+        if (not cured?) and random-float 1 < (chance * age-discount * prob-rnd-infection * b) [newinfection spreader "random"]  ; If the worker infects someone, it counts as random
       ]
     ]
   ]
@@ -711,9 +711,11 @@ to infect  ;; turtle procedure
           let in_contact false
           if random-float 1 < c [
             set in_contact true
-            ask myself[set nm_contacts nm_contacts + 1 ] ]
+            ask myself[set nm_contacts nm_contacts + 1 ]
+          ]
           if can-be-infected? and in_contact [
-            if has-app? and [has-app?] of spreader [add-contact spreader]
+            ; We don't rely on the app in school. The classrom is quarantined if a pupil is positive
+            ;if has-app? and [has-app?] of spreader [add-contact spreader]
               if (not cured?) and random-float 1 < (chance * age-discount) [newinfection spreader "school"]
           ]
         ]
@@ -751,7 +753,7 @@ to infect  ;; turtle procedure
             ask myself[set nm_contacts nm_contacts + 1] ]
           if (not isolated?) and (can-be-infected?) and (in_contact) [
             if has-app? and [has-app?] of spreader [add-contact spreader]
-            if (not cured?) and random-float 1 < ((chance * age-discount) * b) [newinfection spreader "friends"]]
+            if (not cured?) and random-float 1 < ((chance * age-discount * b)) [newinfection spreader "friends"]]
         ]
       ]
     ]
@@ -761,7 +763,7 @@ to infect  ;; turtle procedure
       set nm_contacts nm_contacts + 1
       ask one-of relatives [
         if can-be-infected? and (not isolated?) [
-          if (not cured?) and random-float 1 < ((chance * age-discount) * b) [newinfection spreader "relations"]
+          if (not cured?) and random-float 1 < (chance * age-discount * b) [newinfection spreader "relations"]
         ]
       ]
     ]
@@ -779,7 +781,7 @@ to infect  ;; turtle procedure
         if (can-be-infected?) and (not isolated?) and in_contact  [
           if has-app? and [has-app?] of spreader [add-contact spreader]
 
-          if (not cured?) and random-float 1 < (chance * age-discount * prob-rnd-infection) [newinfection spreader "random"]
+          if (not cured?) and random-float 1 < (chance * age-discount * prob-rnd-infection * b) [newinfection spreader "random"]
         ]
       ]
     ]
@@ -1088,7 +1090,7 @@ initially-infected
 initially-infected
 0
 5
-5.0
+0.3
 0.1
 1
 %
@@ -1448,7 +1450,7 @@ average-isolation-tendency
 average-isolation-tendency
 0
 1
-0.0
+0.7
 0.01
 1
 NIL
@@ -1539,10 +1541,10 @@ SLIDER
 195
 lambda
 lambda
-0.0025
+0.0020
 0.01
-0.005
-0.0025
+0.006
+0.001
 1
 NIL
 HORIZONTAL
@@ -2003,7 +2005,7 @@ NetLogo 6.1.1
 @#$#@#$#@
 @#$#@#$#@
 <experiments>
-  <experiment name="new_deal" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
+  <experiment name="lotsofrandom" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
     <enumeratedValueSet variable="show-layout">
@@ -2022,7 +2024,7 @@ NetLogo 6.1.1
       <value value="true"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="initially-infected">
-      <value value="0.5"/>
+      <value value="0.3"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="lockdown-at-first-death">
       <value value="false"/>
@@ -2061,7 +2063,7 @@ NetLogo 6.1.1
       <value value="false"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="lambda">
-      <value value="0.005"/>
+      <value value="0.01"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="prob-rnd-infection">
       <value value="0.1"/>
