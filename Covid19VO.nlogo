@@ -607,7 +607,6 @@ end
 ;; Encounters between 'crowd workers' and the crowd.
 ;; There's a chance that the worker will get infected and that he will infect someone.
 to meet-people
-  set b 1
   let here table:get placecnt neigh
   let nmMeet ((lambda * 3) * item 0 here)  ;;contacts with customera are:lambda % of the people in the neigh
   let propelderly  0.5 * (1 - item 1 here) ;;gives 50% of the proportion of the elderly in the neigh
@@ -631,7 +630,7 @@ to meet-people
       if (can-be-infected?) and (not isolated?) and in_contact [
         if has-app? and [has-app?] of spreader [add-contact spreader]
 
-        if (not cured?) and random-float 1 < (chance * age-discount * prob-rnd-infection * b) [newinfection spreader "random"]  ; If the worker infects someone, it counts as random
+        if (not cured?) and random-float 1 < (chance * age-discount * prob-rnd-infection) [newinfection spreader "random"]  ; If the worker infects someone, it counts as random
       ]
     ]
   ]
@@ -772,7 +771,6 @@ to infect  ;; turtle procedure
     ;; Elderly people are assumed to go out half as much as everyone else.
     ;; Currently an individual meets a draw from a poisson distribution with average howmanyrnd or howmanyelder
     if random-passersby != nobody [
-      set b 1
       ask random-passersby [
         let in_contact false
         if random-float 1 < c [
@@ -781,7 +779,7 @@ to infect  ;; turtle procedure
         if (can-be-infected?) and (not isolated?) and in_contact  [
           if has-app? and [has-app?] of spreader [add-contact spreader]
 
-          if (not cured?) and random-float 1 < (chance * age-discount * prob-rnd-infection * b) [newinfection spreader "random"]
+          if (not cured?) and random-float 1 < (chance * age-discount * prob-rnd-infection) [newinfection spreader "random"]
         ]
       ]
     ]
@@ -884,8 +882,8 @@ end
 to APP-ALERT
   if not isolated? [maybe-isolate "app-contact-of-positive"]
   ifelse prioritize-symptomatics?
-  [if should-test? [enter-list]]
-  [if should-test? and tests-remaining > 0 [get-tested "other"]]
+  [enter-list]
+  [if tests-remaining > 0 [get-tested "other"]]
 end
 
 ;; =======================================================
