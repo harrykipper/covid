@@ -876,9 +876,11 @@ end
 
 to SCHOOL-ALERT
   if not isolated? [isolate]
-  ifelse prioritize-symptomatics?
-  [enter-list]
-  [if tests-remaining > 0 [get-tested "other"]]
+  if should-test? [
+    ifelse prioritize-symptomatics?
+    [enter-list]
+    [if tests-remaining > 0 [get-tested "other"]]
+  ]
 end
 
 to APP-ALERT
@@ -1123,7 +1125,7 @@ pct-with-tracing-app
 pct-with-tracing-app
 0
 100
-0.0
+40.0
 1
 1
 %
@@ -1131,14 +1133,14 @@ HORIZONTAL
 
 SLIDER
 186
-274
-361
+273
+353
 307
 tests-per-100-people
 tests-per-100-people
 0
 20
-0.0
+3.0
 0.01
 1
 NIL
@@ -1305,7 +1307,7 @@ CHOOSER
 app-compliance
 app-compliance
 "High" "Low"
-1
+0
 
 SLIDER
 170
@@ -1316,7 +1318,7 @@ initially-cured
 initially-cured
 0
 100
-0.0
+7.0
 0.1
 1
 %
@@ -1437,7 +1439,7 @@ SWITCH
 307
 social-distancing?
 social-distancing?
-1
+0
 1
 -1000
 
@@ -1543,7 +1545,7 @@ lambda
 lambda
 0.0020
 0.01
-0.006
+0.01
 0.001
 1
 NIL
