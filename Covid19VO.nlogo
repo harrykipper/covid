@@ -537,7 +537,7 @@ to enter-list
 end
 
 to-report should-test?
-  if not tested-today? and not aware? [report true]
+  if not tested-today? and not aware? and not member? self testing-tomorrow [report true]
   report false
 end
 
@@ -1135,7 +1135,7 @@ SLIDER
 186
 273
 353
-307
+306
 tests-per-100-people
 tests-per-100-people
 0
