@@ -2,8 +2,8 @@ dir<-"~/ownCloud/abm/presentations/"
 ##dir<-"C:/github_projects/covidstefano/Results"
 ##setwd("C:/github_projects/covidstefano/Results")
 ##getwd()
-ind<-read.csv("revised2_ind.csv.xz")
-covid<-read.csv("revised2.csv")
+ind<-read.csv("lotsofrandom_ind.csv.xz")
+covid<-read.csv("lotsofrandom.csv")
 ind$testsPerSick<-ind$tests/ind$infected
 
 covid_high<-covid[covid$pctApp=="0",]
@@ -15,6 +15,18 @@ ind_high<-ind[ind$pctApp=="0",]
 ind_high$compliance<-"High"
 ind_high$run<-ind_high$run + 10000
 ind<-rbind(ind,ind_high)
+
+covid_prio<-covid[covid$pctTest=="0",]
+covid_prio$SymPriority<-"true"
+covid_prio$run<-covid_prio$run + 10000
+covid<-rbind(covid,covid_prio)
+
+ind_prio<-ind[ind$pctTest=="0",]
+ind_prio$SymPriority<-"true"
+ind_prio$run<-ind_prio$run + 10000
+ind<-rbind(ind,ind_prio)
+
+
 
 
 ############ Linear model ################# 
@@ -62,12 +74,64 @@ for(c in unique(covid$compliance)){
             panel.grid = element_line(color="gray"),
             panel.background = element_rect(fill="#ECE7E7"),
             panel.border = element_rect(color="black", size=1, linetype="solid")
+              
       )
     
     print(my_boxplot)
     ggsave(filename = paste0(dir,"/new_deal-box-comp_",c,"-prio_",p,".png"), width = 9, height = 6)
   }
 }
+
+########################alternative boxplot###########################
+cols<-c("#BFD439","#36802d","#66B2FF","#2c7fb8","#6666FF") #"#c6c100","#a1dab4","#41b6c4","#2c7fb8","#253494"
+library(ggplot2)
+
+covid<-covid[covid$schools=="true",]
+ind<-ind[ind$schools=="true",]
+
+
+covid$pctApp<-as.factor(covid$pctApp)
+covid$pctTest<-as.factor(covid$pctTest)
+
+covid$pctTest <- factor(covid$pctTest, levels = c("0","0.5","1","1.5","3","6","100"), 
+                  labels = c("0","0.5%","1%","1.5%","3%","6%","Unlimited"))
+head(covid)
+for(c in unique(covid$compliance)){
+  for(p in unique(covid$SymPriority)){
+    my_boxplot<-ggplot(covid[covid$SymPriority==p & covid$compliance==c,],
+                       aes(y=propInfected,fill=pctApp)) + ##x=pctTest
+      geom_boxplot(show.legend=TRUE) +  #geom_boxplot
+      facet_wrap(~pctTest, ncol =7, switch = "x") +##expression(infinity)
+      scale_fill_brewer(type = "seq")+ #palette = "YlGnBu"
+      scale_fill_manual(values=cols)+
+      labs(x="Tests per week (% of population)",y="% infected",fill="CTA adoption (%)" 
+           #title = paste0("Schools open; compliance: ",c,"; priority to symptomatics: ",p)
+      ) +
+      ##scale_x_discrete (labels=c("0","0.5","1","1.5","3","6",expression(infinity)))+
+      scale_y_continuous( limits=c(10,45), breaks =c(10,15,20,25,30,35,40,45,50,55), minor_breaks=NULL) + ##ylim(c(20,55)) +
+      theme_bw() +
+      theme(axis.text.y  = element_text(size = 22, colour="black",family = "serif" ),
+            axis.title = element_text(size=28,family = "serif",color="black"), ##face="bold"
+            legend.text = element_text(size=16),
+            axis.text.x=element_blank(),
+            axis.ticks.x=element_blank(),
+            strip.text.x = element_text(size = 18, color = "black", family = "serif" ),
+            axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)),
+            axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
+            panel.grid.major.y = element_line(color="gray"),
+            panel.grid.major.x = element_blank(),
+            panel.background = element_rect(fill="#ECE7E7"),
+            panel.border = element_rect(color="black", size=1, linetype="solid"),
+            panel.spacing = unit(0.2, "lines")
+            
+      )
+    
+    print(my_boxplot)
+    ggsave(filename = paste0(dir,"/new_deal-box-comp_",c,"-prio_",p,".png"), width = 12, height = 6)
+  }
+}
+
+
 
 #############################################################
 ## Select cases with median propInfected for every combination tested.
