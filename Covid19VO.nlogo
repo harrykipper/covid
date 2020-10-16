@@ -751,7 +751,7 @@ to infect  ;; turtle procedure
           ;;here we want to increase friends meeting
            if per-dif-friends > 0 [
             repeat howmany [if random-float 1 <= per-dif-friends [set howmany howmany + 1] ]
-            set howmany max (list  howmany round (count friends * proportion))
+            set howmany min (list  howmany round (count friends * proportion))
           ]
           ;;here we decrease meeting
            if per-dif-friends < 0 [ repeat howmany [if random-float 1 <= -1 * per-dif-friends [set howmany howmany - 1] ]
@@ -2104,7 +2104,7 @@ NetLogo 6.1.1
       <value value="0.1"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="sensitivity-l" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
+  <experiment name="sensitivity-l" repetitions="10" sequentialRunOrder="false" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
     <enumeratedValueSet variable="show-layout">
@@ -2168,7 +2168,7 @@ NetLogo 6.1.1
       <value value="&quot;0&quot;"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="sensitivity-b" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
+  <experiment name="sensitivity-b" repetitions="10" sequentialRunOrder="false" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
     <enumeratedValueSet variable="show-layout">
@@ -2231,7 +2231,7 @@ NetLogo 6.1.1
       <value value="&quot;0&quot;"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="sensitivity-p" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
+  <experiment name="sensitivity-p" repetitions="10" sequentialRunOrder="false" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
     <enumeratedValueSet variable="show-layout">
@@ -2295,7 +2295,7 @@ NetLogo 6.1.1
       <value value="0"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="sensitivity-f" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
+  <experiment name="sensitivity-f" repetitions="10" sequentialRunOrder="false" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
     <enumeratedValueSet variable="show-layout">
