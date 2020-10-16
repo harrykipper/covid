@@ -750,12 +750,14 @@ to infect  ;; turtle procedure
         if per-dif-friends != 0[
           ;;here we want to increase friends meeting
            if per-dif-friends > 0 [
-             repeat howmany [if random-float 1 <= per-dif-friends [set howmany howmany + 1] ]]
+             repeat howmany [if random-float 1 <= per-dif-friends [set howmany howmany + 1] ]
+             set howmany max (list  howmany round (count friends * proportion))  ]
           ;;here we decrease meeting
            if per-dif-friends < 0 [ repeat howmany [if random-float 1 <= -1 * per-dif-friends [set howmany howmany - 1] ]
           ]
         ]
 ;;-------------------------------------------------------------------------------------------------------------
+
         if howmany > 0[
           ask n-of howmany friends [
             let in_contact false
@@ -1613,7 +1615,7 @@ per-dif-friends
 per-dif-friends
 -1
 1
--0.5
+1.0
 0.1
 1
 NIL
