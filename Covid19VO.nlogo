@@ -758,7 +758,6 @@ to infect  ;; turtle procedure
           ]
         ]
 ;;-------------------------------------------------------------------------------------------------------------
-
         if howmany > 0[
           ask n-of howmany friends [
             let in_contact false
@@ -1481,7 +1480,7 @@ SWITCH
 307
 prioritize-symptomatics?
 prioritize-symptomatics?
-1
+0
 1
 -1000
 
@@ -1616,7 +1615,7 @@ per-dif-friends
 per-dif-friends
 -1
 1
-1.0
+-0.5
 0.1
 1
 NIL
@@ -2208,6 +2207,69 @@ NetLogo 6.1.1
       <value value="80"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="infection-chance">
+      <value value="0.04"/>
+      <value value="0.06"/>
+      <value value="0.1"/>
+      <value value="0.12"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-seed?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="schools-open?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prioritize-symptomatics?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="lambda">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-rnd-infection">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="per-dif-friends">
+      <value value="&quot;0&quot;"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="sensitivity-p" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
+    <setup>setup</setup>
+    <go>go</go>
+    <enumeratedValueSet variable="show-layout">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-cured">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="average-isolation-tendency">
+      <value value="0.7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-existing-nw?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="social-distancing?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-infected">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="lockdown-at-first-death">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tests-per-100-people">
+      <value value="1.5"/>
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="app-compliance">
+      <value value="&quot;High&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="pct-with-tracing-app">
+      <value value="0"/>
+      <value value="20"/>
+      <value value="40"/>
+      <value value="60"/>
+      <value value="80"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infection-chance">
       <value value="0.08"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="use-seed?">
@@ -2220,17 +2282,81 @@ NetLogo 6.1.1
       <value value="true"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="lambda">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-rnd-infection">
       <value value="0.005"/>
       <value value="0.0075"/>
-      <value value="0.0125"/>
-      <value value="0.015"/>
-      <value value="0.02"/>
+      <value value="0.125"/>
+      <value value="0.15"/>
+      <value value="0.2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="per-dif-friends">
+      <value value="0"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="sensitivity-f" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
+    <setup>setup</setup>
+    <go>go</go>
+    <enumeratedValueSet variable="show-layout">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-cured">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="average-isolation-tendency">
+      <value value="0.7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-existing-nw?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="social-distancing?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-infected">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="lockdown-at-first-death">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tests-per-100-people">
+      <value value="1.5"/>
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="app-compliance">
+      <value value="&quot;High&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="pct-with-tracing-app">
+      <value value="0"/>
+      <value value="20"/>
+      <value value="40"/>
+      <value value="60"/>
+      <value value="80"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infection-chance">
+      <value value="0.08"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-seed?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="schools-open?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prioritize-symptomatics?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="lambda">
+      <value value="0.01"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="prob-rnd-infection">
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="per-dif-friends">
-      <value value="&quot;0&quot;"/>
+      <value value="-0.5"/>
+      <value value="-0.25"/>
+      <value value="0.25"/>
+      <value value="0.5"/>
+      <value value="0.75"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>
