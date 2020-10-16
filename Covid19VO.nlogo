@@ -750,7 +750,9 @@ to infect  ;; turtle procedure
         if per-dif-friends != 0[
           ;;here we want to increase friends meeting
            if per-dif-friends > 0 [
-             repeat howmany [if random-float 1 <= per-dif-friends [set howmany howmany + 1] ]]
+            repeat howmany [if random-float 1 <= per-dif-friends [set howmany howmany + 1] ]
+            set howmany max (list  howmany round (count friends * proportion))
+          ]
           ;;here we decrease meeting
            if per-dif-friends < 0 [ repeat howmany [if random-float 1 <= -1 * per-dif-friends [set howmany howmany - 1] ]
           ]
@@ -880,7 +882,7 @@ to get-tested [origin]
         ]
       ]
     ]
-    if age > 5 and age < 18 [ask table:get school myclass [SCHOOL-ALERT]]
+    if age > 5 and age < 18 [ask other table:get school myclass [SCHOOL-ALERT]]
     ;; Following a positive test the app notifies the contacts
     if has-app? [ask tracing-neighbors with [should-test?] [APP-ALERT]]
   ]
@@ -1550,10 +1552,10 @@ Mitigations vvvvvvvvvvv
 1
 
 SLIDER
-1128
-162
-1300
-195
+1115
+120
+1287
+153
 lambda
 lambda
 0.0020
@@ -1565,10 +1567,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-1128
-203
-1300
-236
+1115
+161
+1287
+194
 prob-rnd-infection
 prob-rnd-infection
 0.01
@@ -1580,10 +1582,10 @@ NIL
 HORIZONTAL
 
 SLIDER
-1128
-123
-1300
-156
+1115
+81
+1287
+114
 max-prop-friends-met
 max-prop-friends-met
 0
@@ -1595,20 +1597,20 @@ NIL
 HORIZONTAL
 
 TEXTBOX
-1129
-63
-1314
-129
+1116
+21
+1301
+87
 Parameters for sensitivity analysis
 16
 0.0
 1
 
 SLIDER
-1130
-240
-1302
-273
+1117
+198
+1289
+231
 per-dif-friends
 per-dif-friends
 -1
@@ -2102,7 +2104,7 @@ NetLogo 6.1.1
       <value value="0.1"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="sensitivity" repetitions="10" sequentialRunOrder="false" runMetricsEveryStep="false">
+  <experiment name="sensitivity-l" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
     <enumeratedValueSet variable="show-layout">
@@ -2112,7 +2114,7 @@ NetLogo 6.1.1
       <value value="7"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="average-isolation-tendency">
-      <value value="70"/>
+      <value value="0.7"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="use-existing-nw?">
       <value value="true"/>
@@ -2127,7 +2129,7 @@ NetLogo 6.1.1
       <value value="false"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="tests-per-100-people">
-      <value value="3"/>
+      <value value="1.5"/>
       <value value="100"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="app-compliance">
@@ -2141,7 +2143,7 @@ NetLogo 6.1.1
       <value value="80"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="infection-chance">
-      <value value="8"/>
+      <value value="0.08"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="use-seed?">
       <value value="false"/>
@@ -2153,20 +2155,81 @@ NetLogo 6.1.1
       <value value="true"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="lambda">
-      <value value="0.025"/>
-      <value value="0.05"/>
-      <value value="0.1"/>
+      <value value="0.005"/>
+      <value value="0.0075"/>
+      <value value="0.0125"/>
+      <value value="0.015"/>
+      <value value="0.02"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="prob-rnd-infection">
-      <value value="0.01"/>
-      <value value="0.05"/>
       <value value="0.1"/>
-      <value value="0.2"/>
     </enumeratedValueSet>
-    <enumeratedValueSet variable="fq-friends">
+    <enumeratedValueSet variable="per-dif-friends">
+      <value value="&quot;0&quot;"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="sensitivity-b" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="false">
+    <setup>setup</setup>
+    <go>go</go>
+    <enumeratedValueSet variable="show-layout">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-cured">
+      <value value="7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="average-isolation-tendency">
+      <value value="0.7"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-existing-nw?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="social-distancing?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-infected">
+      <value value="0.3"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="lockdown-at-first-death">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tests-per-100-people">
+      <value value="1.5"/>
+      <value value="100"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="app-compliance">
+      <value value="&quot;High&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="pct-with-tracing-app">
       <value value="0"/>
-      <value value="2"/>
-      <value value="4"/>
+      <value value="20"/>
+      <value value="40"/>
+      <value value="60"/>
+      <value value="80"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infection-chance">
+      <value value="0.08"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-seed?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="schools-open?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prioritize-symptomatics?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="lambda">
+      <value value="0.005"/>
+      <value value="0.0075"/>
+      <value value="0.0125"/>
+      <value value="0.015"/>
+      <value value="0.02"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-rnd-infection">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="per-dif-friends">
+      <value value="&quot;0&quot;"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>
