@@ -758,6 +758,7 @@ to infect  ;; turtle procedure
           ]
         ]
 ;;-------------------------------------------------------------------------------------------------------------
+
         if howmany > 0[
           ask n-of howmany friends [
             let in_contact false
@@ -1615,7 +1616,7 @@ per-dif-friends
 per-dif-friends
 -1
 1
--0.5
+1.0
 0.1
 1
 NIL
