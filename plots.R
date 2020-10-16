@@ -115,7 +115,7 @@ for(c in unique(covid$compliance)){
             legend.text = element_text(size=16),
             axis.text.x=element_blank(),
             axis.ticks.x=element_blank(),
-            strip.text.x = element_text(size = 18, color = "black", family = "serif" ),
+            strip.text.x = element_text(size = 18, color = "black", family = "serif" ), ##"serif"
             axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)),
             axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
             panel.grid.major.y = element_line(color="gray"),
@@ -158,7 +158,7 @@ ind<-ind[ind$run %in% x,]
 # Plot the epidemic course of selected individual runs
 ##########################################################
 
-covid_plot<-ind[ind$pctTest==1.5 & ind$compliance == "Low" & ind$SymPriority == "true",]
+covid_plot<-ind[ind$pctTest==1.5 & ind$compliance == "High" & ind$SymPriority == "true",]
 covid_plot$pctApp<-factor(covid_plot$pctApp) 
 
 my_epi<-ggplot(covid_plot, aes(x=t,y=((infected / 102908) * 100), color=pctApp)) + # / 102908) * 100), color=run)) +
@@ -170,9 +170,11 @@ my_epi<-ggplot(covid_plot, aes(x=t,y=((infected / 102908) * 100), color=pctApp))
   # labels = c("0","20", "40","60", "80")) +
   #ylim(0,50) +
   #ylim(0,35) +
-  scale_x_continuous(expand = c(0, 0), limits=c(0,300), breaks = c(0,50,100,150,200,250,300)) + scale_y_continuous(limits=c(0,8),expand = c(0, 0)) +
+  scale_x_continuous(expand = c(0, 0), limits=c(0,300), breaks = c(0,50,100,150,200,250,300)) + 
+  scale_y_continuous(limits=c(0,7),expand = c(0, 0),breaks = c(0,1,2,3,4,5,6,7)) +
+  
   theme_minimal()+
-  theme(axis.text = element_text(size=22, family = "serif", color="Black"),axis.title = element_text(size=28, color= "black",face="bold", family = "serif"),
+  theme(axis.text = element_text(size=22, family = "serif", color="Black"),axis.title = element_text(size=28, color= "black", family = "serif"),
         legend.text = element_text(size=16),
         axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)),
         axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0)),
@@ -180,11 +182,11 @@ my_epi<-ggplot(covid_plot, aes(x=t,y=((infected / 102908) * 100), color=pctApp))
         panel.grid = element_line(color="lightgray"),
         panel.border = element_rect(colour = "black", fill=NA, size=1)
         ) +
-  labs(x="Day",y="% infected",color="% CTA users", title = "Tests = 1.5%; compliance low; social distancing; priority to symptomatics") 
+  labs(x="Day",y="% infected",color="% CTA users", title = "Tests = 1.5%; compliance High; social distancing; priority to symptomatics") 
  theme(legend.text = element_text(size = 14),legend.position = "bottom",legend.title = element_blank(),
     axis.title = element_text(size = 14),axis.text = element_text(size = 14),legend.key.height=unit(2, "cm"))
 print(my_epi)
-ggsave(filename = paste0(dir,"/revised2-infected-tests_1.5-comp_low-prio_true.png"), width = 9, height = 6)
+ggsave(filename = paste0(dir,"/revised2-infected-tests_1.5-comp_high-prio_true.png"), width = 9, height = 6)
 
 ####################################
 # TILE PLOT of difference in peak 
@@ -194,30 +196,36 @@ ggsave(filename = paste0(dir,"/revised2-infected-tests_1.5-comp_low-prio_true.pn
 meds$peak<-sapply(meds$run,function(q){
   max(ind[ind$run==q,]$infected)
 })
-
+head(meds)
 # Produce a tile plot of the difference in peak over the baseline
 for(c in unique(meds$compliance)){
   for(p in unique(meds$SymPriority)){
     this<-meds[meds$compliance == c & meds$SymPriority == p,]
     base<-this[this$pctApp == 0 & this$pctTest == 0,]$peak
     #this<-this[this$pctApp > 0 & this$pctTest > 0,]
-    this$peakReduction<- -(((this$peak - base) / base)) 
-    this<-this[c(2,3,ncol(this))]
+    this$peakReduction<- round(100*(base -this$peak) / base)
+    ##this[this$pctTest ==0, "peakReduction"]<-0 
+    this<-this[c(5,6,ncol(this))]
+    this<-this[this$pctTest !=0,]  ##ONLY USE RESULTS WHEN TESTING (WITH NO TESTING THE APP DO NOT WORK)
     #this<-acast(this,pctApp ~ pctTest)
-    ggplot(this,aes(x=factor(pctApp), 
+    plot_tile<-ggplot(this,aes(x=factor(pctApp), 
                     y=factor(pctTest), 
                     fill=peakReduction)) + geom_tile(show.legend=FALSE) +
-      geom_text(aes(label=round(peakReduction,digits = 2)),colour="#000000",fontface="bold", size=4)+
-      scale_y_discrete (labels=c("0","0.5","1","1.5","3","6","∞")) +
+      geom_text(aes(label=round(peakReduction,digits = 2)),colour="#000000",fontface="bold", size=6)+
+      scale_y_discrete (labels=c("0.5","1","1.5","3","6",expression(infinity))) + ##expression(infinity)
       scale_fill_distiller(palette = "YlGnBu", direction = 1) +
       #theme_light() +
-      theme(axis.text = element_text(size = 16),
-            axis.title = element_text(size=18),
-            legend.text = element_text(size=16),
+      theme(axis.text = element_text(size = 22, colour="black",family = "serif"),
+            axis.title = element_text(size=30, family = "serif"),
+            legend.text = element_text(size=18),
             axis.title.x = element_text(margin = margin(t = 15, r = 0, b = 0, l = 0)),
             axis.title.y = element_text(margin = margin(t = 0, r = 15, b = 0, l = 0))
            ) +
-      labs(x="% CTA users",y="Tests per week (% of population)",fill="infection reduction at peak") # title = paste0("Compliance: ", c, "; Priority to symptomatics: ", p)) 
-    ggsave(filename = paste0(dir,"/tiles-comp_",c,"-prio_",p,".png"), width = 9, height = 6)
+      labs(x="% CTA users",y="Tests per week (% of population)",fill="infection reduction at peak") # title= paste0("Compliance: ", c, "; Priority to symptomatics: ", p)) 
+    print(plot_tile)
+    ggsave(filename = paste0(dir,"/tiles-comp_",c,"-prio_",p,".png"), width = 9, height = 9)
   }
 }
+
+
+
