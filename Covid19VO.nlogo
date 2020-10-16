@@ -745,16 +745,29 @@ to infect  ;; turtle procedure
                                                 ;;; If the agent is infective, with probability infection-chance, he infects the susceptible friends who he's is meeting.
       if count friends > 0 [
         let howmany 1 + random round (count friends * proportion)
-        ;show word "meeting with friends:  " howmany
-        ask n-of howmany friends [
-          let in_contact false
-          if random-float 1 < c [
-            set in_contact true
-            ask myself[set nm_contacts nm_contacts + 1] ]
-          if (not isolated?) and (can-be-infected?) and (in_contact) [
-            if has-app? and [has-app?] of spreader [add-contact spreader]
-            if (not cured?) and random-float 1 < ((chance * age-discount * b)) [newinfection spreader "friends"]]
+   ;;----------------------------------------------------------------------------------------------------
+        ;;This is for sensetivity analysis of friends meeting
+        if per-dif-friends != 0[
+          ;;here we want to increase friends meeting
+           if per-dif-friends > 0 [
+             repeat howmany [if random-float 1 <= per-dif-friends [set howmany howmany + 1] ]]
+          ;;here we decrease meeting
+           if per-dif-friends < 0 [ repeat howmany [if random-float 1 <= -1 * per-dif-friends [set howmany howmany - 1] ]
+          ]
         ]
+;;-------------------------------------------------------------------------------------------------------------
+        if howmany > 0[
+          ask n-of howmany friends [
+            let in_contact false
+            if random-float 1 < c [
+              set in_contact true
+            ask myself[set nm_contacts nm_contacts + 1] ]
+            if (not isolated?) and (can-be-infected?) and (in_contact) [
+              if has-app? and [has-app?] of spreader [add-contact spreader]
+              if (not cured?) and random-float 1 < ((chance * age-discount * b)) [newinfection spreader "friends"]]
+         ]
+        ]
+
       ]
     ]
 
@@ -1590,6 +1603,21 @@ Parameters for sensitivity analysis
 16
 0.0
 1
+
+SLIDER
+1130
+240
+1302
+273
+per-dif-friends
+per-dif-friends
+-1
+1
+-0.5
+0.1
+1
+NIL
+HORIZONTAL
 
 @#$#@#$#@
 # covid19 in small communities
