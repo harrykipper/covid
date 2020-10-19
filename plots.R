@@ -214,6 +214,9 @@ epi_course1<-ggplot(covid_plot, aes(x=t,y=((infected / 102908) * 100), color=pct
   positve_1
   ggsave(filename = paste0(dir,"/test-positive-tests_1.5-comp_high-prio_false.png"), width = 9, height = 6)
   
+  
+  
+  
   ####plot positive tests priority policy
   covid_plot<-ind[ind$pctTest==1.5 & ind$compliance == "High" & ind$SymPriority == "true",]
   ##to fix some anomaly in the data
@@ -229,6 +232,19 @@ epi_course1<-ggplot(covid_plot, aes(x=t,y=((infected / 102908) * 100), color=pct
     epi_course_theme 
   positve_2  
   ggsave(filename = paste0(dir,"/test-positive-tests_1.5-comp_high-prio_true.png"), width = 9, height = 6)
+  
+##plot epi course baseline####
+  covid_plot<-ind[ind$pctTest==0 & ind$compliance == "High" & ind$SymPriority == "false" &ind$pctApp ==0,]
+  covid_plot$pctApp<-factor(covid_plot$pctApp) 
+  
+  baseline<-ggplot(covid_plot, aes(x=t,y=((infected / 102908) * 100), color=pctApp))+ 
+    geom_line(size=1.5, show.legend=FALSE, color='gray') +
+    scale_x_continuous(expand = c(0, 7), limits=c(0,300), breaks = c(0,50,100,150,200,250,300)) + 
+    scale_y_continuous(limits=c(0,35),expand = c(0, 0),breaks = c(10,20,30,40)) +
+    labs(x="Day",y="% infected",color="% CTA users") + ##title = "Tests = 1.5%; compliance High; social distancing; priority to symptomatics"
+    epi_course_theme   
+  baseline
+  ggsave(filename = paste0(dir,"/per_infected_baseline.png"), width = 9, height = 6)
   
   
 ####################################
