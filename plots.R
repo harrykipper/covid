@@ -1,6 +1,6 @@
-dir<-"~/ownCloud/abm/presentations/"
-##dir<-"C:/github_projects/covidstefano/Results"
-##setwd("C:/github_projects/covidstefano/Results")
+##dir<-"~/ownCloud/abm/presentations/"
+dir<-"C:/github_projects/covidstefano/Results"
+setwd("C:/github_projects/covidstefano/Results")
 ##getwd()
 ind<-read.csv("lotsofrandom_ind.csv.xz")
 covid<-read.csv("lotsofrandom.csv")
@@ -216,6 +216,8 @@ epi_course1<-ggplot(covid_plot, aes(x=t,y=((infected / 102908) * 100), color=pct
   
   ####plot positive tests priority policy
   covid_plot<-ind[ind$pctTest==1.5 & ind$compliance == "High" & ind$SymPriority == "true",]
+  ##to fix some anomaly in the data
+  covid_plot[covid_plot$pctTest==1.5 & covid_plot$compliance == "High" & covid_plot$SymPriority == "true" & covid_plot$t ==286 & covid_plot$pctApp==0 ,ncol(covid_plot)-1 ]<-0
   covid_plot$pctApp<-factor(covid_plot$pctApp) 
   
   positve_2<-ggplot(covid_plot, aes(x=t,y=((positiveTests/tests) * 100), color=pctApp))+ 
@@ -227,6 +229,7 @@ epi_course1<-ggplot(covid_plot, aes(x=t,y=((infected / 102908) * 100), color=pct
     epi_course_theme 
   positve_2  
   ggsave(filename = paste0(dir,"/test-positive-tests_1.5-comp_high-prio_true.png"), width = 9, height = 6)
+  
   
 ####################################
 # TILE PLOT of difference in peak 
