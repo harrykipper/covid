@@ -175,11 +175,11 @@ to print-final-summary
     [file-open file-name]
     [
       file-open file-name
-      file-print "run,max-prop-friends-met,lambda,prob-rnd-infection,pctApp,pctTest,lockdown,schools,compliance,SymPriority,deaths,propInfected,mortality,days,tests,household,relations,friends,school,random,work"
+      file-print "run,beta,lambda,prob-rnd-infection,f,pctApp,pctTest,lockdown,schools,compliance,SymPriority,deaths,propInfected,mortality,days,tests,household,relations,friends,school,random,work"
     ]
     let tot sum table:values counters
     file-type (word
-      behaviorspace-run-number "," max-prop-friends-met "," lambda "," prob-rnd-infection "," pct-with-tracing-app "," tests-per-100-people "," lockdown-at-first-death "," schools-open? "," app-compliance "," prioritize-symptomatics? "," 
+      behaviorspace-run-number "," infection-chance "," lambda "," prob-rnd-infection "," per-dif-friends "," pct-with-tracing-app "," tests-per-100-people "," lockdown-at-first-death "," schools-open? "," app-compliance "," prioritize-symptomatics? "," 
       deaths "," ((totalinf / N-people) * 100) "," (precision ((deaths / totalinf) * 100) 2) "," ticks "," tests-performed
     )
     ifelse tot > 0 
@@ -196,9 +196,9 @@ to save-individual
   [file-open file-name]
   [
     file-open file-name
-    file-print "run,t,max-prop-friends-met,lambda,prob-rnd-infection,pctApp,pctTest,lockdown,schoolsopen,compliance,SymPriority,susceptible,infected,recovered,isolated,dead,hospitalized,presymptomatic,symptomatic,asymptomatic,severe,tests,positiveTests"
+    file-print "run,t,beta,lambda,prob-rnd-infection,f,pctApp,pctTest,lockdown,schoolsopen,compliance,SymPriority,susceptible,infected,recovered,isolated,dead,hospitalized,presymptomatic,symptomatic,asymptomatic,severe,tests,positiveTests"
   ]
-  file-print (word behaviorspace-run-number "," ticks "," max-prop-friends-met "," lambda "," prob-rnd-infection "," pct-with-tracing-app "," tests-per-100-people ","
+  file-print (word behaviorspace-run-number "," ticks "," infection-chance "," lambda "," prob-rnd-infection "," per-dif-friends "," pct-with-tracing-app "," tests-per-100-people ","
     lockdown-at-first-death ","  schools-open? "," app-compliance "," prioritize-symptomatics? "," csv:to-row table:values populations "," tests-today "," tested-positive) 
   file-close
 end
