@@ -234,19 +234,42 @@ epi_course1<-ggplot(covid_plot, aes(x=t,y=((infected / 102908) * 100), color=pct
   ggsave(filename = paste0(dir,"/test-positive-tests_1.5-comp_high-prio_true.png"), width = 9, height = 6)
   
 ##plot epi course baseline####
+  ind_do_nothing<-read.csv("lotsofrandom-doNothing_ind.csv")
+  ind_do_nothing<-ind_do_nothing[ind_do_nothing$run==12,]  
+  
   covid_plot<-ind[ind$pctTest==0 & ind$compliance == "High" & ind$SymPriority == "false" &ind$pctApp ==0,]
   covid_plot$pctApp<-factor(covid_plot$pctApp) 
   
-  baseline<-ggplot(covid_plot, aes(x=t,y=((infected / 102908) * 100), color=pctApp))+ 
-    geom_line(size=1.5, show.legend=FALSE, color='gray') +
-    scale_x_continuous(expand = c(0, 7), limits=c(0,300), breaks = c(0,50,100,150,200,250,300)) + 
-    scale_y_continuous(limits=c(0,35),expand = c(0, 0),breaks = c(10,20,30,40)) +
-    labs(x="Day",y="% infected",color="% CTA users") + ##title = "Tests = 1.5%; compliance High; social distancing; priority to symptomatics"
-    epi_course_theme   
+  colors<-c('Social distancing' =' gray', 'No social distancing' = 'black')
+  baseline<-ggplot()+
+    geom_line(data=covid_plot, aes(x=t,y=(100*(infected / 102908)),color="Social distancing" ),  size=1.5 ) +
+    geom_line(data=ind_do_nothing, aes(x=t,y=(100*(infected / 102908)),color="No social distancing"),  size=1.5) +
+    scale_color_manual(values = colors) +
+    scale_x_continuous(expand = c(0, 10), limits=c(0,200), breaks = c(0,50,100,150,200,250,300)) + 
+    scale_y_continuous(limits=c(0,45),expand = c(0, 0),breaks = c(10,20,30,40)) +
+    labs(x="Day",y="% infected",color="% CTA users") + ##title = "Tests = 1.5%; compliance High; social distancing;priority to symptomatics"
+    theme_minimal()+
+    theme(axis.text = element_text(size=14, family = "sans", color="Black"),
+          axis.title = element_text(size=18, color= "black", family = "sans"),
+          legend.text = element_text(size=14),legend.key.height=unit(2, "cm"),
+          legend.position = "bottom",
+          legend.title = element_blank(),
+          axis.title.x = element_text(margin = margin(t = 5, r = 0, b = 0, l = 0)),
+          axis.title.y = element_text(margin = margin(t = 15, r = 5, b = 0, l = 5)),
+          axis.line = element_line(colour = "black", size = 1),
+          panel.grid = element_line(color="lightgray"),
+          panel.border = element_rect(colour = "black", fill=NA, size=1)
+    ) 
+  +
+  labs(x = "Day",
+       y = "% infected")  
+    ##theme(legend.position = c(0.8, 0.8),legend.key.size = unit(0.8, "cm"),
+        ##  legend.text = element_text(color = "black", size = 14), 
+          ##legend.background = element_rect(fill="white", size=0.1, linetype="solid"))
   baseline
-  ggsave(filename = paste0(dir,"/per_infected_baseline.png"), width = 9, height = 6)
+  ggsave(filename = paste0(dir,"/per_infected_with_SD_and_without.png"), width = 8, height = 8)
   
-  
+  ##covid_baseline<-covid[covid$pctApp==0& covid$pctTest==0,] 
 ####################################
 # TILE PLOT of difference in peak 
 ####################################
