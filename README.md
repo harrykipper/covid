@@ -70,3 +70,5 @@ Social distancing is implemented in the model assuming a subset of workers worki
 ### Contact tracing 
 
 The model simulates a proposed contact tracing strategy for the "second phase" of epidemic control: an opt-in smartphone app. Upon model initialization a certain proportion of agents are given the "app". If an agent with the app tests positive for COVID19 all other agents who have come into contact with her in the previous 10 days, and also have the app, are notified and have the option to self-segregate as a precaution.
+
+![Model diagram](https://raw.githubusercontent.com/harrykipper/covid/master/Fig2_revised.png)
