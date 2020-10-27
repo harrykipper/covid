@@ -167,10 +167,10 @@ to setup
   set show-layout false
   set use-existing-nw? true
 
-  if impossible-run [
-    reset-ticks
-    stop
-  ]
+;  if impossible-run [
+;    reset-ticks
+;    stop
+;  ]
 
   set-default-shape turtles "circle"
 
@@ -327,7 +327,7 @@ end
 ;=====================================================================================
 
 to go
-  if ticks = 0 and impossible-run [stop]
+ ; if ticks = 0 and impossible-run [stop]
 
   if table:get populations "infected" = 0 [
     print-final-summary
@@ -746,13 +746,13 @@ to infect  ;; turtle procedure
       if count friends > 0 [
         let howmany 1 + random round (count friends * proportion)
    ;;----------------------------------------------------------------------------------------------------
-        ;;This is for sensetivity analysis of friends meeting
+        ;;This is for sensitivity analysis of friends meeting
         if per-dif-friends != 0[
           ;;here we want to increase friends meeting
            if per-dif-friends > 0 [
-             repeat howmany [if random-float 1 <= per-dif-friends [set howmany howmany + 1] ]
-             set howmany min (list  howmany round (count friends * proportion))  ]
-
+            repeat howmany [if random-float 1 <= per-dif-friends [set howmany howmany + 1] ]
+            set howmany min (list howmany round (count friends))
+          ]
           ;;here we decrease meeting
            if per-dif-friends < 0 [ repeat howmany [if random-float 1 <= -1 * per-dif-friends [set howmany howmany - 1] ]
           ]
@@ -1454,7 +1454,7 @@ SWITCH
 307
 social-distancing?
 social-distancing?
-0
+1
 1
 -1000
 
@@ -1615,122 +1615,13 @@ per-dif-friends
 per-dif-friends
 -1
 1
--0.5
+0.0
 0.1
 1
 NIL
 HORIZONTAL
 
 @#$#@#$#@
-# covid19 in small communities
-
-A tentative multi-level network based SEIR model of the progression of the COVID19 infection.
-
-## A preliminary warning
-
-This is a simulation with random events and plausible but (partially) unverified assumptions, please do not take it a a sure forecasting machine, it is a reasoning machine, a sort of very complex “what if” mental experiment.
-
-## The model
-
-### Agents
-
-The population is imported in the model upon setup from the file vo.csv. Agent attributes are _age_ and _marital status_ (source: http://demo.istat.it/pop2019/index3.html). Any population can be imported from a csv structured as follows:
-
-``age,singleMales,marriedMales,divorcedMales,widowesMales,singleFemales,marriedFemales,divorcedFemales,widowedFemales``
-
-### Networks
-
-Agents in the model belong to three intertwined networks: 'household', 'relation' and 'friendship' 
-
-A **household** structure is created as follows: married males and females are linked together on the basis of age distance, single people below the age of 28 are assumed to live at home with one or two parents and siblings. Single people above the age of 26 are assumed to live on their own, a certain proportion cohabiting. Links of type 'household' are built among these people.
-
-A **friendship** network is created among all agents > 14 y.o. based on the *preferential attachment* principle, so that a scale-free network is produced. Friendships are skewed towards people of the same age group.
-
-A **relation** network links people who are related but don't live in the same household (i.e. grandparents).
-
-### Infection
-
-The infection is assumed to predominantly follow social links. People in an infected agent's social network can be infected. When someone becomes infected, after a period of incubation, she becomes infective starts infecting others.
-
-The progression of the disease is based on data from China and Italy. Agents have a probability of developing symptoms after incubation, based on their age, another probability of worsening and another of dying. These are set up in DiseaseConfig.nls
-
-![Progression of the infection](https://raw.githubusercontent.com/harrykipper/covid/master/infection.png)
-
-### Lockdown
-
-The model implements lockdown policies based on the response of nearly all European countries. In a lockdown all friendship links are dropped (= no one can be infected through their friends) and schools are closed. Crucially, agents are assumed to be segregating at home, therefore household members are still somewhat exposed to the infection.
-
-### Contact tracing
-
-The model also simulates a proposed contact tracing strategy for the "second phase" of epidemic control: an opt-in smartphone app. Upon model initialization a certain proportion of agents are given the "app". If an agent with the app tests positive for COVID19 all other agents who have come into contact with her in the previous 10 days, and also have the app, are notified and have the option to self-segregate as a precaution.
-In case tests are unavailable, the app is alerts contacts when an agent is experiencing symptoms, so they have the choice of self isolating.
-
-## Model configuration
-
-The model can be configured changing the transition probabilities and timings at the beginning of the Code section in Netlogo and the following parameters in Netlogo's interface:
-
-**Disease configuration**
-
-* *infection-chance*  Daily probability of infecting a subset of one infected person's network 
-* *initially-infected* Number of agents infected at simulation day 0
-* *incubation-days* Days before an infected agent becomes infectious and may show symptoms 
-* *average-isolation-tendency* Probability of self-isolating after displaying symptoms   
-
-**Network related**
-
-* *use-network?* If false contagion happens randomly                          
-* *initial-links-per-age-group* No. of random friendship links within each group upon initialization 
-* *show-layout?* Display the whole social network stricture. **WARNING: VERY SLOW** 
-* *lockdown-at-first-death* Implement a full lockdown upon the first reported death (as happened in Vo' Euganeo) 
-
-**Mitigtions**
-
-* *pct-with-tracing-app* Percentage of the population carrying the contact-tracing app
-* *tests-per-100-people* Number of tests available per week as proportion of the population
-* *schools-open?* Whether kids go to school each morning
-
-**Runtime config**
-
-* *use-seed* The simulation uses a fixed random seed
-* *use-existing-nw* Use a pre-generated social network instead of creating one at setup (much faster)
-
-## What to do with this
-
-The model is useful to show the progression of the infection in a small community and appreciate the difference in infections and casualties with and without social distancing/lockdown measures, and to test the effectiveness of infection mitigation strategies such as contact tracing apps.
-
-The model also shows that, when we assume that the viral transmission runs predominantly through one's social network, the dynamic of the infection is different from that emerging under the assumption of most SEIR models of an equal probability of everyone infecting everyone else.
-
-The model is easy to adapt to test different levels of infectiousness and different proportions of people becoming symptomatic and severely ill.
-
-
-## The Vo' Euganeo case
-
-The first official Italian COVID19 death was a 78 year old resident of the town of Vo' Euganeo, in the province of Padua, on February 22. Immediately afterwards, a lockdown of the whole town was ordered and 85% of the whole population of 3300 was tested. Nearly 3% was found to be carrying the Coronavirus (https://www.scribd.com/document/450608044/Coronavirus-Regione-Veneto-Azienda-Zero-pdf). Eighteen days later a second death was recorded in the town, a 68 year old, who was a friend of the first victim.
-
-## RELATED MODELS
-
-epiDEM basic, HIV, Virus, Virus on a Network, Preferential Attachment are related models.
-
-## CREDITS AND REFERENCES
-
-The preferential attachment bit of the model is based on:
-
-* Albert-László Barabási. Linked: The New Science of Networks, Perseus Publishing, Cambridge, Massachusetts, pages 79-92.
-
-The model includes code adapted from the following models:
-
-* Wilensky, U. (2005).  NetLogo Preferential Attachment model.  http://ccl.northwestern.edu/netlogo/models/PreferentialAttachment.  Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
-* Yang, C. and Wilensky, U. (2011).  NetLogo epiDEM Travel and Control model.  http://ccl.northwestern.edu/netlogo/models/epiDEMTravelandControl.  Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
-
-Please cite the NetLogo software as:
-
-* Wilensky, U. (1999). NetLogo. http://ccl.northwestern.edu/netlogo/. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
-
-## COPYRIGHT AND LICENSE
-
-![CC BY-NC-SA 3.0](http://ccl.northwestern.edu/images/creativecommons/byncsa.png)
-
-This work is licensed under the Creative Commons Attribution-NonCommercial-ShareAlike 3.0 License.  To view a copy of this license, visit https://creativecommons.org/licenses/by-nc-sa/3.0/ or send a letter to Creative Commons, 559 Nathan Abbott Way, Stanford, California 94305, USA.
 @#$#@#$#@
 default
 true
@@ -2228,7 +2119,7 @@ NetLogo 6.1.1
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="per-dif-friends">
-      <value value="&quot;0&quot;"/>
+      <value value="0"/>
     </enumeratedValueSet>
   </experiment>
   <experiment name="sensitivity-p" repetitions="10" sequentialRunOrder="false" runMetricsEveryStep="false">
@@ -2285,17 +2176,14 @@ NetLogo 6.1.1
       <value value="0.01"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="prob-rnd-infection">
-      <value value="0.005"/>
-      <value value="0.0075"/>
-      <value value="0.125"/>
-      <value value="0.15"/>
-      <value value="0.2"/>
+      <value value="0.05"/>
+      <value value="0.075"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="per-dif-friends">
       <value value="0"/>
     </enumeratedValueSet>
   </experiment>
-  <experiment name="sensitivity-f" repetitions="10" sequentialRunOrder="false" runMetricsEveryStep="false">
+  <experiment name="sensitivity-f2" repetitions="10" sequentialRunOrder="false" runMetricsEveryStep="false">
     <setup>setup</setup>
     <go>go</go>
     <enumeratedValueSet variable="show-layout">
@@ -2352,11 +2240,62 @@ NetLogo 6.1.1
       <value value="0.1"/>
     </enumeratedValueSet>
     <enumeratedValueSet variable="per-dif-friends">
-      <value value="-0.5"/>
-      <value value="-0.25"/>
       <value value="0.25"/>
       <value value="0.5"/>
       <value value="0.75"/>
+      <value value="1"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="baseline" repetitions="20" sequentialRunOrder="false" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <enumeratedValueSet variable="lambda">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prioritize-symptomatics?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="use-seed?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="lockdown-at-first-death">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="pct-with-tracing-app">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="schools-open?">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="per-dif-friends">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="max-prop-friends-met">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-cured">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="prob-rnd-infection">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="social-distancing?">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="infection-chance">
+      <value value="0.08"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="initially-infected">
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="tests-per-100-people">
+      <value value="0"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="app-compliance">
+      <value value="&quot;Low&quot;"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="average-isolation-tendency">
+      <value value="0.7"/>
     </enumeratedValueSet>
   </experiment>
 </experiments>
