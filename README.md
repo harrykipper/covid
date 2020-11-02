@@ -21,6 +21,7 @@ The model is based on the available knowledge on the progression of the COVID19 
 | tests-per-100-people	      | Number of tests available **per week** as proportion of the population |
 | schools-open?               | Whether kids go to school each morning |
 | social-distancing?	      | Whether social distancing measures are in place |
+| prioritize-symptomatics? | Symptomatic agents are tested before contacts |
 | app-compliance              | Likelihood that a non-symptomatic agent notified by the app will self-isolate | 
 | use-seed                    | The simulation uses a fixed random seed |
 
