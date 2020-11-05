@@ -33,7 +33,7 @@ The model also shows that, when we assume that the viral transmission runs predo
 
 ### Agents
 
-The population of Glasgow, Scotland is imported in the model upon setup, at a 1/5 scale (120,000 agents circa). Agent attributes are _age_, _gender_, _household type_, and _location_ (source: 2011 Census). 
+The population of Glasgow, Scotland is imported in the model upon setup, at a 1/5 scale (103,000 agents circa). Agent attributes are _age_, _gender_, _household type_, and _location_ (source: 2011 Census). 
 
 ### Networks
 
@@ -53,7 +53,7 @@ A **classroom** network links children between 6-17 years of age in groups of ma
 
 Every simulated day agents go about their activities and meet other agents: at home, at work, in school, around town. Each encounter presents an occasion for an infected agent to infect someone else. 
 
-The infection is assumed to follow _predominantly_ social links. People in an infected agent's household, social network and workplace are more exposed, due to closer and longer contact. During random encounters contacts are of shorter duration and therfore have a lower probability of transmission. When someone becomes infected, after a period of incubation, she starts infecting people in her network. 
+The infection is assumed to follow _predominantly_ social links. People in an infected agent's household, social network and workplace are more exposed, due to closer and longer contact. During random encounters contacts are of shorter duration and therfore have a lower probability of transmission. When someone becomes infected, after a period of incubation, she starts infecting other people. 
 
 The progression of the disease is based on available data and research. Agents have a probability of developing symptoms after incubation, based on their age; another probability of worsening; another of dying. The probability is lower for women in all three phases. 
 The probabilities can be modified editing the DiseaseConfig.nls file.
