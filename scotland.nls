@@ -1,0 +1,275 @@
+to create-agents-sco
+  let scale 5
+  foreach csv:from-file "glaHH.csv" [zn ->
+    let ag list item 2 zn item 3 zn 
+    let i 4
+    ;print (word zn " - age " ag)
+    while [i < 18] [
+     if i != 16 [ 
+        let howmany round (item i zn / scale)
+        ; show (word howmany " ppl type " i)
+        if howmany > 0 [
+          crt howmany [
+            set neigh item 0 zn
+            set sex item 1 zn
+            set age my-age zn 
+            set hhtype i - 3
+          ]
+        ]
+      ]
+      set i i + 1
+    ]
+  ]
+  set place table:group-agents turtles [neigh]
+  set placecnt table:from-list map [area ->  
+    (
+      list (item 0 area) (list (count turtle-set item 1 area) (count (turtle-set item 1 area) with [age < 67] / count (turtle-set item 1 area)))
+    ) ] table:to-list place
+    
+  set seniors turtles with [age >= 67]
+  set schoolkids turtles with [age > 5 and age < 18]
+  set adults turtles with [age > 14]
+end
+
+to read-agents-sco
+  crt 102908
+  foreach csv:from-file "glasgow_agents.csv" [ag ->
+    ask turtle item 0 ag [
+      set age item 1 ag
+      set sex item 2 ag
+      set hhtype item 3 ag
+      set neigh item 4 ag
+      set ward table:get wardmap neigh
+    ]
+  ]
+  set place table:group-agents turtles [neigh]
+  
+  set placecnt table:from-list map [area ->  
+    (
+      list (item 0 area) (list (count turtle-set item 1 area) (count (turtle-set item 1 area) with [age < 67] / count (turtle-set item 1 area)))
+    ) ] table:to-list place
+  
+  set seniors turtles with [age >= 67]
+  set schoolkids turtles with [age > 5 and age < 18]
+  set adults turtles with [age > 14]
+end
+
+to-report my-age [agelist]
+  let col 0
+  let col_start 0
+  let col_end 0
+  let age_group item 2 agelist
+  ifelse item 1 agelist = "M" [set col  20] [set col  100]
+   (ifelse
+    age_group = 0  [set col_start col set col_end (col_start + 14) ]
+    age_group = 16 [set col_start (col + 15) set col_end (col_start + 8)] 
+    age_group = 25 [set col_start (col + 24) set col_end (col_start + 24)]
+    age_group = 50 [set col_start (col + 49) set col_end (col_start + 14)] 
+    age_group = 65 [set col_start (col + 64) set col_end (col_start + 15)]
+  )
+  
+  let sumage sublist agelist col_start (col_end + 1) 
+  let myrnd random (sum sumage + 1)
+  let select-age age_group 
+  if select-age = 0 [set select-age 1]
+  let cum_age item col_start agelist
+  
+  while [cum_age < myrnd]
+    [set select-age select-age + 1
+     set col_start col_start + 1 
+     set cum_age cum_age + item col_start agelist 
+    ]
+      
+ report select-age
+end
+
+
+
+; household types from 2011 census
+; 1 One person household: Aged [65 90],
+; 2 One person household: Aged under 65,
+
+; 3 One family household: All aged [65 90],
+; 4 One family household: Married couple: No children,
+
+; 5 One family household: Married couple: With dependent children,
+; 6 One family household: Married couple: All children non-dependent,
+
+; 7 One family household: Same-sex civil partnership couple,
+
+; 8 One family household: Cohabiting couple: No children,
+
+; 9 One family household: Cohabiting couple: With dependent children,
+; 10 One family household: Cohabiting couple: All children non-dependent 
+; 11 One family household: Lone parent: With dependent children 
+; 12 One family household: Lone parent: All children non-dependent 
+
+; 13 Other household types: With dependent children,
+; 14 Other household types: All full-time students,
+; 15 Other household types: All aged [65 90],
+; 16 Other household types: Other
+
+; 1 and 2 are one person hh
+; 3, 4, 7, 8 are couples without children
+; 5, 6, 9, 10 are couples with children
+; 11, 12 are single parents with children
+; 14 are students  (assumed to live in households of 5)
+
+; 13, 15 and 16 I don't want to think about. 15 maybe care homes??
+
+to create-hh-sco
+  foreach table:keys place [ngh ->
+    create-marriages-sco ngh
+    attach-children-sco ngh
+    create-student-hh ngh
+  ]
+  output-print "Done creating marriages, households and attaching children"
+  ask seniors [create-relations-sco]
+  output-print "Done creating relations"
+end
+
+to create-relations-sco
+  if count my-relations = 0 [
+    let granpa self
+    let age-interval-max age - 20
+    let age-interval-min age - 37
+    let howmanyrels round random-normal 2 0.8
+    let candidates turtles with [age <= age-interval-max and age >= age-interval-min and count my-relations <= 2 and not household-neighbor? granpa]
+    repeat howmanyrels [
+      let candidate one-of candidates
+      if candidate != nobody [
+        ask candidate [
+          create-relation-with granpa
+          ask my-households with [ltype != 2][ask other-end [create-relation-with granpa]]
+          set candidates other candidates
+        ]
+        ask household-neighbors [create-relation-with candidate]
+      ]
+    ]
+  ]
+end
+
+to create-marriages-sco [ngh]
+  let ppl (turtle-set table:get place ngh) with [age > 20]
+  foreach [3 4 5 6 8 9 10][tp ->
+    let m ppl with [sex = "M" and hhtype = tp]
+    let f ppl with [sex = "F" and hhtype = tp]
+    let one m
+    let two f
+    if count m > count f [
+      set one f
+      set two m
+    ]
+    ask one [
+      let partner min-one-of two [abs (age - [age] of myself)]
+      create-household-with partner [set ltype 0]
+      ask partner [set two other two]
+    ]
+  ]
+  ; Same sex couples. Done in a silly way
+  let m ppl with [sex = "M" and hhtype = 7]
+  let f ppl with [sex = "F" and hhtype = 7]
+  repeat count m / 2 [
+    ask one-of m [
+      let partner min-one-of other m [abs (age - [age] of myself)]
+      create-household-with partner [set ltype 0]
+      set m other m
+      ask partner [set m other m]
+    ]
+  ]
+  repeat count f / 2 [
+    ask one-of f [
+      let partner min-one-of other f [abs (age - [age] of myself)]
+      create-household-with partner [set ltype 0]
+      set f other f
+      ask partner [set f other f]
+    ]
+  ]
+end
+
+to attach-children-sco [ngh]
+  let ppl (turtle-set table:get place ngh) with [age <= 20]
+  let moms (turtle-set table:get place ngh) with [sex = "F" and age > 20]
+  let dads (turtle-set table:get place ngh) with [sex = "M" and age > 20]
+  let maxhh 6
+  foreach [5 6 9 10 11 12][tp -> 
+    if tp > 10 [set maxhh 4]
+    ; show (word "zone " ngh ", type " tp)
+    let mamme moms with [hhtype = tp]
+    let papa dads with [hhtype = tp]
+    let thesekids ppl with [hhtype = tp]
+    ;show (word count mamme " mamme nella zona " ngh " di tipo " tp)
+    ;show (word count thesekids " creature nella zona " ngh " di tipo " tp)
+    ask thesekids
+    [
+      let age-interval-min age + 17
+      let age-interval-max age + 39
+      let thekid self
+      let m mamme with [age <= age-interval-max and age >= age-interval-min]
+      if tp > 10 [set m (turtle-set m papa with [age <= age-interval-max and age >= age-interval-min])]  ;; type 11 and 12 are single parents with children, so m can be either dad or mom
+      if any? m [
+        ask min-one-of m [count my-households]
+          [
+            ask household-neighbors [create-household-with thekid [set ltype 1]]
+            create-household-with thekid [set ltype 1]
+            if count my-households = maxhh [
+              ifelse member? self mamme 
+              [set mamme other mamme]
+              [set papa other papa]
+            ]
+        ]
+      ]
+    ]
+  ]
+end
+
+to create-student-hh [ngh]
+  let studs (turtle-set table:get place ngh) with [hhtype = 14]
+  
+  ; we assume households of up to 5 students
+  if count studs >= 5 [
+    let howManyHH ceiling (count studs / 5)
+    let studsPerHH ceiling (count studs / howManyHH)
+    repeat howManyHH [
+      let thishh up-to-n-of studsPerHH studs
+      ask thishh [
+        create-households-with other thishh [set ltype 2]
+        set studs other studs
+      ]
+    ] 
+  ]
+end
+
+to create-schools-sco [ngh]
+  foreach remove-duplicates [age] of schoolkids [a ->
+    let thesekids schoolkids with [age = a and ward = ngh]
+    ask thesekids [set myclass 0]
+    ifelse count thesekids > 30 [
+      let howManyClasses ceiling (count thesekids / 30)
+      let kidsperclass ceiling (count thesekids / howManyClasses)
+      let ctr 1
+      while [ctr <= howManyClasses] [
+        let thisclass up-to-n-of kidsperclass thesekids with [myclass = 0]
+        ask thisclass [set myclass (word ngh "-" a "-" ctr)]
+        set ctr ctr + 1
+      ]
+    ]
+    [ask thesekids [set myclass (word ngh "-" a "-" 0)]]
+  ]
+  set school table:group-agents schoolkids [myclass]
+end
+
+
+;to create-city-from-gis
+;  if behaviorspace-run-number = 0 [gis:paint world 125]
+;  gis:set-drawing-color orange
+;  gis:draw place 2
+
+; gis:apply-coverage place "CODE" name
+;  gis:apply-coverage greenery "ID" parkid ;; "DISTNAME1" in the shp contains the human readable name of the park, but not all of them have it so we use "ID"
+
+;  create-parks
+
+;  set zones remove-duplicates [name] of patches with [is-string? name and walkability > 0]
+;  set urbs patches with [walkability > 0]
+;end
