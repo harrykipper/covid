@@ -37,13 +37,13 @@ The population of Glasgow, Scotland is imported in the model upon setup, at a 1/
 
 ### Networks
 
-Agents in the model belong to four intertwined networks: 'household', 'relation', 'friendship' and 'work'. Children between 6-17 y.o. also belong to a number of 'classroom' networks.
+Agents in the model belong to four intertwined networks: 'household', 'relation', 'social' and 'work'. Children between 6-17 y.o. also belong to a number of 'classroom' networks.
 
-A **household** structure is created as follows: males and females belonging to the same household type, and residing in the same locale (detailed postcode sector), are linked together on the basis of age distance; single people below the age of 20 are assumed to live at home with one or two parents and siblings. Single people above the age of 20 are assumed to live on their own, a certain proportion cohabiting. Links of type 'household' are built among these people.
+A **household** structure is created as follows: males and females belonging to the same household type, and residing in the same postcode sector, are linked together on the basis of age distance; single people below the age of 20 are assumed to live at home with one or two parents and siblings. Single people above the age of 20 are assumed to live on their own, a certain proportion cohabiting. Links of type 'household' are built among these agents.
 
 A number of **workplace** networks are created based on the distribution of workplace sizes in the city of Glasgow. Active working age agents are distributed among workplaces and linked with all co-workers, a subset of which assumed to be in closer, more frequent contact. 13% of working age agents are assigned to public-facing employment, entailing frequent contact with other agents. 
 
-A **friendship** network is created among all agents > 14 y.o. based on the *preferential attachment* principle, so that a scale-free network is produced. Friendships are skewed towards people of the same age group.
+A **social** network is created among all agents > 14 y.o. based on the *preferential attachment* principle, so that a scale-free network is produced. Social links are skewed towards people of the same age group.
 
 A **relation** network links people who are related but don't live in the same household (i.e. grandparents)
 
